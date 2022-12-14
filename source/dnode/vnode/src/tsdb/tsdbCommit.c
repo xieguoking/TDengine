@@ -170,14 +170,14 @@ int32_t tsdbCommit(STsdb *pTsdb, SCommitInfo *pInfo) {
   SMemTable *pMemTable = pTsdb->imem;
 
   // check
-  if (pMemTable->nRow == 0 && pMemTable->nDel == 0) {
-    taosThreadRwlockWrlock(&pTsdb->rwLock);
-    pTsdb->imem = NULL;
-    taosThreadRwlockUnlock(&pTsdb->rwLock);
+  // if (pMemTable->nRow == 0 && pMemTable->nDel == 0) {
+  taosThreadRwlockWrlock(&pTsdb->rwLock);
+  pTsdb->imem = NULL;
+  taosThreadRwlockUnlock(&pTsdb->rwLock);
 
-    tsdbUnrefMemTable(pMemTable);
-    goto _exit;
-  }
+  tsdbUnrefMemTable(pMemTable);
+  goto _exit;
+  // }
 
   // start commit
   code = tsdbStartCommit(pTsdb, &commith, pInfo);
