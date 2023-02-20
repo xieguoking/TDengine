@@ -11,6 +11,7 @@ CFLAGS = -O0 -g -Wno-deprecated -fPIC -Wno-unused-result -Wconversion \
 all: $(TARGET)
 
 exe:
+	gcc $(CFLAGS) ./batchInsert.c  -o $(ROOT)batchInsert  $(LFLAGS)
 	gcc $(CFLAGS) ./batchprepare.c  -o $(ROOT)batchprepare  $(LFLAGS)
 	gcc $(CFLAGS) ./stopquery.c  -o $(ROOT)stopquery $(LFLAGS)
 	gcc $(CFLAGS) ./dbTableRoute.c  -o $(ROOT)dbTableRoute $(LFLAGS)
