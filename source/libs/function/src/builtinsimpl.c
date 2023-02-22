@@ -5387,7 +5387,6 @@ int32_t blockDistFunction(SqlFunctionCtx* pCtx) {
   pDistInfo->numOfBlocks += p1.numOfBlocks;
   pDistInfo->numOfTables += p1.numOfTables;
   pDistInfo->numOfInmemRows += p1.numOfInmemRows;
-  pDistInfo->numOfVgroups += p1.numOfVgroups;
   pDistInfo->totalSize += p1.totalSize;
   pDistInfo->totalRows += p1.totalRows;
   pDistInfo->numOfFiles += p1.numOfFiles;
