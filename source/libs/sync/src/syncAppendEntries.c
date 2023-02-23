@@ -104,7 +104,7 @@ int32_t syncNodeOnAppendEntries(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
   SyncAppendEntries* pMsg = pRpcMsg->pCont;
   SRpcMsg            rpcRsp = {0};
   bool               accepted = false;
-  // if already drop replica, do not process
+
   if (!syncNodeInRaftGroup(ths, &(pMsg->srcId))) {
     syncLogRecvAppendEntries(ths, pMsg, "not in my config");
     goto _IGNORE;
@@ -117,7 +117,6 @@ int32_t syncNodeOnAppendEntries(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
   }
 
   SyncAppendEntriesReply* pReply = rpcRsp.pCont;
-  // prepare response msg
   pReply->srcId = ths->myRaftId;
   pReply->destId = pMsg->srcId;
   pReply->term = raftStoreGetTerm(ths);
@@ -135,7 +134,6 @@ int32_t syncNodeOnAppendEntries(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
   }
 
   syncNodeStepDown(ths, pMsg->term);
-  syncNodeResetElectTimer(ths);
 
   if (pMsg->dataLen < (int32_t)sizeof(SSyncRaftEntry)) {
     sError("vgId:%d, incomplete append entries received. prev index:%" PRId64 ", term:%" PRId64 ", datalen:%d",
@@ -151,7 +149,7 @@ int32_t syncNodeOnAppendEntries(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
   }
 
   if (pMsg->prevLogIndex + 1 != pEntry->index || pEntry->term < 0) {
-    sError("vgId:%d, invalid previous log index in msg. index:%" PRId64 ",  term:%" PRId64 ", prevLogIndex:%" PRId64
+    sError("vgId:%d, prevLogIndex in msg invalid. index:%" PRId64 ",  term:%" PRId64 ", prevLogIndex:%" PRId64
            ", prevLogTerm:%" PRId64,
            ths->vgId, pEntry->index, pEntry->term, pMsg->prevLogIndex, pMsg->prevLogTerm);
     goto _IGNORE;
@@ -173,7 +171,6 @@ _SEND_RESPONSE:
   bool matched = (pReply->matchIndex >= pReply->lastSendIndex);
   if (accepted && matched) {
     pReply->success = true;
-    // update commit index only after matching
     (void)syncNodeUpdateCommitIndex(ths, TMIN(pMsg->commitIndex, pReply->lastSendIndex));
   }
 
@@ -183,10 +180,10 @@ _SEND_RESPONSE:
   // commit index, i.e. leader notice me
   if (syncLogBufferCommit(ths->pLogBuf, ths, ths->commitIndex) < 0) {
     sError("vgId:%d, failed to commit raft fsm log since %s.", ths->vgId, terrstr());
-    goto _out;
   }
 
 _out:
+  syncNodeResetElectTimer(ths);
   return 0;
 
 _IGNORE:

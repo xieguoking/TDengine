@@ -118,28 +118,23 @@ int32_t syncNodeOnTimeout(SSyncNode* ths, const SRpcMsg* pRpc) {
 
   if (pMsg->timeoutType == SYNC_TIMEOUT_PING) {
     if (atomic_load_64(&ths->pingTimerLogicClockUser) <= pMsg->logicClock) {
-      ++(ths->pingTimerCounter);
-
-      // syncNodePingAll(ths);
-      // syncNodePingPeers(ths);
+      ths->pingTimerCounter += 1;
 
       syncNodeTimerRoutine(ths);
     }
 
   } else if (pMsg->timeoutType == SYNC_TIMEOUT_ELECTION) {
     if (atomic_load_64(&ths->electTimerLogicClock) <= pMsg->logicClock) {
-      ++(ths->electTimerCounter);
+      ths->electTimerCounter += 1;
 
       syncNodeElect(ths);
     }
 
   } else if (pMsg->timeoutType == SYNC_TIMEOUT_HEARTBEAT) {
     if (atomic_load_64(&ths->heartbeatTimerLogicClockUser) <= pMsg->logicClock) {
-      ++(ths->heartbeatTimerCounter);
+      ths->heartbeatTimerCounter += 1;
       sTrace("vgId:%d, sync timer, type:replicate count:%" PRIu64 ", lc-user:%" PRIu64, ths->vgId,
              ths->heartbeatTimerCounter, ths->heartbeatTimerLogicClockUser);
-
-      // syncNodeReplicate(ths, true);
     }
 
   } else {

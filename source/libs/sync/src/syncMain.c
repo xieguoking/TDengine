@@ -1250,8 +1250,8 @@ int32_t syncNodeStartElectTimer(SSyncNode* pSyncNode, int32_t ms) {
     pSyncNode->electTimerMS = ms;
 
     int64_t execTime = taosGetTimestampMs() + ms;
-    atomic_store_64(&(pSyncNode->electTimerParam.executeTime), execTime);
-    atomic_store_64(&(pSyncNode->electTimerParam.logicClock), pSyncNode->electTimerLogicClock);
+    atomic_store_64(&pSyncNode->electTimerParam.executeTime, execTime);
+    atomic_store_64(&pSyncNode->electTimerParam.logicClock, pSyncNode->electTimerLogicClock);
     pSyncNode->electTimerParam.pSyncNode = pSyncNode;
     pSyncNode->electTimerParam.pData = NULL;
 
@@ -1646,9 +1646,6 @@ void syncNodeBecomeFollower(SSyncNode* pSyncNode, const char* debugStr) {
   pSyncNode->state = TAOS_SYNC_STATE_FOLLOWER;
   syncNodeStopHeartbeatTimer(pSyncNode);
 
-  // reset elect timer
-  syncNodeResetElectTimer(pSyncNode);
-
   // send rsp to client
   syncNodeLeaderChangeRsp(pSyncNode);
 
@@ -1663,7 +1660,9 @@ void syncNodeBecomeFollower(SSyncNode* pSyncNode, const char* debugStr) {
   // reset log buffer
   syncLogBufferReset(pSyncNode->pLogBuf, pSyncNode);
 
-  // trace log
+  // reset elect timer
+  syncNodeResetElectTimer(pSyncNode);
+
   sNTrace(pSyncNode, "become follower %s", debugStr);
 }
 
@@ -2362,14 +2361,15 @@ int32_t syncNodeOnHeartbeat(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
   pMsgReply->startTime = ths->startTime;
   pMsgReply->timeStamp = tsMs;
 
+  ASSERT(ths->syncEqMsg != NULL);
+  ASSERT(ths->msgcb != NULL);
+
   if (pMsg->term == currentTerm && ths->state != TAOS_SYNC_STATE_LEADER) {
     syncIndexMgrSetRecvTime(ths->pNextIndex, &(pMsg->srcId), tsMs);
 
-    syncNodeResetElectTimer(ths);
     ths->minMatchIndex = pMsg->minMatchIndex;
 
     if (ths->state == TAOS_SYNC_STATE_FOLLOWER) {
-      // syncNodeFollowerCommit(ths, pMsg->commitIndex);
       SRpcMsg rpcMsgLocalCmd = {0};
       (void)syncBuildLocalCmd(&rpcMsgLocalCmd, ths->vgId);
 
@@ -2379,16 +2379,16 @@ int32_t syncNodeOnHeartbeat(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
       pSyncMsg->currentTerm = pMsg->term;
       SyncIndex fcIndex = pSyncMsg->commitIndex;
 
-      if (ths->syncEqMsg != NULL && ths->msgcb != NULL) {
-        int32_t code = ths->syncEqMsg(ths->msgcb, &rpcMsgLocalCmd);
-        if (code != 0) {
-          sError("vgId:%d, sync enqueue fc-commit msg error, code:%d", ths->vgId, code);
-          rpcFreeCont(rpcMsgLocalCmd.pCont);
-        } else {
-          sTrace("vgId:%d, sync enqueue fc-commit msg, fc-index:%" PRId64, ths->vgId, fcIndex);
-        }
+      int32_t code = ths->syncEqMsg(ths->msgcb, &rpcMsgLocalCmd);
+      if (code != 0) {
+        sError("vgId:%d, sync enqueue fc-commit msg error, code:%d", ths->vgId, code);
+        rpcFreeCont(rpcMsgLocalCmd.pCont);
       }
+
+      sTrace("vgId:%d, sync enqueue fc-commit msg, fc-index:%" PRId64, ths->vgId, fcIndex);
     }
+
+    syncNodeResetElectTimer(ths);
   }
 
   if (pMsg->term >= currentTerm && ths->state != TAOS_SYNC_STATE_FOLLOWER) {
@@ -2401,23 +2401,13 @@ int32_t syncNodeOnHeartbeat(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
     pSyncMsg->currentTerm = pMsg->term;
     pSyncMsg->commitIndex = pMsg->commitIndex;
 
-    if (ths->syncEqMsg != NULL && ths->msgcb != NULL) {
-      int32_t code = ths->syncEqMsg(ths->msgcb, &rpcMsgLocalCmd);
-      if (code != 0) {
-        sError("vgId:%d, sync enqueue step-down msg error, code:%d", ths->vgId, code);
-        rpcFreeCont(rpcMsgLocalCmd.pCont);
-      } else {
-        sTrace("vgId:%d, sync enqueue step-down msg, new-term:%" PRId64, ths->vgId, pSyncMsg->currentTerm);
-      }
+    int32_t code = ths->syncEqMsg(ths->msgcb, &rpcMsgLocalCmd);
+    if (code != 0) {
+      sError("vgId:%d, sync enqueue step-down msg error, code:%d", ths->vgId, code);
+      rpcFreeCont(rpcMsgLocalCmd.pCont);
     }
+    sTrace("vgId:%d, sync enqueue step-down msg, new-term:%" PRId64, ths->vgId, pSyncMsg->currentTerm);
   }
-
-  /*
-    // htonl
-    SMsgHead* pHead = rpcMsg.pCont;
-    pHead->contLen = htonl(pHead->contLen);
-    pHead->vgId = htonl(pHead->vgId);
-  */
 
   // reply
   syncNodeSendMsgById(&pMsgReply->destId, ths, &rpcMsg);
