@@ -185,6 +185,8 @@ static int32_t vnodePreProcessSubmitTbData(SVnode *pVnode, SDecoder *pCoder, int
       SRow *pRow = (SRow *)(pCoder->data + pCoder->pos);
       pCoder->pos += pRow->len;
 
+      ASSERT(pRow->ts > 0);
+
       if (pRow->ts < minKey || pRow->ts > maxKey) {
         code = TSDB_CODE_TDB_TIMESTAMP_OUT_OF_RANGE;
         goto _exit;
