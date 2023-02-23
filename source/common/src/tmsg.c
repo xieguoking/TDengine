@@ -6941,6 +6941,7 @@ static int32_t tEncodeSSubmitTbData(SEncoder *pCoder, const SSubmitTbData *pSubm
 
     SRow **rows = (SRow **)TARRAY_DATA(pSubmitTbData->aRowP);
     for (int32_t iRow = 0; iRow < TARRAY_SIZE(pSubmitTbData->aRowP); ++iRow) {
+      ASSERT(iRow == 0 || rows[iRow]->ts > rows[iRow - 1]->ts > 0);
       if (pCoder->data) memcpy(pCoder->data + pCoder->pos, rows[iRow], rows[iRow]->len);
       pCoder->pos += rows[iRow]->len;
     }

@@ -104,6 +104,7 @@ int32_t tRowBuild(SArray *aColVal, const STSchema *pTSchema, SRow **ppRow) {
   ASSERT(TARRAY_SIZE(aColVal) > 0);
   ASSERT(((SColVal *)aColVal->pData)[0].cid == PRIMARYKEY_TIMESTAMP_COL_ID);
   ASSERT(((SColVal *)aColVal->pData)[0].type == TSDB_DATA_TYPE_TIMESTAMP);
+  ASSERT(((SColVal *)aColVal->pData)[0].value.val > 0);
 
   // scan ---------------
   SRow           *pRow = NULL;
