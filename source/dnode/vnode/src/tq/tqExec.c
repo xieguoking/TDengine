@@ -65,14 +65,14 @@ int32_t tqScanData(STQ* pTq, const STqHandle* pHandle, SMqDataRsp* pRsp, STqOffs
   qTaskInfo_t task = pExec->task;
 
   if (qStreamPrepareScan(task, pOffset, pHandle->execHandle.subType) < 0) {
-    tqDebug("prepare scan failed, return");
+    tqDebug("tmqtablelist prepare scan failed1, return");
     if (pOffset->type == TMQ_OFFSET__LOG) {
       pRsp->rspOffset = *pOffset;
       return 0;
     } else {
       tqOffsetResetToLog(pOffset, pHandle->snapshotVer);
       if (qStreamPrepareScan(task, pOffset, pHandle->execHandle.subType) < 0) {
-        tqDebug("prepare scan failed, return");
+        tqDebug("tmqtablelist prepare scan failed2, return");
         pRsp->rspOffset = *pOffset;
         return 0;
       }
