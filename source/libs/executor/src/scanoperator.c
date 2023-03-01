@@ -1605,7 +1605,7 @@ static SSDataBlock* doQueueScan(SOperatorInfo* pOperator) {
   }
 
   if (pTaskInfo->streamInfo.prepareStatus.type == TMQ_OFFSET__SNAPSHOT_DATA) {
-    qDebug("tmqtablelist doTableScan:%p", ((STableScanInfo*)(pInfo->pTableScanOp->info))->base.dataReader);
+    qDebug("qError doTableScan:%p", ((STableScanInfo*)(pInfo->pTableScanOp->info))->base.dataReader);
     SSDataBlock* pResult = doTableScan(pInfo->pTableScanOp);
     if (pResult && pResult->info.rows > 0) {
       qDebug("queue scan tsdb return %d rows min:%" PRId64 " max:%" PRId64, pResult->info.rows,
@@ -2333,7 +2333,7 @@ SOperatorInfo* createStreamScanOperatorInfo(SReadHandle* pHandle, STableScanPhys
       pTaskInfo->streamInfo.lastStatus.uid = -1;
     }
 
-    qDebug("tmqtablelist pHandle->initTableReader:%d", pHandle->initTableReader);
+    qError("tmqtablelist pHandle->initTableReader:%d", pHandle->initTableReader);
     if (pHandle->initTqReader) {
       ASSERT(pHandle->tqReader == NULL);
       pInfo->tqReader = tqOpenReader(pHandle->vnode);

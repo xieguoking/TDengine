@@ -1083,7 +1083,7 @@ int32_t qStreamPrepareScan(qTaskInfo_t tinfo, STqOffsetVal* pOffset, int8_t subT
           uid = pTableInfo->uid;
           ts = INT64_MIN;
         } else {
-          qDebug("tmqtablelist tableinfo list 0");
+          qError("tmqtablelist tableinfo list 0");
 
           return -1;
         }
@@ -1122,7 +1122,7 @@ int32_t qStreamPrepareScan(qTaskInfo_t tinfo, STqOffsetVal* pOffset, int8_t subT
             pTableScanInfo->base.dataReader == NULL) {
           ASSERT(0);
         }
-        qDebug("tmqtablelist dataReader:%p", pTableScanInfo->base.dataReader);
+        qError("tmqtablelist dataReader:%p", pTableScanInfo->base.dataReader);
       }
 
       STableKeyInfo tki = {.uid = uid};
