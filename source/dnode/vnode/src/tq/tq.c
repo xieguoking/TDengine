@@ -224,20 +224,6 @@ int32_t tqPushDataRsp(STQ* pTq, STqPushEntry* pPushEntry) {
 }
 
 int32_t tqSendDataRsp(STQ* pTq, const SRpcMsg* pMsg, const SMqPollReq* pReq, const SMqDataRsp* pRsp) {
-  ASSERT(taosArrayGetSize(pRsp->blockData) == pRsp->blockNum);
-  ASSERT(taosArrayGetSize(pRsp->blockDataLen) == pRsp->blockNum);
-
-  ASSERT(!pRsp->withSchema);
-  ASSERT(taosArrayGetSize(pRsp->blockSchema) == 0);
-
-  if (pRsp->reqOffset.type == TMQ_OFFSET__LOG) {
-    if (pRsp->blockNum > 0) {
-      ASSERT(pRsp->rspOffset.version > pRsp->reqOffset.version);
-    } else {
-      ASSERT(pRsp->rspOffset.version >= pRsp->reqOffset.version);
-    }
-  }
-
   int32_t len = 0;
   int32_t code = 0;
   tEncodeSize(tEncodeSMqDataRsp, pRsp, len, code);
