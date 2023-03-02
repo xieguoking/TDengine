@@ -636,29 +636,29 @@ static int32_t tdFetchSubmitReqSuids(SSubmitReq *pMsg, STbUidStore *pStore) {
   return 0;
 }
 
-/**
- * @brief retention of rsma1/rsma2
- *
- * @param pSma
- * @param now
- * @return int32_t
- */
-int32_t smaDoRetention(SSma *pSma, int64_t now) {
-  int32_t code = TSDB_CODE_SUCCESS;
-  if (!VND_IS_RSMA(pSma->pVnode)) {
-    return code;
-  }
+// /**
+//  * @brief retention of rsma1/rsma2
+//  *
+//  * @param pSma
+//  * @param now
+//  * @return int32_t
+//  */
+// int32_t smaDoRetention(SSma *pSma, int64_t now) {
+//   int32_t code = TSDB_CODE_SUCCESS;
+//   if (!VND_IS_RSMA(pSma->pVnode)) {
+//     return code;
+//   }
 
-  for (int32_t i = 0; i < TSDB_RETENTION_L2; ++i) {
-    if (pSma->pRSmaTsdb[i]) {
-      code = tsdbDoRetention(pSma->pRSmaTsdb[i], now);
-      if (code) goto _end;
-    }
-  }
+//   for (int32_t i = 0; i < TSDB_RETENTION_L2; ++i) {
+//     if (pSma->pRSmaTsdb[i]) {
+//       code = tsdbDoRetention(pSma->pRSmaTsdb[i], now);
+//       if (code) goto _end;
+//     }
+//   }
 
-_end:
-  return code;
-}
+// _end:
+//   return code;
+// }
 
 static void tdBlockDataDestroy(SArray *pBlockArr) {
   for (int32_t i = 0; i < taosArrayGetSize(pBlockArr); ++i) {
