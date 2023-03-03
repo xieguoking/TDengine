@@ -487,6 +487,8 @@ static int32_t mndProcessAskEpReq(SRpcMsg *pMsg) {
         goto FAIL;
       }
 
+      mInfo("process ask ep, consumer:0x%" PRIx64 "(epoch %d) update with server epoch %d, topic:%s, vgNum:%d", consumerId, epoch,
+            serverEpoch, topic, vgNum);
       for (int32_t j = 0; j < vgNum; j++) {
         SMqVgEp *pVgEp = taosArrayGetP(pConsumerEp->vgs, j);
         char     offsetKey[TSDB_PARTITION_KEY_LEN];
@@ -498,6 +500,8 @@ static int32_t mndProcessAskEpReq(SRpcMsg *pMsg) {
             .offset = -1,
         };
 
+        mInfo("process ask ep, consumer:0x%" PRIx64 "(epoch %d) update with server epoch %d, topic:%s, vgid:%d", consumerId, epoch,
+              serverEpoch, topic, pVgEp->vgId);
         taosArrayPush(topicEp.vgs, &vgEp);
       }
       taosArrayPush(rsp.topics, &topicEp);

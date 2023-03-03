@@ -1360,9 +1360,9 @@ bool tmqUpdateEp(tmq_t* tmq, int32_t epoch, const SMqAskEpRsp* pRsp) {
     tstrncpy(topic.topicName, pTopicEp->topic, TSDB_TOPIC_FNAME_LEN);
     tstrncpy(topic.db, pTopicEp->db, TSDB_DB_FNAME_LEN);
 
-    tscDebug("consumer:0x%" PRIx64 ", update topic: %s", tmq->consumerId, topic.topicName);
-
     int32_t vgNumGet = taosArrayGetSize(pTopicEp->vgs);
+    tscDebug("consumer:0x%" PRIx64 ", update topic: %s, vgNum:%d", tmq->consumerId, topic.topicName, vgNumGet);
+
     topic.vgs = taosArrayInit(vgNumGet, sizeof(SMqClientVg));
     for (int32_t j = 0; j < vgNumGet; j++) {
       SMqSubVgEp* pVgEp = taosArrayGet(pTopicEp->vgs, j);
@@ -1381,6 +1381,8 @@ bool tmqUpdateEp(tmq_t* tmq, int32_t epoch, const SMqAskEpRsp* pRsp) {
           .vgStatus = TMQ_VG_STATUS__IDLE,
           .vgSkipCnt = 0,
       };
+      tscDebug("consumer:0x%" PRIx64 ", update topic: %s, vgId:%d", tmq->consumerId, topic.topicName, pVgEp->vgId);
+
       taosArrayPush(topic.vgs, &clientVg);
       set = true;
     }
