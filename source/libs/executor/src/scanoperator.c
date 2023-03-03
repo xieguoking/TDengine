@@ -1598,10 +1598,7 @@ static SSDataBlock* doQueueScan(SOperatorInfo* pOperator) {
   if (pTaskInfo->streamInfo.prepareStatus.type == TMQ_OFFSET__LOG) {
     while (1) {
       SFetchRet ret = {0};
-      if (tqNextBlock(pInfo->tqReader, &ret) < 0) {
-        qError("failed to get next log block since %s", terrstr());
-        return NULL;
-      }
+      tqNextBlock(pInfo->tqReader, &ret);
       if (ret.fetchType == FETCH_TYPE__DATA) {
         blockDataCleanup(pInfo->pRes);
         if (setBlockIntoRes(pInfo, &ret.data, true) < 0) {
