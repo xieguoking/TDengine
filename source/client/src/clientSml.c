@@ -1277,7 +1277,7 @@ static int32_t smlInsertData(SSmlHandle *info) {
   atomic_add_fetch_64((int64_t *)&pActivity->numOfInsertsReq, 1);
 
   launchQueryImpl(info->pRequest, info->pQuery, true, NULL);
-  uError("SML:%lld, total:%d,send:%d,rec:%llu",info->id,info->lineNum,cnt,info->pRequest->body.resInfo.numOfRows);
+  uError("SML:%"PRId64", total:%d,send:%d,rec:%"PRIu64,info->id,info->lineNum,cnt,info->pRequest->body.resInfo.numOfRows);
   return info->pRequest->code;
 }
 
