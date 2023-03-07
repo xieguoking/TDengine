@@ -201,6 +201,7 @@ int32_t smlBuildCol(STableDataCxt* pTableCxt, SSchema* schema, void* data, int32
   SSmlKv*  kv = (SSmlKv*)data;
   if(kv->keyLen != strlen(pColSchema->name) || memcmp(kv->key, pColSchema->name, kv->keyLen) != 0 || kv->type != pColSchema->type){
     ret = TSDB_CODE_SML_INVALID_DATA;
+    if(index == 0) uError("sandong build col error ts:%s, sts:%s", kv->key, pColSchema->name);
     goto end;
   }
   if (kv->type == TSDB_DATA_TYPE_NCHAR) {
@@ -325,6 +326,7 @@ int32_t smlBindData(SQuery* query, bool dataFormat, SArray* tags, SArray* colsSc
       SColVal* pVal = taosArrayGet(pTableCxt->pValues, pTableCxt->boundColsInfo.pColIndex[c]);
       void**   p = taosHashGet(rowData, pColSchema->name, strlen(pColSchema->name));
       if (p == NULL) {
+        uError("sandong col not found:%s, c:%d, index:%d", pColSchema->name, c, pTableCxt->boundColsInfo.pColIndex[c]);
         continue;
       }
       SSmlKv* kv = *(SSmlKv**)p;
@@ -334,6 +336,7 @@ int32_t smlBindData(SQuery* query, bool dataFormat, SArray* tags, SArray* colsSc
       }
       if (pColSchema->type == TSDB_DATA_TYPE_TIMESTAMP) {
         kv->i = convertTimePrecision(kv->i, TSDB_TIME_PRECISION_NANO, pTableMeta->tableInfo.precision);
+        uError("sandong bind ts:%"PRId64, kv->i);
       }
       if (kv->type == TSDB_DATA_TYPE_NCHAR) {
         int32_t len = 0;

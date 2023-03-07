@@ -108,6 +108,7 @@ int32_t tRowBuild(SArray *aColVal, const STSchema *pTSchema, SRow **ppRow) {
   // scan ---------------
   SRow           *pRow = NULL;
   SColVal        *colVals = (SColVal *)TARRAY_DATA(aColVal);
+  uError("sandong tRowBuild:%"PRId64, colVals->value.val);
   uint8_t         flag = 0;
   int32_t         iColVal = 1;
   const int32_t   nColVal = TARRAY_SIZE(aColVal);
