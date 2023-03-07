@@ -1263,10 +1263,21 @@ static int32_t smlInsertData(SSmlHandle *info) {
   }
   info->cost.insertRpcTime = taosGetTimestampUs();
 
+  int cnt = 0;
+  SVnodeModifyOpStmt* pStmt = (SVnodeModifyOpStmt*)(info->pQuery)->pRoot;
+  // merge according to vgId
+  void* p = taosHashIterate(pStmt->pTableBlockHashObj, NULL);
+  while (p) {
+    STableDataCxt* pTableCxt = *(STableDataCxt**)p;
+    cnt += taosArrayGetSize(pTableCxt->pData->aRowP);
+    p = taosHashIterate(pStmt->pTableBlockHashObj, p);
+  }
+
   SAppClusterSummary *pActivity = &info->taos->pAppInfo->summary;
   atomic_add_fetch_64((int64_t *)&pActivity->numOfInsertsReq, 1);
 
   launchQueryImpl(info->pRequest, info->pQuery, true, NULL);
+  uError("SML:%lld, total:%d,send:%d,rec:%llu",info->id,info->lineNum,cnt,info->pRequest->body.resInfo.numOfRows);
   return info->pRequest->code;
 }
 
