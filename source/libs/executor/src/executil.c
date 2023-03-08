@@ -769,9 +769,7 @@ static int32_t optimizeTbnameInCondImpl(void* metaHandle, SArray* pExistedUidLis
             taosArrayPush(pExistedUidList, &s);
           }
         } else {
-          taosArrayDestroy(pTbList);
-          taosHashCleanup(uHash);
-          return -1;
+          terrno = 0;
         }
       } else {
         //        qWarn("failed to get tableIds from by table name: %s, reason: %s", name, tstrerror(terrno));
