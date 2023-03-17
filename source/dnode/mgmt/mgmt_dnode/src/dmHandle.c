@@ -127,6 +127,7 @@ void dmSendStatusReq(SDnodeMgmt *pMgmt) {
 
   SEpSet epSet = {0};
   dmGetMnodeEpSet(pMgmt->pData, &epSet);
+/*
   rpcSendRecv(pMgmt->msgCb.clientRpc, &epSet, &rpcMsg, &rpcRsp);
   if (rpcRsp.code != 0) {
     dmRotateMnodeEpSet(pMgmt->pData);
@@ -135,6 +136,23 @@ void dmSendStatusReq(SDnodeMgmt *pMgmt) {
     dError("failed to send status req since %s, epSet:%s, inUse:%d", tstrerror(rpcRsp.code), tbuf, epSet.inUse);
   }
   dmProcessStatusRsp(pMgmt, &rpcRsp);
+*/
+
+  for(int i =0; i < epSet.numOfEps; i++){
+    SEpSet epSingleSet = {0};
+    epSingleSet.numOfEps = 1;
+    epSingleSet.inUse = 1;
+    epSingleSet.eps[0] = epSet.eps[i];
+
+    rpcSendRecv(pMgmt->msgCb.clientRpc, &epSingleSet, &rpcMsg, &rpcRsp);
+    if (rpcRsp.code != 0 && rpcRsp.code != TSDB_CODE_MND_DNODE_DIFF_CLUSTER) {
+      dError("failed to send status req since %s, numOfEps:%d inUse:%d", tstrerror(rpcRsp.code), epSingleSet.numOfEps,
+            epSingleSet.inUse);
+    }
+    if(rpcRsp.code != TSDB_CODE_MND_DNODE_DIFF_CLUSTER){
+      dmProcessStatusRsp(pMgmt, &rpcRsp);
+    }
+  }
 }
 
 int32_t dmProcessAuthRsp(SDnodeMgmt *pMgmt, SRpcMsg *pMsg) {

@@ -53,7 +53,7 @@ static void mmProcessRpcMsg(SQueueInfo *pInfo, SRpcMsg *pMsg) {
 
   int32_t code = mndProcessRpcMsg(pMsg);
 
-  if (IsReq(pMsg) && pMsg->info.handle != NULL && code != TSDB_CODE_ACTION_IN_PROGRESS) {
+  if (IsReq(pMsg) && pMsg->info.handle != NULL && code != TSDB_CODE_ACTION_IN_PROGRESS /*&& code != TSDB_CODE_MND_DNODE_DIFF_CLUSTER*/) {
     if (code != 0 && terrno != 0) code = terrno;
     mmSendRsp(pMsg, code);
   } else {
