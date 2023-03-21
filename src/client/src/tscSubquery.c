@@ -2046,6 +2046,19 @@ void tscJoinQueryCallback(void* param, TAOS_RES* tres, int code) {
       goto _return;
     }
 
+    SSqlObj *rootObj = pSql->rootObj;
+    if (rootObj->needUpdateMeta) {
+      rootObj->needUpdateMeta = false;
+      
+      if (pSql->retry < pSql->maxRetry) {
+        tscRenewTableMeta(pSql);
+      } else {
+        tscAsyncResultOnError(pParentSql);
+      }
+      
+      goto _return;
+    }
+
     if (!tscReparseSql(pParentSql->rootObj, pParentSql->res.code)) {
       goto _return;
     }
@@ -2598,6 +2611,16 @@ void tscFirstRoundCallback(void* param, TAOS_RES* tres, int code) {
   SSqlObj* pSql = (SSqlObj*) tres;
   int32_t c = taos_errno(pSql);
 
+  SSqlObj *rootObj = pSql->rootObj;
+  if (rootObj->res.code && rootObj->needUpdateMeta) {
+    rootObj->needUpdateMeta = false;
+    
+    if (pSql->retry < pSql->maxRetry) {
+      tscRenewTableMeta(pSql);
+      return;
+    }
+  }
+
   if (c != TSDB_CODE_SUCCESS) {
     SSqlObj* parent = pSup->pParent;
 
@@ -3105,6 +3128,16 @@ void tscHandleSubqueryError(SRetrieveSupport *trsupport, SSqlObj *pSql, int numO
   tscDestroyGlobalMergerEnv(trsupport->pExtMemBuffer, trsupport->pOrderDescriptor, pState->numOfSub);
   tscFreeRetrieveSup(&pSql->param);
 
+  SSqlObj *rootObj = pSql->rootObj;
+  if (rootObj->needUpdateMeta) {
+    rootObj->needUpdateMeta = false;
+    
+    if (pSql->retry < pSql->maxRetry) {
+      tscRenewTableMeta(pSql);
+      return;
+    }
+  }
+
   // in case of second stage join subquery, invoke its callback function instead of regular QueueAsyncRes
   SQueryInfo *pQueryInfo = tscGetQueryInfo(&pParentSql->cmd);
 
@@ -3206,7 +3239,18 @@ static void tscAllDataRetrievedFromDnode(SRetrieveSupport *trsupport, SSqlObj* p
     tscFreeRetrieveSup(&pSql->param);
     return;
   }  
-  
+
+  SSqlObj *rootObj = pSql->rootObj;
+  if (rootObj->needUpdateMeta) {
+    rootObj->needUpdateMeta = false;
+    
+    if (pSql->retry < pSql->maxRetry) {
+      tscRenewTableMeta(pSql);
+      tscFreeRetrieveSup(&pSql->param);
+      return;
+    }
+  }
+
   // all sub-queries are returned, start to local merge process
   pDesc->pColumnModel->capacity = trsupport->pExtMemBuffer[idx]->numOfElemsPerPage;
   
@@ -3349,7 +3393,21 @@ static void tscRetrieveFromDnodeCallBack(void *param, TAOS_RES *tres, int numOfR
       tscAbortFurtherRetryRetrieval(trsupport, tres, TSDB_CODE_TSC_NO_DISKSPACE);
       return;
     }
-    
+
+    SColumnModel *pModelDesc = pDesc->pColumnModel;
+    if (pModelDesc == NULL) {
+      tscError("0x%"PRIx64" sub:0x%"PRIx64" column model has been freed", pParentSql->self, pSql->self);
+      tscAbortFurtherRetryRetrieval(trsupport, tres, TSDB_CODE_QRY_APP_ERROR);
+      return;
+    }
+    SColumnModel *pModelMemBuf = trsupport->pExtMemBuffer[idx]->pColumnModel;
+    if (pModelDesc->numOfCols != pModelMemBuf->numOfCols ||
+        pModelDesc->rowSize != pModelMemBuf->rowSize) {
+      tscError("0x%"PRIx64" sub:0x%"PRIx64 "extBuf column model is not consistent with descriptor column model", pParentSql->self, pSql->self);
+      tscAbortFurtherRetryRetrieval(trsupport, tres, TSDB_CODE_QRY_APP_ERROR);
+      return;
+    }
+
     int32_t ret = saveToBuffer(trsupport->pExtMemBuffer[idx], pDesc, trsupport->localBuffer, pRes->data,
                                pRes->numOfRows, pQueryInfo->groupbyExpr.orderType);
     if (ret != 0) { // set no disk space error info, and abort retry
@@ -3529,7 +3587,7 @@ static void multiVnodeInsertFinalize(void* param, TAOS_RES* tres, int numOfRows)
   if (taos_errno(tres) != TSDB_CODE_SUCCESS) {
     SSqlObj* pSql = (SSqlObj*) tres;
     assert(pSql != NULL && pSql->res.code == numOfRows);
-    
+
     pParentObj->res.code = pSql->res.code;
 
     // set the flag in the parent sqlObj
@@ -3537,9 +3595,9 @@ static void multiVnodeInsertFinalize(void* param, TAOS_RES* tres, int numOfRows)
       pParentObj->cmd.insertParam.schemaAttached = 1;
     }
   }
-  
+
   if (!subAndCheckDone(tres, pParentObj, pSupporter->idx)) {
-    // concurrency problem, other thread already release pParentObj 
+    // concurrency problem, other thread already release pParentObj
     //tscDebug("0x%"PRIx64" insert:%p,%d completed, total:%d", pParentObj->self, tres, suppIdx, pParentObj->subState.numOfSub);
     return;
   }
@@ -3596,6 +3654,15 @@ static void multiVnodeInsertFinalize(void* param, TAOS_RES* tres, int numOfRows)
     }
 
     pParentObj->res.code = TSDB_CODE_SUCCESS;
+    if (TSDB_QUERY_HAS_TYPE(pParentObj->cmd.insertParam.insertType, TSDB_QUERY_TYPE_STMT_INSERT)) {
+      tscDebug("0x%"PRIx64" re-try stmt with same submit data, retry:%d", pParentObj->self, pParentObj->retry);
+      pParentObj->retry++;
+      tscRestoreTableDataBlocks(&pParentObj->cmd.insertParam);
+      tscMergeTableDataBlocks(pParentObj, &pParentObj->cmd.insertParam, false);
+      tscHandleMultivnodeInsert(pParentObj);
+      return;
+    }
+
     tscResetSqlCmd(&pParentObj->cmd, false, pParentObj->self);
 
     // in case of insert, redo parsing the sql string and build new submit data block for two reasons:
