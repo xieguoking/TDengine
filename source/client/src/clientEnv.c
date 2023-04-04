@@ -103,6 +103,7 @@ static void deregisterRequest(SRequestObj *pRequest) {
 
   if (duration >= SLOW_QUERY_INTERVAL) {
     atomic_add_fetch_64((int64_t *)&pActivity->numOfSlowQueries, 1);
+    tscWarnL("slow query: %s, duration:%" PRId64, pRequest->sqlstr, duration);
   }
 
   releaseTscObj(pTscObj->id);
@@ -543,7 +544,7 @@ void taos_init_imp(void) {
 
   if (taosCreateLog("taoslog", 10, configDir, NULL, NULL, NULL, NULL, 1) != 0) {
     // ignore create log failed, only print
-    printf(" WARING: Create taoslog failed. configDir=%s\n", configDir);
+    printf(" WARING: Create taoslog failed:%s. configDir=%s\n", strerror(errno), configDir);
   }
 
   if (taosInitCfg(configDir, NULL, NULL, NULL, NULL, 1) != 0) {

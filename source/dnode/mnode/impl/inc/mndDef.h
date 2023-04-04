@@ -359,6 +359,7 @@ typedef struct {
   int8_t    replica;
   SVnodeGid vnodeGid[TSDB_MAX_REPLICA];
   void*     pTsma;
+  int32_t   numOfCachedTables;
 } SVgObj;
 
 typedef struct {
@@ -391,7 +392,7 @@ typedef struct {
 } SSmaObj;
 
 typedef struct {
-  char    name[TSDB_TABLE_FNAME_LEN];
+  char    name[TSDB_INDEX_FNAME_LEN];
   char    stb[TSDB_TABLE_FNAME_LEN];
   char    db[TSDB_DB_FNAME_LEN];
   char    dstTbName[TSDB_TABLE_FNAME_LEN];
@@ -456,6 +457,7 @@ typedef struct {
   void*          pIter;
   SMnode*        pMnode;
   STableMetaRsp* pMeta;
+  bool           restore;
   bool           sysDbRsp;
   char           db[TSDB_DB_FNAME_LEN];
   char           filterTb[TSDB_TABLE_NAME_LEN];
