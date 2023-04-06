@@ -194,6 +194,7 @@ int32_t vmWriteVnodeListToFile(SVnodeMgmt *pMgmt) {
   if (buffer == NULL) goto _OVER;
   terrno = 0;
 
+  taosThreadMutexLock(&pMgmt->cfgMutex);
   pFile = taosOpenFile(file, TD_FILE_CREATE | TD_FILE_WRITE | TD_FILE_TRUNC);
   if (pFile == NULL) goto _OVER;
 
@@ -203,6 +204,7 @@ int32_t vmWriteVnodeListToFile(SVnodeMgmt *pMgmt) {
 
   taosCloseFile(&pFile);
   if (taosRenameFile(file, realfile) != 0) goto _OVER;
+  taosThreadMutexUnlock(&pMgmt->cfgMutex);
 
   code = 0;
   dInfo("succeed to write vnodes file:%s, vnodes:%d", realfile, numOfVnodes);

@@ -422,6 +422,7 @@ static int32_t vmInit(SMgmtInputOpt *pInput, SMgmtOutputOpt *pOutput) {
   pMgmt->msgCb.qsizeFp = (GetQueueSizeFp)vmGetQueueSize;
   pMgmt->msgCb.mgmt = pMgmt;
   taosThreadRwlockInit(&pMgmt->lock, NULL);
+  taosThreadMutexInit(&pMgmt->cfgMutex, NULL);
 
   SDiskCfg dCfg = {0};
   tstrncpy(dCfg.dir, tsDataDir, TSDB_FILENAME_LEN);

@@ -27,7 +27,11 @@ static inline void vmSendRsp(SRpcMsg *pMsg, int32_t code) {
   tmsgSendRsp(&rsp);
 }
 
-static void vmProcessMgmtQueue(SQueueInfo *pInfo, SRpcMsg *pMsg) {
+static void* vmMgmtThreadFun(void *param){
+  SVnodeMgmtThreadParam *threadParam = (SVnodeMgmtThreadParam*) param;
+  SQueueInfo *pInfo = threadParam->pInfo;
+  SRpcMsg *pMsg = threadParam->pMsg;
+
   SVnodeMgmt     *pMgmt = pInfo->ahandle;
   int32_t         code = -1;
   const STraceId *trace = &pMsg->info.traceId;
@@ -68,6 +72,27 @@ static void vmProcessMgmtQueue(SQueueInfo *pInfo, SRpcMsg *pMsg) {
   dGTrace("msg:%p, is freed, code:0x%x", pMsg, code);
   rpcFreeCont(pMsg->pCont);
   taosFreeQitem(pMsg);
+
+  taosMemoryFree(param);
+
+  return NULL;
+}
+
+static void vmProcessMgmtQueue(SQueueInfo *pInfo, SRpcMsg *pMsg) {
+  TdThread thread1;
+  TdThreadAttr thAttr;
+  taosThreadAttrInit(&thAttr);
+  taosThreadAttrSetDetachState(&thAttr, PTHREAD_CREATE_JOINABLE);
+  SVnodeMgmtThreadParam *param = taosMemoryCalloc(1, sizeof(SVnodeMgmtThreadParam));
+  param->pInfo = pInfo;
+  param->pMsg = pMsg;
+  if (taosThreadCreate(&thread1, &thAttr, vmMgmtThreadFun, param) != 0) {
+    dError("failed to create vnode timer thread since %s", strerror(errno));
+    return;
+  }
+
+  taosThreadAttrDestroy(&thAttr);
+  return;
 }
 
 static void vmProcessQueryQueue(SQueueInfo *pInfo, SRpcMsg *pMsg) {

@@ -40,6 +40,7 @@ typedef struct SVnodeMgmt {
   STfs            *pTfs;
   TdThread         thread;
   bool             stop;
+  TdThreadMutex    cfgMutex;
 } SVnodeMgmt;
 
 typedef struct {
@@ -76,6 +77,11 @@ typedef struct {
   SWrapperCfg *pCfgs;
   SVnodeObj  **ppVnodes;
 } SVnodeThread;
+
+typedef struct {
+  SQueueInfo *pInfo;
+  SRpcMsg *pMsg;
+} SVnodeMgmtThreadParam;
 
 // vmInt.c
 SVnodeObj *vmAcquireVnode(SVnodeMgmt *pMgmt, int32_t vgId);
