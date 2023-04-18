@@ -451,19 +451,25 @@ function install_taosadapter_config() {
 }
 
 function install_taoskeeper_config() {
-    if [ ! -f "${cfg_install_dir}/keeper.toml" ]; then
+  # if new environment without taoskeeper
+    if [[ ! -f "${cfg_install_dir}/keeper.toml" ]] && [[ ! -f "${cfg_install_dir}/taoskeeper.toml" ]]; then
         [ ! -d %{cfg_install_dir} ] &&
             ${csudo}${csudo}mkdir -p ${cfg_install_dir}
-        [ -f ${cfg_dir}/keeper.toml ] && ${csudo}cp ${cfg_dir}/keeper.toml ${cfg_install_dir}
-        [ -f ${cfg_install_dir}/keeper.toml ] &&
-            ${csudo}chmod 644 ${cfg_install_dir}/keeper.toml
+        [ -f ${cfg_dir}/taoskeeper.toml ] && ${csudo}cp ${cfg_dir}/taoskeeper.toml ${cfg_install_dir}
+        [ -f ${cfg_install_dir}/taoskeeper.toml ] &&
+            ${csudo}chmod 644 ${cfg_install_dir}/taoskeeper.toml
     fi
 
+    # if old machine with taoskeeper.toml file
+    [ -f ${cfg_dir}/taoskeeper.toml ] &&
+        ${csudo}mv ${cfg_dir}/taoskeeper.toml ${cfg_dir}/taoskeeper.toml.new
+
     [ -f ${cfg_dir}/keeper.toml ] &&
-        ${csudo}mv ${cfg_dir}/keeper.toml ${cfg_dir}/keeper.toml.new
+        ${csudo}mv ${cfg_install_dir}/keeper.toml ${cfg_install_dir}/taoskeeper.toml
+        ${csudo}mv ${cfg_dir}/taoskeeper.toml ${cfg_dir}/taoskeeper.toml.new
 
     [ -f ${cfg_install_dir}/keeper.toml ] &&
-        ${csudo}ln -s ${cfg_install_dir}/keeper.toml ${cfg_dir}
+        ${csudo}ln -s ${cfg_install_dir}/taoskeeper.toml ${cfg_dir}
 }
 
 function install_config() {
