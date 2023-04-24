@@ -45,23 +45,19 @@ Name: "chinesesimp"; MessagesFile: "compiler:Default.isl"
 ;Name: "english"; MessagesFile: "compiler:Languages\English.isl"
 
 [Files]
-;Source: {#MyAppSourceDir}{#MyAppAllFile}; DestDir: "{app}"; Flags: igNoreversion recursesubdirs createallsubdirs 
-Source: taos.bat; DestDir: "{app}\include"; Flags: igNoreversion;
-;Source: taosdemo.png; DestDir: "{app}\include"; Flags: igNoreversion;
-;Source: taosShell.png; DestDir: "{app}\include"; Flags: igNoreversion;
-Source: favicon.ico; DestDir: "{app}\include"; Flags: igNoreversion;
+;Source: {#MyAppSourceDir}{#MyAppAllFile}; DestDir: "{code:GetCustomPath}"; Flags: igNoreversion recursesubdirs createallsubdirs 
+Source: taos.bat; DestDir: "{code:GetCustomPath}\include"; Flags: igNoreversion;
+;Source: taosdemo.png; DestDir: "{code:GetCustomPath}\include"; Flags: igNoreversion;
+;Source: taosShell.png; DestDir: "{code:GetCustomPath}\include"; Flags: igNoreversion;
+Source: favicon.ico; DestDir: "{code:GetCustomPath}\include"; Flags: igNoreversion;
 Source: {#MyAppSourceDir}{#MyAppDLLName}; DestDir: "{win}\System32"; Flags: igNoreversion recursesubdirs createallsubdirs 64bit;Check:IsWin64;
-Source: {#MyAppSourceDir}{#MyAppCfgName}; DestDir: "{app}\cfg"; Flags: igNoreversion recursesubdirs createallsubdirs onlyifdoesntexist uninsneveruninstall
-Source: {#MyAppSourceDir}{#MyAppDriverName}; DestDir: "{app}\driver"; Flags: igNoreversion recursesubdirs createallsubdirs
-;Source: {#MyAppSourceDir}{#MyAppConnectorName}; DestDir: "{app}\connector"; Flags: igNoreversion recursesubdirs createallsubdirs
-;Source: {#MyAppSourceDir}{#MyAppExamplesName}; DestDir: "{app}\examples"; Flags: igNoreversion recursesubdirs createallsubdirs
-Source: {#MyAppSourceDir}{#MyAppIncludeName}; DestDir: "{app}\include"; Flags: igNoreversion recursesubdirs createallsubdirs
-Source: {#MyAppSourceDir}{#MyAppExeName}; DestDir: "{app}"; Excludes: {#MyAppExcludeSource} ; Flags: igNoreversion recursesubdirs createallsubdirs
-Source: {#MyAppSourceDir}{#MyAppTaosdemoExeName}; DestDir: "{app}"; Flags: igNoreversion recursesubdirs createallsubdirs
-Source: {#MyAppSourceDir}\taos.exe; DestDir: "{app}"; DestName: "{#CusPrompt}.exe"; Flags: igNoreversion recursesubdirs createallsubdirs
-Source: {#MyAppSourceDir}\taosBenchmark.exe; DestDir: "{app}"; DestName: "{#CusPrompt}Benchmark.exe"; Flags: igNoreversion recursesubdirs createallsubdirs
-Source: {#MyAppSourceDir}\taosdump.exe; DestDir: "{app}"; DestName: "{#CusPrompt}dump.exe"; Flags: igNoreversion recursesubdirs createallsubdirs
-
+Source: {#MyAppSourceDir}{#MyAppCfgName}; DestDir: "{code:GetCustomPath}\cfg"; Flags: igNoreversion recursesubdirs createallsubdirs onlyifdoesntexist uninsneveruninstall
+Source: {#MyAppSourceDir}{#MyAppDriverName}; DestDir: "{code:GetCustomPath}\driver"; Flags: igNoreversion recursesubdirs createallsubdirs
+;Source: {#MyAppSourceDir}{#MyAppConnectorName}; DestDir: "{code:GetCustomPath}\connector"; Flags: igNoreversion recursesubdirs createallsubdirs
+;Source: {#MyAppSourceDir}{#MyAppExamplesName}; DestDir: "{code:GetCustomPath}\examples"; Flags: igNoreversion recursesubdirs createallsubdirs
+Source: {#MyAppSourceDir}{#MyAppIncludeName}; DestDir: "{code:GetCustomPath}\include"; Flags: igNoreversion recursesubdirs createallsubdirs
+Source: {#MyAppSourceDir}{#MyAppExeName}; DestDir: "{code:GetCustomPath}"; Excludes: {#MyAppExcludeSource}; Flags: igNoreversion recursesubdirs createallsubdirs
+Source: {#MyAppSourceDir}{#MyAppTaosdemoExeName}; DestDir: "{code:GetCustomPath}"; Flags: igNoreversion recursesubdirs createallsubdirs
 
 [run]
 Filename: {sys}\sc.exe; Parameters: "create taosd start= DEMAND binPath= ""C:\\TDengine\\taosd.exe --win_service""" ; Flags: runhidden
@@ -95,21 +91,57 @@ begin
   Result := Pos(';' + Param + ';', ';' + OrigPath + ';') = 0;
 end;
 
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+MyPromtName: string;
+begin
+if CurStep = ssDone then
+begin
+MyPromtName := '{#CusPrompt}';
+Log(MyPromtName);
+MsgBox('The prompt name is: ' + '{#CusPrompt}', mbInformation, MB_OK);
+if FileExists(ExpandConstant('{code:GetCustomPath}\taosd.exe')) then
+DeleteFile(ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'd.exe');
+RenameFile(ExpandConstant('{code:GetCustomPath}\taosd.exe'), ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'd.exe');
+if FileExists(ExpandConstant('{code:GetCustomPath}\taos.exe')) then
+DeleteFile(ExpandConstant('{code:GetCustomPath}\') + MyPromtName + '.exe');
+RenameFile(ExpandConstant('{code:GetCustomPath}\taos.exe'), ExpandConstant('{code:GetCustomPath}\') + MyPromtName + '.exe');
+if FileExists(ExpandConstant('{code:GetCustomPath}\taosBenchmark.exe')) then
+DeleteFile(ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'Benchmark.exe');
+RenameFile(ExpandConstant('{code:GetCustomPath}\taosBenchmark.exe'), ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'Benchmark.exe');
+if FileExists(ExpandConstant('{code:GetCustomPath}\taosdump.exe')) then
+DeleteFile(ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'dump.exe');
+RenameFile(ExpandConstant('{code:GetCustomPath}\taosdump.exe'), ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'dump.exe');
+if FileExists(ExpandConstant('{code:GetCustomPath}\taosadapter.exe')) then
+DeleteFile(ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'adapter.exe');
+RenameFile(ExpandConstant('{code:GetCustomPath}\taosadapter.exe'), ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'adapter.exe');
+if FileExists(ExpandConstant('{code:GetCustomPath}\taos-explorer.exe')) then
+DeleteFile(ExpandConstant('{code:GetCustomPath}\') + MyPromtName + '-explorer.exe');
+RenameFile(ExpandConstant('{code:GetCustomPath}\taos-explorer.exe'), ExpandConstant('{code:GetCustomPath}\') + MyPromtName + '-explorer.exe');
+end;
+end;
+
+function GetCustomPath(Param: String): String;
+begin
+  Result := 'C:\' + ExpandConstant('{#CusName}');
+end;
+
 [UninstallDelete]
-Name: {app}\driver; Type: filesandordirs 
-Name: {app}\connector; Type: filesandordirs
-Name: {app}\examples; Type: filesandordirs
-Name: {app}\include; Type: filesandordirs
+Name: {code:GetCustomPath}\*.exe; Type: files 
+Name: {code:GetCustomPath}\driver; Type: filesandordirs 
+Name: {code:GetCustomPath}\connector; Type: filesandordirs
+Name: {code:GetCustomPath}\examples; Type: filesandordirs
+Name: {code:GetCustomPath}\include; Type: filesandordirs
 
 [Tasks]
 Name: "desktopicon";Description: "{cm:CreateDesktopIcon}"; GroupDescription:"{cm:AdditionalIcons}"; Flags: checkablealone
 
 [Icons]
-Name:"{group}\Taos Shell"; Filename: "{app}\include\{#MyAppTaosExeName}" ; Parameters: "taos.exe" ; IconFilename: "{app}\include\{#MyAppIco}" 
-Name:"{group}\Open {#CusName} Directory"; Filename: "{app}\" 
-Name:"{group}\Taosdemo"; Filename: "{app}\include\{#MyAppTaosExeName}" ; Parameters: "taosdemo.exe" ; IconFilename: "{app}\include\{#MyAppIco}" 
-Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}" ; IconFilename: "{app}\include\{#MyAppIco}" 
-Name:"{commondesktop}\Taos Shell"; Filename: "{app}\include\{#MyAppTaosExeName}" ; Parameters: "taos.exe" ; Tasks: desktopicon; WorkingDir: "{app}" ; IconFilename: "{app}\include\{#MyAppIco}" 
+Name:"{group}\Taos Shell"; Filename: "{code:GetCustomPath}\include\{#MyAppTaosExeName}" ; Parameters: "taos.exe" ; IconFilename: "{code:GetCustomPath}\include\{#MyAppIco}" 
+Name:"{group}\Open {#CusName} Directory"; Filename: "{code:GetCustomPath}\" 
+Name:"{group}\Taosdemo"; Filename: "{code:GetCustomPath}\include\{#MyAppTaosExeName}" ; Parameters: "taosdemo.exe" ; IconFilename: "{code:GetCustomPath}\include\{#MyAppIco}" 
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}" ; IconFilename: "{code:GetCustomPath}\include\{#MyAppIco}" 
+Name:"{commondesktop}\Taos Shell"; Filename: "{code:GetCustomPath}\include\{#MyAppTaosExeName}" ; Parameters: "taos.exe" ; Tasks: desktopicon; WorkingDir: "{code:GetCustomPath}" ; IconFilename: "{code:GetCustomPath}\include\{#MyAppIco}" 
 
 
 [Messages]
