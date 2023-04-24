@@ -4412,7 +4412,8 @@ static void queryIndexedColumn(SSkipList* pSkipList, void* filterInfo, SArray* r
             sprintf(hex+i*3, "%02X ", ((unsigned char*)startVal)[i]);
           }
           tsdbInfo("COMPARE startVal %d %s", lenStartVal, hex);
-          tsdbInfo("COMPARE result: %d", compareLenPrefixedWStr(colData, valData));
+          tsdbInfo("COMPARE compareLenPrefixedWStr result: %d", compareLenPrefixedWStr(colData, valData));
+          tsdbInfo("COMPARE wcsncmp result: %d", wcsncmp((wchar_t*)(colData+2), (wchar_t*)(valData+2), MIN(lenColData, lenValData)/4));
         }
         all = filterExecute(filterInfo, 1, &addToResult, NULL, 0); 
         if (strcmp(((STable*)(pNode->pData))->name->data, "ct_type_s_t_connect_tc_S_modelId_2023418_tc_S_thing_id_20230418194027_483801249200622")==0) {
