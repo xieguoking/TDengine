@@ -2512,9 +2512,15 @@ _error:
   return NULL;
 }
 
-static void doTagScanOneTable(SOperatorInfo* pOperator, const SExecTaskInfo* pTaskInfo, STagScanInfo* pInfo,
-                              const SExprInfo* pExprInfo, const SSDataBlock* pRes, int32_t size, const char* str,
-                              int32_t* count, SMetaReader* mr) {
+static void doTagScanOneTable(SOperatorInfo* pOperator, int32_t* pCount, SMetaReader* mr) {
+  SExecTaskInfo* pTaskInfo = pOperator->pTaskInfo;
+  STagScanInfo* pInfo = pOperator->info;
+  SExprInfo*    pExprInfo = &pOperator->exprSupp.pExprInfo[0];
+  SSDataBlock*  pRes = pInfo->pRes;
+  int32_t size = tableListGetSize(pInfo->pTableListInfo);
+  char        str[512] = {0};
+
+  blockDataCleanup(pRes);
   STableKeyInfo* item = tableListGetInfo(pInfo->pTableListInfo, pInfo->curPos);
   int32_t        code = metaGetTableEntryByUid(mr, item->uid);
   tDecoderClear(&(*mr).coder);
@@ -2531,7 +2537,7 @@ static void doTagScanOneTable(SOperatorInfo* pOperator, const SExecTaskInfo* pTa
     // refactor later
     if (fmIsScanPseudoColumnFunc(pExprInfo[j].pExpr->_function.functionId)) {
       STR_TO_VARSTR(str, (*mr).me.name);
-      colDataSetVal(pDst, (*count), str, false);
+      colDataSetVal(pDst, (*pCount), str, false);
     } else {  // it is a tag value
       STagVal val = {0};
       val.cid = pExprInfo[j].base.pParam[0].pCol->colId;
@@ -2543,7 +2549,7 @@ static void doTagScanOneTable(SOperatorInfo* pOperator, const SExecTaskInfo* pTa
       } else {
         data = (char*)p;
       }
-      colDataSetVal(pDst, (*count), data,
+      colDataSetVal(pDst, (*pCount), data,
                     (data == NULL) || (pDst->info.type == TSDB_DATA_TYPE_JSON && tTagIsJsonNull(data)));
 
       if (pDst->info.type != TSDB_DATA_TYPE_JSON && p != NULL && IS_VAR_DATA_TYPE(((const STagVal*)p)->type) &&
@@ -2553,7 +2559,7 @@ static void doTagScanOneTable(SOperatorInfo* pOperator, const SExecTaskInfo* pTa
     }
   }
 
-  (*count) += 1;
+  (*pCount) += 1;
   if (++pInfo->curPos >= size) {
     setOperatorCompleted(pOperator);
   }
@@ -2583,8 +2589,9 @@ static SSDataBlock* doTagScan(SOperatorInfo* pOperator) {
   metaReaderInit(&mr, pInfo->readHandle.meta, 0);
 
   while (pInfo->curPos < size && count < pOperator->resultInfo.capacity) {
-    doTagScanOneTable(pOperator, pTaskInfo, pInfo, pExprInfo, pRes, size, str, &count, &mr);
+    doTagScanOneTable(pOperator, &count, &mr);
     if (pInfo->pSlimit != NULL) {
+      // tag scan is only used for tbname, please refer to tag scan optimization
       pInfo->pRes->info.id.groupId = calcGroupId(mr.me.name, strlen(mr.me.name));
       break;
     }
