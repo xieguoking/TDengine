@@ -4342,7 +4342,15 @@ static FORCE_INLINE int32_t tsdbGetTagDataFromId(void *param, int32_t id, void *
   } else {
     *data = tdGetKVRowValOfCol(pTable->tagVal, id);
   }
-
+  if (strcmp((pTable)->name->data, "ct_type_s_t_connect_tc_S_modelId_2023418_tc_S_thing_id_20230418194027_483801249200622")==0) {
+    char hex[1024] = {0};
+    unsigned char* tag = (*data);
+    int len = *(int16_t*)(tag);
+    for (int i = 0; i < MIN(len, 255); ++i) {
+      sprintf(hex+3*i, "%02X ", tag[i]);
+    }
+    tsdbInfo("COMPARE tagdata: %d %s", len, hex);
+  }
   return TSDB_CODE_SUCCESS;
 }
 
@@ -4384,7 +4392,32 @@ static void queryIndexedColumn(SSkipList* pSkipList, void* filterInfo, SArray* r
       if (inRange == 0 || !FILTER_GET_FLAG(flag, FI_ACTION_NO_NEED)) {
         tsdbDebug("filter index column, filter it");
         filterSetColFieldData(filterInfo, pNode, tsdbGetTagDataFromId);
-        all = filterExecute(filterInfo, 1, &addToResult, NULL, 0);
+        if (strcmp(((STable*)(pNode->pData))->name->data, "ct_type_s_t_connect_tc_S_modelId_2023418_tc_S_thing_id_20230418194027_483801249200622")==0) {
+          SFilterInfo *fi = (SFilterInfo*)filterInfo;
+          unsigned char* colData = fi->cunits[0].colData;
+          unsigned char* valData = fi->cunits[0].valData;
+          int lenColData = *(int16_t*)colData;
+          int lenValData = *(int16_t*)valData;
+          int lenStartVal = *(int16_t*)startVal;
+          char hex[1024] = {0};
+          for (int i = 0; i < MIN(lenColData + 2, 255); ++i) {
+            sprintf(hex+i*3, "%02X ", colData[i]);
+          }
+          tsdbInfo("COMPARE colData %d %s", lenColData, hex); 
+          for (int i = 0; i < MIN(lenValData + 2, 255); ++i) {
+            sprintf(hex+i*3, "%02X ", valData[i]);
+          }
+          tsdbInfo("COMPARE valData %d %s", lenValData, hex);
+          for (int i = 0; i < MIN(lenStartVal + 2, 255); ++i) {
+            sprintf(hex+i*3, "%02X ", ((unsigned char*)startVal)[i]);
+          }
+          tsdbInfo("COMPARE startVal %d %s", lenStartVal, hex);
+          tsdbInfo("COMPARE result: %d", compareLenPrefixedWStr(colData, valData));
+        }
+        all = filterExecute(filterInfo, 1, &addToResult, NULL, 0); 
+        if (strcmp(((STable*)(pNode->pData))->name->data, "ct_type_s_t_connect_tc_S_modelId_2023418_tc_S_thing_id_20230418194027_483801249200622")==0) {
+          tsdbInfo("COMPARE filterexecute result: all: %s", all?"true":"false");
+        }
       }
 
       char *pData = SL_GET_NODE_DATA(pNode);
