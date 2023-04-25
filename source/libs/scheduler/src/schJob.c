@@ -93,20 +93,20 @@ int32_t schUpdateJobStatus(SSchJob *pJob, int8_t newStatus) {
     switch (oriStatus) {
       case JOB_TASK_STATUS_NULL:
         if (newStatus != JOB_TASK_STATUS_INIT) {
-          SCH_ERR_JRET(TSDB_CODE_APP_ERROR);
+          SCH_ERR_JRET(TSDB_CODE_SCH_STATUS_ERROR);
         }
 
         break;
       case JOB_TASK_STATUS_INIT:
         if (newStatus != JOB_TASK_STATUS_EXEC && newStatus != JOB_TASK_STATUS_DROP) {
-          SCH_ERR_JRET(TSDB_CODE_APP_ERROR);
+          SCH_ERR_JRET(TSDB_CODE_SCH_STATUS_ERROR);
         }
 
         break;
       case JOB_TASK_STATUS_EXEC:
         if (newStatus != JOB_TASK_STATUS_PART_SUCC && newStatus != JOB_TASK_STATUS_FAIL &&
             newStatus != JOB_TASK_STATUS_DROP) {
-          SCH_ERR_JRET(TSDB_CODE_APP_ERROR);
+          SCH_ERR_JRET(TSDB_CODE_SCH_STATUS_ERROR);
         }
 
         break;
@@ -114,7 +114,7 @@ int32_t schUpdateJobStatus(SSchJob *pJob, int8_t newStatus) {
         if (newStatus != JOB_TASK_STATUS_FAIL && newStatus != JOB_TASK_STATUS_SUCC &&
             newStatus != JOB_TASK_STATUS_DROP && newStatus != JOB_TASK_STATUS_EXEC &&
             newStatus != JOB_TASK_STATUS_FETCH) {
-          SCH_ERR_JRET(TSDB_CODE_APP_ERROR);
+          SCH_ERR_JRET(TSDB_CODE_SCH_STATUS_ERROR);
         }
 
         break;
@@ -122,14 +122,14 @@ int32_t schUpdateJobStatus(SSchJob *pJob, int8_t newStatus) {
         if (newStatus != JOB_TASK_STATUS_FAIL && newStatus != JOB_TASK_STATUS_SUCC &&
             newStatus != JOB_TASK_STATUS_DROP && newStatus != JOB_TASK_STATUS_EXEC &&
             newStatus != JOB_TASK_STATUS_FETCH) {
-          SCH_ERR_JRET(TSDB_CODE_APP_ERROR);
+          SCH_ERR_JRET(TSDB_CODE_SCH_STATUS_ERROR);
         }
       
         break;
       case JOB_TASK_STATUS_SUCC:
       case JOB_TASK_STATUS_FAIL:
         if (newStatus != JOB_TASK_STATUS_DROP) {
-          SCH_ERR_JRET(TSDB_CODE_APP_ERROR);
+          SCH_ERR_JRET(TSDB_CODE_SCH_STATUS_ERROR);
         }
 
         break;
@@ -138,7 +138,7 @@ int32_t schUpdateJobStatus(SSchJob *pJob, int8_t newStatus) {
 
       default:
         SCH_JOB_ELOG("invalid job status:%s", jobTaskStatusStr(oriStatus));
-        SCH_ERR_JRET(TSDB_CODE_APP_ERROR);
+        SCH_ERR_JRET(TSDB_CODE_SCH_STATUS_ERROR);
     }
 
     if (oriStatus != atomic_val_compare_exchange_8(&pJob->status, oriStatus, newStatus)) {
@@ -961,8 +961,8 @@ int32_t schProcessOnOpBegin(SSchJob *pJob, SCH_OP_TYPE type, SSchedulerReq *pReq
       if (SCH_OP_NULL != atomic_val_compare_exchange_32(&pJob->opStatus.op, SCH_OP_NULL, type)) {
         SCH_JOB_ELOG("job already in %s operation", schGetOpStr(pJob->opStatus.op));
         SCH_UNLOCK(SCH_WRITE, &pJob->opStatus.lock);
-        schDirectPostJobRes(pReq, TSDB_CODE_APP_ERROR);
-        SCH_ERR_RET(TSDB_CODE_APP_ERROR);
+        schDirectPostJobRes(pReq, TSDB_CODE_SCH_API_USAGE_ERROR);
+        SCH_ERR_RET(TSDB_CODE_SCH_API_USAGE_ERROR);
       }
 
       SCH_JOB_DLOG("job start %s operation", schGetOpStr(pJob->opStatus.op));
@@ -975,8 +975,8 @@ int32_t schProcessOnOpBegin(SSchJob *pJob, SCH_OP_TYPE type, SSchedulerReq *pReq
       if (SCH_OP_NULL != atomic_val_compare_exchange_32(&pJob->opStatus.op, SCH_OP_NULL, type)) {
         SCH_JOB_ELOG("job already in %s operation", schGetOpStr(pJob->opStatus.op));
         SCH_UNLOCK(SCH_WRITE, &pJob->opStatus.lock);
-        schDirectPostJobRes(pReq, TSDB_CODE_APP_ERROR);
-        SCH_ERR_RET(TSDB_CODE_APP_ERROR);
+        schDirectPostJobRes(pReq, TSDB_CODE_SCH_API_USAGE_ERROR);
+        SCH_ERR_RET(TSDB_CODE_SCH_API_USAGE_ERROR);
       }
 
       SCH_JOB_DLOG("job start %s operation", schGetOpStr(pJob->opStatus.op));
@@ -990,7 +990,7 @@ int32_t schProcessOnOpBegin(SSchJob *pJob, SCH_OP_TYPE type, SSchedulerReq *pReq
 
       if (!SCH_JOB_NEED_FETCH(pJob)) {
         SCH_JOB_ELOG("no need to fetch data, status:%s", SCH_GET_JOB_STATUS_STR(pJob));
-        SCH_ERR_RET(TSDB_CODE_APP_ERROR);
+        SCH_ERR_RET(TSDB_CODE_SCH_NO_NEED_FETCH);
       }
 
       if (status != JOB_TASK_STATUS_PART_SUCC && status != JOB_TASK_STATUS_FETCH) {
@@ -1007,7 +1007,7 @@ int32_t schProcessOnOpBegin(SSchJob *pJob, SCH_OP_TYPE type, SSchedulerReq *pReq
       return TSDB_CODE_SUCCESS;
     default:
       SCH_JOB_ELOG("unknown operation type %d", type);
-      SCH_ERR_RET(TSDB_CODE_APP_ERROR);
+      SCH_ERR_RET(TSDB_CODE_INVALID_PARA);
   }
 
   if (schJobNeedToStop(pJob, &status)) {

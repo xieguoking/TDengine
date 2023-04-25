@@ -43,7 +43,10 @@ typedef struct {
 
 typedef struct SBlockIndex {
   int32_t     ordinalIndex;
-  int64_t     inFileOffset;
+  union {
+    int64_t     inFileOffset;
+    int32_t     blockIdx;
+  };
   STimeWindow window;  // todo replace it with overlap flag.
 } SBlockIndex;
 

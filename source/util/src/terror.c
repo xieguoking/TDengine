@@ -77,6 +77,7 @@ TAOS_DEFINE_ERROR(TSDB_CODE_INVALID_OPTION,               "Invalid option")
 TAOS_DEFINE_ERROR(TSDB_CODE_INVALID_JSON_FORMAT,          "Invalid json format")
 TAOS_DEFINE_ERROR(TSDB_CODE_INVALID_VERSION_NUMBER,       "Invalid version number")
 TAOS_DEFINE_ERROR(TSDB_CODE_INVALID_VERSION_STRING,       "Invalid version string")
+TAOS_DEFINE_ERROR(TSDB_CODE_INVALID_DATA_TYPE,            "Invalid data type")
 TAOS_DEFINE_ERROR(TSDB_CODE_VERSION_NOT_COMPATIBLE,       "Version not compatible")
 TAOS_DEFINE_ERROR(TSDB_CODE_CHECKSUM_ERROR,               "Checksum error")
 
@@ -143,6 +144,7 @@ TAOS_DEFINE_ERROR(TSDB_CODE_TSC_NO_EXEC_NODE,             "No available executio
 TAOS_DEFINE_ERROR(TSDB_CODE_TSC_NOT_STABLE_ERROR,         "Table is not a super table")
 TAOS_DEFINE_ERROR(TSDB_CODE_TSC_STMT_CACHE_ERROR,         "Stmt cache error")
 TAOS_DEFINE_ERROR(TSDB_CODE_TSC_INTERNAL_ERROR,           "Internal error")
+TAOS_DEFINE_ERROR(TSDB_CODE_TSC_STMT_APP_ERROR,           "Stmt application error")
 
 // mnode-common
 TAOS_DEFINE_ERROR(TSDB_CODE_MND_NO_RIGHTS,                "Insufficient privilege for operation")
@@ -475,6 +477,8 @@ TAOS_DEFINE_ERROR(TSDB_CODE_SCH_STATUS_ERROR,             "scheduler status erro
 TAOS_DEFINE_ERROR(TSDB_CODE_SCH_INTERNAL_ERROR,           "scheduler internal error")
 TAOS_DEFINE_ERROR(TSDB_CODE_SCH_TIMEOUT_ERROR,            "Task timeout")
 TAOS_DEFINE_ERROR(TSDB_CODE_SCH_JOB_IS_DROPPING,          "Job is dropping")
+TAOS_DEFINE_ERROR(TSDB_CODE_SCH_NO_NEED_FETCH,            "Job no need fetch")
+TAOS_DEFINE_ERROR(TSDB_CODE_SCH_API_USAGE_ERROR,          "scheduler api usage error")
 
 // parser
 TAOS_DEFINE_ERROR(TSDB_CODE_PAR_SYNTAX_ERROR,              "syntax error near")

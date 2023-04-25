@@ -175,7 +175,7 @@ int32_t qExplainGenerateResNode(SPhysiNode *pNode, SExplainGroup *group, SExplai
   if (NULL == pNode) {
     *pResNode = NULL;
     qError("physical node is NULL");
-    return TSDB_CODE_APP_ERROR;
+    return TSDB_CODE_INVALID_PARA;
   }
 
   SExplainResNode *resNode = taosMemoryCalloc(1, sizeof(SExplainResNode));
@@ -285,7 +285,7 @@ int32_t qExplainResNodeToRowsImpl(SExplainResNode *pResNode, SExplainCtx *ctx, i
   SPhysiNode *pNode = pResNode->pNode;
   if (NULL == pNode) {
     qError("pyhsical node in explain res node is NULL");
-    return TSDB_CODE_APP_ERROR;
+    return TSDB_CODE_INVALID_PARA;
   }
 
   switch (pNode->type) {
@@ -1502,7 +1502,7 @@ int32_t qExplainResNodeToRowsImpl(SExplainResNode *pResNode, SExplainCtx *ctx, i
 int32_t qExplainResNodeToRows(SExplainResNode *pResNode, SExplainCtx *ctx, int32_t level) {
   if (NULL == pResNode) {
     qError("explain res node is NULL");
-    QRY_ERR_RET(TSDB_CODE_APP_ERROR);
+    QRY_ERR_RET(TSDB_CODE_INVALID_PARA);
   }
 
   int32_t code = 0;

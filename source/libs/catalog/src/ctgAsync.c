@@ -1488,7 +1488,7 @@ _return:
 }
 
 int32_t ctgHandleGetDbInfoRsp(SCtgTaskReq* tReq, int32_t reqType, const SDataBuf* pMsg, int32_t rspCode) {
-  CTG_RET(TSDB_CODE_APP_ERROR);
+  CTG_RET(-1);
 }
 
 int32_t ctgHandleGetQnodeRsp(SCtgTaskReq* tReq, int32_t reqType, const SDataBuf* pMsg, int32_t rspCode) {

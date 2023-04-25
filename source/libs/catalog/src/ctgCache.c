@@ -1737,7 +1737,7 @@ int32_t ctgOpUpdateVgroup(SCtgCacheOperation *operation) {
   if (dbInfo->vgVersion < 0 || taosHashGetSize(dbInfo->vgHash) <= 0) {
     ctgDebug("invalid db vgInfo, dbFName:%s, vgHash:%p, vgVersion:%d, vgHashSize:%d", dbFName, dbInfo->vgHash,
              dbInfo->vgVersion, taosHashGetSize(dbInfo->vgHash));
-    CTG_ERR_JRET(TSDB_CODE_APP_ERROR);
+    CTG_ERR_JRET(-1);
   }
 
   bool         newAdded = false;

@@ -181,7 +181,7 @@ void qSetTaskId(qTaskInfo_t tinfo, uint64_t taskId, uint64_t queryId) {
 
 int32_t qSetStreamOpOpen(qTaskInfo_t tinfo) {
   if (tinfo == NULL) {
-    return TSDB_CODE_APP_ERROR;
+    return TSDB_CODE_INVALID_PARA;
   }
 
   SExecTaskInfo* pTaskInfo = (SExecTaskInfo*)tinfo;
@@ -205,7 +205,7 @@ void qGetCheckpointVersion(qTaskInfo_t tinfo, int64_t* dataVer, int64_t* ckId) {
 
 int32_t qSetMultiStreamInput(qTaskInfo_t tinfo, const void* pBlocks, size_t numOfBlocks, int32_t type) {
   if (tinfo == NULL) {
-    return TSDB_CODE_APP_ERROR;
+    return TSDB_CODE_INVALID_PARA;
   }
 
   if (pBlocks == NULL || numOfBlocks == 0) {

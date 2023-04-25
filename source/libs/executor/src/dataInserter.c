@@ -231,7 +231,7 @@ int32_t buildSubmitReqFromBlock(SDataInserterHandle* pInserter, SSubmitReq2** pp
         case TSDB_DATA_TYPE_JSON:
         case TSDB_DATA_TYPE_MEDIUMBLOB:
           qError("the column type %" PRIi16 " is defined but not implemented yet", pColInfoData->info.type);
-          terrno = TSDB_CODE_APP_ERROR;
+          terrno = TSDB_CODE_INVALID_DATA_TYPE;
           goto _end;
           break;
         default:
@@ -263,7 +263,7 @@ int32_t buildSubmitReqFromBlock(SDataInserterHandle* pInserter, SSubmitReq2** pp
             }
           } else {
             uError("the column type %" PRIi16 " is undefined\n", pColInfoData->info.type);
-            terrno = TSDB_CODE_APP_ERROR;
+            terrno = TSDB_CODE_INVALID_DATA_TYPE;
             goto _end;
           }
           break;

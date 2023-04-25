@@ -94,7 +94,7 @@ int32_t processConnectRsp(void* param, SDataBuf* pMsg, int32_t code) {
 
   /*assert(connectRsp.epSet.numOfEps > 0);*/
   if (connectRsp.epSet.numOfEps == 0) {
-    setErrno(pRequest, TSDB_CODE_APP_ERROR);
+    setErrno(pRequest, TSDB_CODE_INVALID_MSG);
     tsem_post(&pRequest->body.rspSem);
     goto End;
   }
@@ -240,7 +240,7 @@ int32_t processUseDbRsp(void* param, SDataBuf* pMsg, int32_t code) {
     if (usedbRsp.errCode != 0) {
       return usedbRsp.errCode;
     } else {
-      return TSDB_CODE_APP_ERROR;
+      return TSDB_CODE_INVALID_MSG;
     }
   }
 

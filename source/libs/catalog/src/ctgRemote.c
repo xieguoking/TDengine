@@ -323,7 +323,7 @@ int32_t ctgProcessRspMsg(void* out, int32_t reqType, char* msg, int32_t msgSize,
       }
 
       qError("invalid req type %s", TMSG_INFO(reqType));
-      return TSDB_CODE_APP_ERROR;
+      return TSDB_CODE_INVALID_MSG;
   }
 
   return TSDB_CODE_SUCCESS;
@@ -513,7 +513,7 @@ int32_t ctgAddBatch(SCatalog* pCtg, int32_t vgId, SRequestConnInfo* pConn, SCtgT
         }
       } else {
         ctgError("invalid vnode msgType %d", msgType);
-        CTG_ERR_JRET(TSDB_CODE_APP_ERROR);
+        CTG_ERR_JRET(TSDB_CODE_INVALID_PARA);
       }
 
       tNameGetFullDbName(pName, newBatch.dbFName);
@@ -563,7 +563,7 @@ int32_t ctgAddBatch(SCatalog* pCtg, int32_t vgId, SRequestConnInfo* pConn, SCtgT
       }
     } else {
       ctgError("invalid vnode msgType %d", msgType);
-      CTG_ERR_JRET(TSDB_CODE_APP_ERROR);
+      CTG_ERR_JRET(TSDB_CODE_INVALID_PARA);
     }
 
     tNameGetFullDbName(pName, pBatch->dbFName);

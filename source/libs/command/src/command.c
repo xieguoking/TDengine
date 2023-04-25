@@ -481,7 +481,7 @@ int32_t appendTagValues(char* buf, int32_t* len, STableCfg* pCfg) {
 
   if (NULL == pCfg->pTags || pCfg->numOfTags <= 0) {
     qError("tag missed in table cfg, pointer:%p, numOfTags:%d", pCfg->pTags, pCfg->numOfTags);
-    return TSDB_CODE_APP_ERROR;
+    return TSDB_CODE_INVALID_MSG;
   }
 
   if (tTagIsJson(pTag)) {
@@ -517,7 +517,7 @@ int32_t appendTagValues(char* buf, int32_t* len, STableCfg* pCfg) {
     if (pSchema->colId > pTagVal->cid) {
       qError("tag value and column mismatch, schemaId:%d, valId:%d", pSchema->colId, pTagVal->cid);
       taosArrayDestroy(pTagVals);
-      return TSDB_CODE_APP_ERROR;
+      return TSDB_CODE_INVALID_MSG;
     } else if (pSchema->colId == pTagVal->cid) {
       char    type = pTagVal->type;
       int32_t tlen = 0;

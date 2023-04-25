@@ -89,7 +89,7 @@ int32_t stmtSwitchStatus(STscStmt* pStmt, STMT_STATUS newStatus) {
       }
       break;
     default:
-      code = TSDB_CODE_APP_ERROR;
+      code = TSDB_CODE_TSC_STMT_API_ERROR;
       break;
   }
 
@@ -482,7 +482,7 @@ int32_t stmtGetFromCache(STscStmt* pStmt) {
       tscError("table [%s, %" PRIx64 ", %" PRIx64 "] found in exec blockHash, but not in sql blockHash",
                pStmt->bInfo.tbFName, uid, cacheUid);
 
-      STMT_ERR_RET(TSDB_CODE_APP_ERROR);
+      STMT_ERR_RET(TSDB_CODE_TSC_STMT_CACHE_ERROR);
     }
 
     pStmt->bInfo.needParse = false;
@@ -639,7 +639,7 @@ int stmtSetTbTags(TAOS_STMT* stmt, TAOS_MULTI_BIND* tags) {
       (STableDataCxt**)taosHashGet(pStmt->exec.pBlockHash, pStmt->bInfo.tbFName, strlen(pStmt->bInfo.tbFName));
   if (NULL == pDataBlock) {
     tscError("table %s not found in exec blockHash", pStmt->bInfo.tbFName);
-    STMT_ERR_RET(TSDB_CODE_APP_ERROR);
+    STMT_ERR_RET(TSDB_CODE_TSC_STMT_CACHE_ERROR);
   }
 
   tscDebug("start to bind stmt tag values");
@@ -660,7 +660,7 @@ int stmtFetchTagFields(STscStmt* pStmt, int32_t* fieldNum, TAOS_FIELD_E** fields
       (STableDataCxt**)taosHashGet(pStmt->exec.pBlockHash, pStmt->bInfo.tbFName, strlen(pStmt->bInfo.tbFName));
   if (NULL == pDataBlock) {
     tscError("table %s not found in exec blockHash", pStmt->bInfo.tbFName);
-    STMT_ERR_RET(TSDB_CODE_APP_ERROR);
+    STMT_ERR_RET(TSDB_CODE_TSC_STMT_CACHE_ERROR);
   }
 
   STMT_ERR_RET(qBuildStmtTagFields(*pDataBlock, pStmt->bInfo.boundTags, fieldNum, fields));
@@ -678,7 +678,7 @@ int stmtFetchColFields(STscStmt* pStmt, int32_t* fieldNum, TAOS_FIELD_E** fields
       (STableDataCxt**)taosHashGet(pStmt->exec.pBlockHash, pStmt->bInfo.tbFName, strlen(pStmt->bInfo.tbFName));
   if (NULL == pDataBlock) {
     tscError("table %s not found in exec blockHash", pStmt->bInfo.tbFName);
-    STMT_ERR_RET(TSDB_CODE_APP_ERROR);
+    STMT_ERR_RET(TSDB_CODE_TSC_STMT_CACHE_ERROR);
   }
 
   STMT_ERR_RET(qBuildStmtColFields(*pDataBlock, fieldNum, fields));
@@ -771,7 +771,7 @@ int stmtBindBatch(TAOS_STMT* stmt, TAOS_MULTI_BIND* bind, int32_t colIdx) {
   } else {
     if (colIdx != (pStmt->bInfo.sBindLastIdx + 1) && colIdx != 0) {
       tscError("bind column index not in sequence");
-      STMT_ERR_RET(TSDB_CODE_APP_ERROR);
+      STMT_ERR_RET(TSDB_CODE_TSC_STMT_APP_ERROR);
     }
 
     pStmt->bInfo.sBindLastIdx = colIdx;
