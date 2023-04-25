@@ -20,6 +20,8 @@
 // 2: wait to be inited or cleaup
 #define WAL_READ_TASKS_ID       (-1)
 
+static int32_t tqInitialize(STQ* pTq);
+
 int32_t tqInit() {
   int8_t old;
   while (1) {
@@ -109,25 +111,32 @@ STQ* tqOpen(const char* path, SVnode* pVnode) {
   pTq->pCheckInfo = taosHashInit(64, MurmurHash3_32, true, HASH_ENTRY_LOCK);
   taosHashSetFreeFp(pTq->pCheckInfo, (FDelete)tDeleteSTqCheckInfo);
 
+  tqInitialize(pTq);
+  return pTq;
+}
+
+int32_t tqInitialize(STQ* pTq) {
   if (tqMetaOpen(pTq) < 0) {
-    return NULL;
+    return -1;
   }
 
   pTq->pOffsetStore = tqOffsetOpen(pTq);
   if (pTq->pOffsetStore == NULL) {
-    return NULL;
+    return -1;
   }
 
-  pTq->pStreamMeta = streamMetaOpen(path, pTq, (FTaskExpand*)tqExpandTask, pTq->pVnode->config.vgId);
+  pTq->pStreamMeta = streamMetaOpen(pTq->path, pTq, (FTaskExpand*)tqExpandTask, pTq->pVnode->config.vgId);
   if (pTq->pStreamMeta == NULL) {
-    return NULL;
+    return -1;
   }
 
-  if (streamLoadTasks(pTq->pStreamMeta, walGetCommittedVer(pVnode->pWal)) < 0) {
-    return NULL;
+  // the version is kept in task's meta data
+  // todo check if this version is required or not
+  if (streamLoadTasks(pTq->pStreamMeta, walGetCommittedVer(pTq->pVnode->pWal)) < 0) {
+    return -1;
   }
 
-  return pTq;
+  return 0;
 }
 
 void tqClose(STQ* pTq) {
@@ -143,6 +152,31 @@ void tqClose(STQ* pTq) {
   tqMetaClose(pTq);
   streamMetaClose(pTq->pStreamMeta);
   taosMemoryFree(pTq);
+}
+
+void tqNotifyClose(STQ* pTq) {
+  if (pTq != NULL) {
+    taosWLockLatch(&pTq->pStreamMeta->lock);
+
+    void* pIter = NULL;
+    while (1) {
+      pIter = taosHashIterate(pTq->pStreamMeta->pTasks, pIter);
+      if (pIter == NULL) {
+        break;
+      }
+
+      SStreamTask* pTask = *(SStreamTask**)pIter;
+      tqDebug("vgId:%d s-task:%s set dropping flag", pTq->pStreamMeta->vgId, pTask->id.idStr);
+      pTask->status.taskStatus = TASK_STATUS__STOP;
+
+      int64_t st = taosGetTimestampMs();
+      qKillTask(pTask->exec.pExecutor, TSDB_CODE_SUCCESS);
+      int64_t el = taosGetTimestampMs() - st;
+      tqDebug("vgId:%d s-task:%s is closed in %" PRId64 "ms", pTq->pStreamMeta->vgId, pTask->id.idStr, el);
+    }
+
+    taosWUnLockLatch(&pTq->pStreamMeta->lock);
+  }
 }
 
 static int32_t doSendDataRsp(const SRpcHandleInfo* pRpcHandleInfo, const SMqDataRsp* pRsp, int32_t epoch,
@@ -548,12 +582,8 @@ int32_t tqProcessSubscribeReq(STQ* pTq, int64_t sversion, char* msg, int32_t msg
 }
 
 int32_t tqExpandTask(STQ* pTq, SStreamTask* pTask, int64_t ver) {
-  // todo extract method
-  char buf[128] = {0};
-  sprintf(buf, "0x%"PRIx64"-%d", pTask->id.streamId, pTask->id.taskId);
-
   int32_t vgId = TD_VID(pTq->pVnode);
-  pTask->id.idStr = taosStrdup(buf);
+  pTask->id.idStr = createStreamTaskIdStr(pTask->id.streamId, pTask->id.taskId);
   pTask->refCnt = 1;
   pTask->status.schedStatus = TASK_SCHED_STATUS__INACTIVE;
   pTask->inputQueue = streamQueueOpen();
@@ -568,6 +598,7 @@ int32_t tqExpandTask(STQ* pTq, SStreamTask* pTask, int64_t ver) {
   pTask->pMsgCb = &pTq->pVnode->msgCb;
   pTask->pMeta = pTq->pStreamMeta;
   pTask->chkInfo.version = ver;
+  pTask->chkInfo.currentVer = ver;
 
   // expand executor
   if (pTask->fillHistory) {
@@ -633,8 +664,11 @@ int32_t tqExpandTask(STQ* pTq, SStreamTask* pTask, int64_t ver) {
   }
 
   streamSetupTrigger(pTask);
-  tqInfo("vgId:%d expand stream task, s-task:%s, ver:%" PRId64 " child id:%d, level:%d", vgId, pTask->id.idStr,
+  tqInfo("vgId:%d expand stream task, s-task:%s, checkpoint ver:%" PRId64 " child id:%d, level:%d", vgId, pTask->id.idStr,
          pTask->chkInfo.version, pTask->selfChildId, pTask->taskLevel);
+
+  // next valid version will add one
+  pTask->chkInfo.version += 1;
   return 0;
 }
 
@@ -750,7 +784,7 @@ int32_t tqProcessTaskDeployReq(STQ* pTq, int64_t sversion, char* msg, int32_t ms
 
   tDecoderClear(&decoder);
 
-  // 2.save task
+  // 2.save task, use the newest commit version as the initial start version of stream task.
   code = streamMetaAddDeployedTask(pTq->pStreamMeta, sversion, pTask);
   if (code < 0) {
     tqError("vgId:%d failed to add s-task:%s, total:%d", TD_VID(pTq->pVnode), pTask->id.idStr,
@@ -958,14 +992,21 @@ int32_t tqProcessDelReq(STQ* pTq, void* pReq, int32_t len, int64_t ver) {
   int32_t* pRef = taosMemoryMalloc(sizeof(int32_t));
   *pRef = 1;
 
+  taosWLockLatch(&pTq->pStreamMeta->lock);
+
   void* pIter = NULL;
   while (1) {
     pIter = taosHashIterate(pTq->pStreamMeta->pTasks, pIter);
-    if (pIter == NULL) break;
-    SStreamTask* pTask = *(SStreamTask**)pIter;
-    if (pTask->taskLevel != TASK_LEVEL__SOURCE) continue;
+    if (pIter == NULL) {
+      break;
+    }
 
-    qDebug("delete req enqueue stream task: %d, ver: %" PRId64, pTask->id.taskId, ver);
+    SStreamTask* pTask = *(SStreamTask**)pIter;
+    if (pTask->taskLevel != TASK_LEVEL__SOURCE) {
+      continue;
+    }
+
+    qDebug("s-task:%s delete req enqueue, ver: %" PRId64, pTask->id.idStr, ver);
 
     if (!failed) {
       SStreamRefDataBlock* pRefBlock = taosAllocateQitem(sizeof(SStreamRefDataBlock), DEF_QITEM, 0);
@@ -975,15 +1016,13 @@ int32_t tqProcessDelReq(STQ* pTq, void* pReq, int32_t len, int64_t ver) {
       atomic_add_fetch_32(pRefBlock->dataRef, 1);
 
       if (tAppendDataToInputQueue(pTask, (SStreamQueueItem*)pRefBlock) < 0) {
-        qError("stream task input del failed, task id %d", pTask->id.taskId);
-
         atomic_sub_fetch_32(pRef, 1);
         taosFreeQitem(pRefBlock);
         continue;
       }
 
       if (streamSchedExec(pTask) < 0) {
-        qError("stream task launch failed, task id %d", pTask->id.taskId);
+        qError("s-task:%s stream task launch failed", pTask->id.idStr);
         continue;
       }
 
@@ -992,8 +1031,9 @@ int32_t tqProcessDelReq(STQ* pTq, void* pReq, int32_t len, int64_t ver) {
     }
   }
 
+  taosWUnLockLatch(&pTq->pStreamMeta->lock);
+
   int32_t ref = atomic_sub_fetch_32(pRef, 1);
-  /*A(ref >= 0);*/
   if (ref == 0) {
     blockDataDestroy(pDelBlock);
     taosMemoryFree(pRef);
@@ -1024,21 +1064,7 @@ int32_t tqProcessDelReq(STQ* pTq, void* pReq, int32_t len, int64_t ver) {
   }
   blockDataDestroy(pDelBlock);
 #endif
-
   return 0;
-}
-
-static int32_t addSubmitBlockNLaunchTask(STqOffsetStore* pOffsetStore, SStreamTask* pTask, SStreamDataSubmit2* pSubmit,
-                                         const char* key, int64_t ver) {
-  doSaveTaskOffset(pOffsetStore, key, ver);
-  int32_t code = tqAddInputBlockNLaunchTask(pTask, (SStreamQueueItem*)pSubmit, ver);
-
-  // remove the offset, if all functions are completed successfully.
-  if (code == TSDB_CODE_SUCCESS) {
-    tqOffsetDelete(pOffsetStore, key);
-  }
-
-  return code;
 }
 
 int32_t tqProcessSubmitReq(STQ* pTq, SPackedData submit) {
@@ -1154,6 +1180,7 @@ int32_t tqProcessTaskDispatchReq(STQ* pTq, SRpcMsg* pMsg, bool exec) {
     streamMetaReleaseTask(pTq->pStreamMeta, pTask);
     return 0;
   } else {
+    tDeleteStreamDispatchReq(&req);
     return -1;
   }
 }
@@ -1196,6 +1223,7 @@ int32_t tqProcessTaskRetrieveReq(STQ* pTq, SRpcMsg* pMsg) {
     tDeleteStreamRetrieveReq(&req);
     return 0;
   } else {
+    tDeleteStreamRetrieveReq(&req);
     return -1;
   }
 }
@@ -1276,6 +1304,13 @@ int32_t tqStartStreamTasks(STQ* pTq) {
 
   SStreamMeta* pMeta = pTq->pStreamMeta;
   taosWLockLatch(&pMeta->lock);
+  int32_t numOfTasks = taosHashGetSize(pTq->pStreamMeta->pTasks);
+  if (numOfTasks == 0) {
+    tqInfo("vgId:%d no stream tasks exists", vgId);
+    taosWUnLockLatch(&pTq->pStreamMeta->lock);
+    return 0;
+  }
+
   pMeta->walScan += 1;
 
   if (pMeta->walScan > 1) {
@@ -1292,11 +1327,7 @@ int32_t tqStartStreamTasks(STQ* pTq) {
     return -1;
   }
 
-  int32_t numOfTasks = taosHashGetSize(pTq->pStreamMeta->pTasks);
-
-  tqInfo("vgId:%d start wal scan stream tasks, tasks:%d", vgId, numOfTasks);
-  initOffsetForAllRestoreTasks(pTq);
-
+  tqDebug("vgId:%d start wal scan stream tasks, tasks:%d", vgId, numOfTasks);
   pRunReq->head.vgId = vgId;
   pRunReq->streamId = 0;
   pRunReq->taskId = WAL_READ_TASKS_ID;

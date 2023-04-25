@@ -16,7 +16,7 @@
 #include "streamInc.h"
 #include "ttimer.h"
 
-#define STREAM_TASK_INPUT_QUEUEU_CAPACITY 2000
+#define STREAM_TASK_INPUT_QUEUEU_CAPACITY 3000
 
 int32_t streamInit() {
   int8_t old;
@@ -52,7 +52,7 @@ void streamCleanUp() {
 void streamSchedByTimer(void* param, void* tmrId) {
   SStreamTask* pTask = (void*)param;
 
-  if (atomic_load_8(&pTask->status.taskStatus) == TASK_STATUS__DROPPING) {
+  if (streamTaskShouldStop(&pTask->status)) {
     streamMetaReleaseTask(NULL, pTask);
     return;
   }
@@ -352,4 +352,8 @@ void* streamQueueNextItem(SStreamQueue* queue) {
     }
     return streamQueueCurItem(queue);
   }
+}
+
+void streamTaskInputFail(SStreamTask* pTask) {
+  atomic_store_8(&pTask->inputStatus, TASK_INPUT_STATUS__FAILED);
 }
