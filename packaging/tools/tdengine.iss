@@ -98,8 +98,6 @@ begin
 if CurStep = ssDone then
 begin
 MyPromtName := '{#CusPrompt}';
-Log(MyPromtName);
-MsgBox('The prompt name is: ' + '{#CusPrompt}', mbInformation, MB_OK);
 if FileExists(ExpandConstant('{code:GetCustomPath}\taosd.exe')) then
 DeleteFile(ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'd.exe');
 RenameFile(ExpandConstant('{code:GetCustomPath}\taosd.exe'), ExpandConstant('{code:GetCustomPath}\') + MyPromtName + 'd.exe');
