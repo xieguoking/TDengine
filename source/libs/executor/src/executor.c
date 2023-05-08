@@ -1062,6 +1062,8 @@ void verifyOffset(void *pWalReader, STqOffsetVal* pOffset){
   // if offset version is small than first version , let's seek to first version
   int64_t firstVer = walGetFirstVer(((SWalReader*)pWalReader)->pWal);
   if (pOffset->version + 1 < firstVer){
+    qInfo("verifyOffset failed, stored version is smaller than first version. stored ver:%" PRId64 ",firstVer:%"PRId64, pOffset->version, firstVer);
+    ASSERT(0);
     pOffset->version = firstVer - 1;
   }
 }
