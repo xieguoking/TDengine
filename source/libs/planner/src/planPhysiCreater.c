@@ -584,6 +584,9 @@ static int32_t createTableScanPhysiNode(SPhysiPlanContext* pCxt, SSubplan* pSubp
   pTableScan->igExpired = pScanLogicNode->igExpired;
   pTableScan->igCheckUpdate = pScanLogicNode->igCheckUpdate;
   pTableScan->assignBlockUid = pCxt->pPlanCxt->rSmaQuery ? true : false;
+  if (pScanLogicNode->stbFullTableName) {
+    strcpy(pTableScan->stbFullTableName, pScanLogicNode->stbFullTableName);
+  }
 
   int32_t code = createScanPhysiNodeFinalize(pCxt, pSubplan, pScanLogicNode, (SScanPhysiNode*)pTableScan, pPhyNode);
   if (TSDB_CODE_SUCCESS == code) {
@@ -1461,6 +1464,9 @@ static int32_t createStreamPartitionPhysiNode(SPhysiPlanContext* pCxt, SNodeList
   }
   if (TSDB_CODE_SUCCESS == code) {
     code = setNodeSlotId(pCxt, pChildTupe->dataBlockId, -1, pPartLogicNode->pSubtable, &pPart->pSubtable);
+  }
+  if (pPartLogicNode->stbFullTableName) {
+    strcpy(pPart->stbFullTableName, pPartLogicNode->stbFullTableName);
   }
   if (TSDB_CODE_SUCCESS == code) {
     *pPhyNode = (SPhysiNode*)pPart;

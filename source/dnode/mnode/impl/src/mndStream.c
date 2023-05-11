@@ -392,6 +392,7 @@ static int32_t mndBuildStreamObjFromCreateReq(SMnode *pMnode, SStreamObj *pObj, 
       .igExpired = pObj->igExpired,
       .deleteMark = pObj->deleteMark,
       .igCheckUpdate = pObj->igCheckUpdate,
+      .stbFullTableName = pObj->targetSTbName,
   };
 
   // using ast and param to build physical plan

@@ -349,6 +349,7 @@ static int32_t createScanLogicNode(SLogicPlanContext* pCxt, SSelectStmt* pSelect
     pScan->deleteMark = pCxt->pPlanCxt->deleteMark;
     pScan->igExpired = pCxt->pPlanCxt->igExpired;
     pScan->igCheckUpdate = pCxt->pPlanCxt->igCheckUpdate;
+    pScan->stbFullTableName = pCxt->pPlanCxt->stbFullTableName;
   }
 
   // set columns to scan
@@ -1152,6 +1153,7 @@ static int32_t createPartitionLogicNode(SLogicPlanContext* pCxt, SSelectStmt* pS
   } else {
     nodesDestroyNode((SNode*)pPartition);
   }
+  pPartition->stbFullTableName = pCxt->pPlanCxt->stbFullTableName;
 
   return code;
 }

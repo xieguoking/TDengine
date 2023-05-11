@@ -646,6 +646,7 @@ int32_t tqExpandTask(STQ* pTq, SStreamTask* pTask, int64_t ver) {
     if (pTask->tbSink.pTSchema == NULL) {
       return -1;
     }
+    pTask->tbSink.pUidInfo = tSimpleHashInit(10240, taosGetDefaultHashFunction(TSDB_DATA_TYPE_BIGINT));
   }
 
   if (pTask->taskLevel == TASK_LEVEL__SOURCE) {

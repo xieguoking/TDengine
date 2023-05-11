@@ -103,6 +103,7 @@ typedef struct SScanLogicNode {
   bool          hasNormalCols;  // neither tag column nor primary key tag column
   bool          sortPrimaryKey;
   bool          igLastNull;
+  char*         stbFullTableName;
 } SScanLogicNode;
 
 typedef struct SJoinLogicNode {
@@ -253,6 +254,7 @@ typedef struct SPartitionLogicNode {
   SNodeList* pPartitionKeys;
   SNodeList* pTags;
   SNode*     pSubtable;
+  char*      stbFullTableName;
 } SPartitionLogicNode;
 
 typedef enum ESubplanType {
@@ -367,6 +369,7 @@ typedef struct STableScanPhysiNode {
   int8_t         igExpired;
   bool           assignBlockUid;
   int8_t         igCheckUpdate;
+  char          stbFullTableName[TSDB_TABLE_NAME_LEN];
 } STableScanPhysiNode;
 
 typedef STableScanPhysiNode STableSeqScanPhysiNode;
@@ -538,6 +541,7 @@ typedef struct SStreamPartitionPhysiNode {
   SPartitionPhysiNode part;
   SNodeList*          pTags;
   SNode*              pSubtable;
+  char                stbFullTableName[TSDB_TABLE_NAME_LEN];
 } SStreamPartitionPhysiNode;
 
 typedef struct SDataSinkNode {

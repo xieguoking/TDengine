@@ -90,6 +90,15 @@ end:
   return ret;
 }
 
+int32_t getTblUid(SSHashObj* tblInfo ,char* tbName, int64_t* uid) {
+  void* pVal = tSimpleHashGet(tblInfo, tbName, strlen(tbName));
+  if (pVal) {
+    *uid = *(int64_t*)pVal;
+    return TSDB_CODE_SUCCESS;
+  }
+  return TSDB_CODE_FAILED;
+}
+
 int32_t tqPutReqToQueue(SVnode* pVnode, SVCreateTbBatchReq* pReqs) {
   void*   buf = NULL;
   int32_t tlen = 0;
@@ -261,99 +270,94 @@ void tqSinkToTablePipeline(SStreamTask* pTask, void* vnode, int64_t ver, void* d
       tbData.uid = 0;  // uid is assigned by vnode
       tbData.sver = pTSchema->version;
 
-      char* ctbName = NULL;
-      tqDebug("vgId:%d, stream write into %s, table auto created", TD_VID(pVnode), pDataBlock->info.parTbName);
-      if (pDataBlock->info.parTbName[0]) {
-        ctbName = taosStrdup(pDataBlock->info.parTbName);
-      } else {
-        ctbName = buildCtbNameByGroupId(stbFullName, pDataBlock->info.id.groupId);
+      char* ctbName = pDataBlock->info.parTbName;
+      if (!pDataBlock->info.parTbName[0]) {
+        char* tmp = buildCtbNameByGroupId(stbFullName, pDataBlock->info.id.groupId);
+        memcpy(ctbName, tmp, strlen(tmp));
+        taosMemoryFree(tmp);
+        tqError("vgId:%d, gropuid:%" PRIu64 " datablock tabel name is null", TD_VID(pVnode), pDataBlock->info.id.groupId);
       }
 
-      SMetaReader mr = {0};
-      metaReaderInit(&mr, pVnode->pMeta, 0);
-      if (metaGetTableEntryByName(&mr, ctbName) < 0) {
-        metaReaderClear(&mr);
-        tqDebug("vgId:%d, stream write into %s, table auto created", TD_VID(pVnode), ctbName);
-
-        SVCreateTbReq* pCreateTbReq = NULL;
-
-        if (!(pCreateTbReq = taosMemoryCalloc(1, sizeof(SVCreateStbReq)))) {
-          taosMemoryFree(ctbName);
-          goto _end;
-        };
-
-        // set const
-        pCreateTbReq->flags = 0;
-        pCreateTbReq->type = TSDB_CHILD_TABLE;
-        pCreateTbReq->ctb.suid = suid;
-
-        // set super table name
-        SName name = {0};
-        tNameFromString(&name, stbFullName, T_NAME_ACCT | T_NAME_DB | T_NAME_TABLE);
-        pCreateTbReq->ctb.stbName = taosStrdup((char*)tNameGetTableName(&name));  // taosStrdup(stbFullName);
-
-        // set tag content
-        tagArray = taosArrayInit(1, sizeof(STagVal));
-        if (!tagArray) {
-          taosMemoryFree(ctbName);
-          tdDestroySVCreateTbReq(pCreateTbReq);
-          goto _end;
-        }
-        STagVal tagVal = {
-            .cid = pTSchema->numOfCols + 1,
-            .type = TSDB_DATA_TYPE_UBIGINT,
-            .i64 = (int64_t)pDataBlock->info.id.groupId,
-        };
-        taosArrayPush(tagArray, &tagVal);
-        pCreateTbReq->ctb.tagNum = taosArrayGetSize(tagArray);
-
-        STag* pTag = NULL;
-        tTagNew(tagArray, 1, false, &pTag);
-        tagArray = taosArrayDestroy(tagArray);
-        if (pTag == NULL) {
-          taosMemoryFree(ctbName);
-          tdDestroySVCreateTbReq(pCreateTbReq);
-          terrno = TSDB_CODE_OUT_OF_MEMORY;
-          taosMemoryFree(ctbName);
-          tdDestroySVCreateTbReq(pCreateTbReq);
-          goto _end;
-        }
-        pCreateTbReq->ctb.pTag = (uint8_t*)pTag;
-
-        // set tag name
-        SArray* tagName = taosArrayInit(1, TSDB_COL_NAME_LEN);
-        char    tagNameStr[TSDB_COL_NAME_LEN] = {0};
-        strcpy(tagNameStr, "group_id");
-        taosArrayPush(tagName, tagNameStr);
-        pCreateTbReq->ctb.tagName = tagName;
-
-        // set table name
-        pCreateTbReq->name = ctbName;
-        ctbName = NULL;
-
-        tbData.pCreateTbReq = pCreateTbReq;
-        tbData.flags = SUBMIT_REQ_AUTO_CREATE_TABLE;
-      } else {
-        if (mr.me.type != TSDB_CHILD_TABLE) {
-          tqError("vgId:%d, failed to write into %s, since table type incorrect, type %d", TD_VID(pVnode), ctbName,
-                  mr.me.type);
+      int32_t res = getTblUid(pTask->tbSink.pUidInfo, ctbName, &tbData.uid);
+      if (res != TSDB_CODE_SUCCESS) {
+        SMetaReader mr = {0};
+        metaReaderInit(&mr, pVnode->pMeta, 0);
+        if (metaGetTableEntryByName(&mr, ctbName) < 0) {
           metaReaderClear(&mr);
-          taosMemoryFree(ctbName);
-          continue;
-        }
+          tqDebug("vgId:%d, stream write into %s, table auto created", TD_VID(pVnode), ctbName);
 
-        if (mr.me.ctbEntry.suid != suid) {
-          tqError("vgId:%d, failed to write into %s, since suid mismatch, expect suid: %" PRId64
-                  ", actual suid %" PRId64 "",
-                  TD_VID(pVnode), ctbName, suid, mr.me.ctbEntry.suid);
+          SVCreateTbReq* pCreateTbReq = NULL;
+
+          if (!(pCreateTbReq = taosMemoryCalloc(1, sizeof(SVCreateStbReq)))) {
+            goto _end;
+          };
+
+          // set const
+          pCreateTbReq->flags = 0;
+          pCreateTbReq->type = TSDB_CHILD_TABLE;
+          pCreateTbReq->ctb.suid = suid;
+
+          // set super table name
+          SName name = {0};
+          tNameFromString(&name, stbFullName, T_NAME_ACCT | T_NAME_DB | T_NAME_TABLE);
+          pCreateTbReq->ctb.stbName = taosStrdup((char*)tNameGetTableName(&name));  // taosStrdup(stbFullName);
+
+          // set tag content
+          tagArray = taosArrayInit(1, sizeof(STagVal));
+          if (!tagArray) {
+            tdDestroySVCreateTbReq(pCreateTbReq);
+            goto _end;
+          }
+          STagVal tagVal = {
+              .cid = pTSchema->numOfCols + 1,
+              .type = TSDB_DATA_TYPE_UBIGINT,
+              .i64 = (int64_t)pDataBlock->info.id.groupId,
+          };
+          taosArrayPush(tagArray, &tagVal);
+          pCreateTbReq->ctb.tagNum = taosArrayGetSize(tagArray);
+
+          STag* pTag = NULL;
+          tTagNew(tagArray, 1, false, &pTag);
+          tagArray = taosArrayDestroy(tagArray);
+          if (pTag == NULL) {
+            tdDestroySVCreateTbReq(pCreateTbReq);
+            terrno = TSDB_CODE_OUT_OF_MEMORY;
+            goto _end;
+          }
+          pCreateTbReq->ctb.pTag = (uint8_t*)pTag;
+
+          // set tag name
+          SArray* tagName = taosArrayInit(1, TSDB_COL_NAME_LEN);
+          char    tagNameStr[TSDB_COL_NAME_LEN] = {0};
+          strcpy(tagNameStr, "group_id");
+          taosArrayPush(tagName, tagNameStr);
+          pCreateTbReq->ctb.tagName = tagName;
+
+          // set table name
+          pCreateTbReq->name = taosStrdup(ctbName);
+
+          tbData.pCreateTbReq = pCreateTbReq;
+          tbData.flags = SUBMIT_REQ_AUTO_CREATE_TABLE;
+        } else {
+          if (mr.me.type != TSDB_CHILD_TABLE) {
+            tqError("vgId:%d, failed to write into %s, since table type incorrect, type %d", TD_VID(pVnode), ctbName,
+                    mr.me.type);
+            metaReaderClear(&mr);
+            continue;
+          }
+
+          if (mr.me.ctbEntry.suid != suid) {
+            tqError("vgId:%d, failed to write into %s, since suid mismatch, expect suid: %" PRId64
+                    ", actual suid %" PRId64 "",
+                    TD_VID(pVnode), ctbName, suid, mr.me.ctbEntry.suid);
+            metaReaderClear(&mr);
+            continue;
+          }
+
+          tbData.uid = mr.me.uid;
+          tSimpleHashPut(pTask->tbSink.pUidInfo, ctbName, strlen(ctbName), &tbData.uid, sizeof(int64_t));
           metaReaderClear(&mr);
-          taosMemoryFree(ctbName);
-          continue;
         }
-
-        tbData.uid = mr.me.uid;
-        metaReaderClear(&mr);
-        taosMemoryFreeClear(ctbName);
       }
 
       // rows

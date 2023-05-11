@@ -1465,11 +1465,9 @@ static int32_t generateScanRange(SStreamScanInfo* pInfo, SSDataBlock* pSrcBlock,
 static void calBlockTbName(SStreamScanInfo* pInfo, SSDataBlock* pBlock) {
   SExprSupp*    pTbNameCalSup = &pInfo->tbnameCalSup;
   blockDataCleanup(pInfo->pCreateTbRes);
-  if (pInfo->tbnameCalSup.numOfExprs == 0 && pInfo->tagCalSup.numOfExprs == 0) {
-    pBlock->info.parTbName[0] = 0;
-  } else {
+  if (!pInfo->partitionSup.needCalc) {
     appendCreateTableRow(pInfo->pStreamScanOp->pTaskInfo->streamInfo.pState, &pInfo->tbnameCalSup, &pInfo->tagCalSup,
-                         pBlock->info.id.groupId, pBlock, 0, pInfo->pCreateTbRes);
+                         pBlock->info.id.groupId, pBlock, 0, pInfo->pCreateTbRes, pInfo->stbFullName);
   }
 }
 
@@ -1583,7 +1581,7 @@ static int32_t setBlockIntoRes(SStreamScanInfo* pInfo, const SSDataBlock* pBlock
   // currently only the tbname pseudo column
   if (pInfo->numOfPseudoExpr > 0) {
     int32_t code = addTagPseudoColumnData(&pInfo->readHandle, pInfo->pPseudoExpr, pInfo->numOfPseudoExpr, pInfo->pRes,
-                                          pInfo->pRes->info.rows, GET_TASKID(pTaskInfo), NULL);
+                                          pInfo->pRes->info.rows, GET_TASKID(pTaskInfo), &pTableScanInfo->base.metaCache);
     // ignore the table not exists error, since this table may have been dropped during the scan procedure.
     if (code != TSDB_CODE_SUCCESS && code != TSDB_CODE_PAR_TABLE_NOT_EXIST) {
       blockDataFreeRes((SSDataBlock*)pBlock);
@@ -2486,6 +2484,7 @@ SOperatorInfo* createStreamScanOperatorInfo(SReadHandle* pHandle, STableScanPhys
   pInfo->igExpired = pTableScanNode->igExpired;
   pInfo->twAggSup.maxTs = INT64_MIN;
   pInfo->pState = NULL;
+  memcpy(pInfo->stbFullName, pTableScanNode->stbFullTableName, strlen(pTableScanNode->stbFullTableName));
 
   // for stream
   if (pTaskInfo->streamInfo.pState) {

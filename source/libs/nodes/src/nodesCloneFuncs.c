@@ -393,6 +393,7 @@ static int32_t logicScanCopy(const SScanLogicNode* pSrc, SScanLogicNode* pDst) {
   CLONE_NODE_LIST_FIELD(pTags);
   CLONE_NODE_FIELD(pSubtable);
   COPY_SCALAR_FIELD(igLastNull);
+  COPY_SCALAR_FIELD(stbFullTableName);
   return TSDB_CODE_SUCCESS;
 }
 
@@ -508,6 +509,7 @@ static int32_t logicPartitionCopy(const SPartitionLogicNode* pSrc, SPartitionLog
   CLONE_NODE_LIST_FIELD(pPartitionKeys);
   CLONE_NODE_LIST_FIELD(pTags);
   CLONE_NODE_FIELD(pSubtable);
+  COPY_SCALAR_FIELD(stbFullTableName);
   return TSDB_CODE_SUCCESS;
 }
 

@@ -3457,6 +3457,7 @@ static SSDataBlock* doStreamSessionAgg(SOperatorInfo* pOperator) {
       getAllSessionWindow(pAggSup->pResultRows, pInfo->pStUpdated);
       continue;
     } else if (pBlock->info.type == STREAM_CREATE_CHILD_TABLE) {
+      printDataBlock(pBlock, IS_FINAL_OP(pInfo) ? "final session" : "single session");
       return pBlock;
     } else {
       ASSERTS(pBlock->info.type == STREAM_NORMAL || pBlock->info.type == STREAM_INVALID, "invalid SSDataBlock type");

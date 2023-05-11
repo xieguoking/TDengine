@@ -366,6 +366,7 @@ typedef struct SStreamScanInfo {
   int8_t        igCheckUpdate;
   int8_t        igExpired;
   SStreamState* pState;
+  char          stbFullName[TSDB_TABLE_FNAME_LEN];
 } SStreamScanInfo;
 
 typedef struct {
@@ -525,6 +526,7 @@ typedef struct SStreamPartitionOperatorInfo {
   int32_t               tsColIndex;
   SSDataBlock*          pDelRes;
   SSDataBlock*          pCreateTbRes;
+  char                  stbFullName[TSDB_TABLE_FNAME_LEN];
 } SStreamPartitionOperatorInfo;
 
 typedef struct SStreamFillSupporter {
@@ -657,7 +659,7 @@ void    getNextIntervalWindow(SInterval* pInterval, STimeWindow* tw, int32_t ord
 int32_t getForwardStepsInBlock(int32_t numOfRows, __block_search_fn_t searchFn, TSKEY ekey, int32_t pos, int32_t order,
                                int64_t* pData);
 void    appendCreateTableRow(SStreamState* pState, SExprSupp* pTableSup, SExprSupp* pTagSup, uint64_t groupId,
-                             SSDataBlock* pSrcBlock, int32_t rowId, SSDataBlock* pDestBlock);
+                             SSDataBlock* pSrcBlock, int32_t rowId, SSDataBlock* pDestBlock, char* stbFullName);
 
 SSDataBlock* buildCreateTableBlock(SExprSupp* tbName, SExprSupp* tag);
 SExprInfo*   createExpr(SNodeList* pNodeList, int32_t* numOfExprs);

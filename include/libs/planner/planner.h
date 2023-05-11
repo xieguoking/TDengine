@@ -42,6 +42,7 @@ typedef struct SPlanContext {
   const char* pUser;
   bool        sysInfo;
   int64_t     allocatorId;
+  char*       stbFullTableName;
 } SPlanContext;
 
 // Create the physical plan for the query, according to the AST.

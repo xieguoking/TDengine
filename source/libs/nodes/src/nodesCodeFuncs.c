@@ -1651,6 +1651,7 @@ static const char* jkTableScanPhysiPlanTags = "Tags";
 static const char* jkTableScanPhysiPlanSubtable = "Subtable";
 static const char* jkTableScanPhysiPlanAssignBlockUid = "AssignBlockUid";
 static const char* jkTableScanPhysiPlanIgnoreUpdate = "IgnoreUpdate";
+static const char* jkTableScanPhysiPlanStbFullTableName = "stbFullTableName";
 
 static int32_t physiTableScanNodeToJson(const void* pObj, SJson* pJson) {
   const STableScanPhysiNode* pNode = (const STableScanPhysiNode*)pObj;
@@ -1718,6 +1719,9 @@ static int32_t physiTableScanNodeToJson(const void* pObj, SJson* pJson) {
   }
   if (TSDB_CODE_SUCCESS == code) {
     code = tjsonAddIntegerToObject(pJson, jkTableScanPhysiPlanIgnoreUpdate, pNode->igCheckUpdate);
+  }
+  if (TSDB_CODE_SUCCESS == code) {
+    code = tjsonAddStringToObject(pJson, jkTableScanPhysiPlanStbFullTableName, pNode->stbFullTableName);
   }
 
   return code;
@@ -1789,6 +1793,9 @@ static int32_t jsonToPhysiTableScanNode(const SJson* pJson, void* pObj) {
   }
   if (TSDB_CODE_SUCCESS == code) {
     code = tjsonGetTinyIntValue(pJson, jkTableScanPhysiPlanIgnoreUpdate, &pNode->igCheckUpdate);
+  }
+  if (TSDB_CODE_SUCCESS == code) {
+    code = tjsonGetStringValue(pJson, jkTableScanPhysiPlanStbFullTableName, pNode->stbFullTableName);
   }
 
   return code;
@@ -2454,6 +2461,7 @@ static int32_t jsonToPhysiPartitionNode(const SJson* pJson, void* pObj) {
 
 static const char* jkStreamPartitionPhysiPlanTags = "Tags";
 static const char* jkStreamPartitionPhysiPlanSubtable = "Subtable";
+static const char* jkStreamPartitionPhysiPlanStbFullTableName = "StbFullTableName";
 
 static int32_t physiStreamPartitionNodeToJson(const void* pObj, SJson* pJson) {
   const SStreamPartitionPhysiNode* pNode = (const SStreamPartitionPhysiNode*)pObj;
@@ -2464,6 +2472,9 @@ static int32_t physiStreamPartitionNodeToJson(const void* pObj, SJson* pJson) {
   }
   if (TSDB_CODE_SUCCESS == code) {
     code = tjsonAddObject(pJson, jkStreamPartitionPhysiPlanSubtable, nodeToJson, pNode->pSubtable);
+  }
+  if (TSDB_CODE_SUCCESS == code) {
+    code = tjsonAddStringToObject(pJson, jkStreamPartitionPhysiPlanStbFullTableName, pNode->stbFullTableName);
   }
 
   return code;
@@ -2478,6 +2489,9 @@ static int32_t jsonToPhysiStreamPartitionNode(const SJson* pJson, void* pObj) {
   }
   if (TSDB_CODE_SUCCESS == code) {
     code = jsonToNodeObject(pJson, jkStreamPartitionPhysiPlanSubtable, &pNode->pSubtable);
+  }
+  if (TSDB_CODE_SUCCESS == code) {
+    code = tjsonGetStringValue(pJson, jkStreamPartitionPhysiPlanStbFullTableName, pNode->stbFullTableName);
   }
 
   return code;
