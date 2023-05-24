@@ -2053,10 +2053,16 @@ class TdSuperTable:
                     consumer.commit(res)
                     if time.time() - time_start > random.randint(5, 50):
                         break
-                consumer.unsubscribe()
-                consumer.close()
-            except TmqError as err: # topic deleted by other threads
-                pass
+                try:
+                    consumer.unsubscribe()
+                    consumer.close()
+                except TmqError as e:
+                    pass
+                
+            except taos.error.ProgrammingError as err:
+                errno = Helper.convertErrno(err.errno)
+                if errno in [0x03E1]:  # topic deleted by other threads
+                    pass
             return
 
         # mulit Consumer 
