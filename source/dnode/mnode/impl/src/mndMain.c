@@ -124,11 +124,7 @@ static void mndCalMqRebalance(SMnode *pMnode) {
   int32_t contLen = 0;
   void   *pReq = mndBuildTimerMsg(&contLen);
   if (pReq != NULL) {
-    SRpcMsg rpcMsg = {
-        .msgType = TDMT_MND_TMQ_TIMER,
-        .pCont = pReq,
-        .contLen = contLen,
-    };
+    SRpcMsg rpcMsg = { .msgType = TDMT_MND_TMQ_TIMER, .pCont = pReq, .contLen = contLen };
     tmsgPutToQueue(&pMnode->msgCb, READ_QUEUE, &rpcMsg);
   }
 }
@@ -491,7 +487,10 @@ static void mndSetOptions(SMnode *pMnode, const SMnodeOpt *pOption) {
   pMnode->selfDnodeId = pOption->dnodeId;
   pMnode->syncMgmt.selfIndex = pOption->selfIndex;
   pMnode->syncMgmt.numOfReplicas = pOption->numOfReplicas;
+  pMnode->syncMgmt.numOfTotalReplicas = pOption->numOfTotalReplicas;
+  pMnode->syncMgmt.lastIndex = pOption->lastIndex;
   memcpy(pMnode->syncMgmt.replicas, pOption->replicas, sizeof(pOption->replicas));
+  memcpy(pMnode->syncMgmt.nodeRoles, pOption->nodeRoles, sizeof(pOption->nodeRoles));
 }
 
 SMnode *mndOpen(const char *path, const SMnodeOpt *pOption) {
@@ -580,6 +579,16 @@ int32_t mndStart(SMnode *pMnode) {
   grantReset(pMnode, TSDB_GRANT_ALL, 0);
 
   return mndInitTimer(pMnode);
+}
+
+int32_t mndIsCatchUp(SMnode *pMnode) {
+  int64_t rid = pMnode->syncMgmt.sync;
+  return syncIsCatchUp(rid);
+}
+
+ESyncRole mndGetRole(SMnode *pMnode){
+  int64_t rid = pMnode->syncMgmt.sync;
+  return syncGetRole(rid);
 }
 
 void mndStop(SMnode *pMnode) {

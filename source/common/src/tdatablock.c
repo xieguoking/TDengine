@@ -120,6 +120,7 @@ int32_t colDataSetVal(SColumnInfoData* pColumnInfoData, uint32_t rowIndex, const
     pColumnInfoData->varmeta.length += dataLen;
   } else {
     memcpy(pColumnInfoData->pData + pColumnInfoData->info.bytes * rowIndex, pData, pColumnInfoData->info.bytes);
+    colDataClearNull_f(pColumnInfoData->nullbitmap, rowIndex);
   }
 
   return 0;
@@ -444,12 +445,11 @@ int32_t blockDataSplitRows(SSDataBlock* pBlock, bool hasVarCol, int32_t startInd
 
   size_t headerSize = sizeof(int32_t);
   size_t colHeaderSize = sizeof(int32_t) * numOfCols;
-  size_t payloadSize = pageSize - (headerSize + colHeaderSize);
 
   // TODO speedup by checking if the whole page can fit in firstly.
   if (!hasVarCol) {
     size_t  rowSize = blockDataGetRowSize(pBlock);
-    int32_t capacity = payloadSize / (rowSize + numOfCols * bitmapChar / 8.0);
+    int32_t capacity = blockDataGetCapacityInRow(pBlock, pageSize, headerSize + colHeaderSize);
     if (capacity <= 0) {
       return TSDB_CODE_FAILED;
     }
@@ -1531,10 +1531,10 @@ SColumnInfoData* bdGetColumnInfoData(const SSDataBlock* pBlock, int32_t index) {
   return taosArrayGet(pBlock->pDataBlock, index);
 }
 
-size_t blockDataGetCapacityInRow(const SSDataBlock* pBlock, size_t pageSize) {
+size_t blockDataGetCapacityInRow(const SSDataBlock* pBlock, size_t pageSize, int32_t extraSize) {
   size_t numOfCols = taosArrayGetSize(pBlock->pDataBlock);
 
-  int32_t payloadSize = pageSize - blockDataGetSerialMetaSize(numOfCols);
+  int32_t payloadSize = pageSize - extraSize;
   int32_t rowSize = pBlock->info.rowSize;
   int32_t nRows = payloadSize / rowSize;
   ASSERT(nRows >= 1);
@@ -1927,7 +1927,8 @@ void blockDebugShowDataBlocks(const SArray* dataBlocks, const char* flag) {
           case TSDB_DATA_TYPE_DOUBLE:
             printf(" %15lf |", *(double*)var);
             break;
-          case TSDB_DATA_TYPE_VARCHAR: {
+          case TSDB_DATA_TYPE_VARCHAR:
+          case TSDB_DATA_TYPE_GEOMETRY: {
             char*   pData = colDataGetVarData(pColInfoData, j);
             int32_t dataSize = TMIN(sizeof(pBuf) - 1, varDataLen(pData));
             memset(pBuf, 0, dataSize + 1);
@@ -1949,12 +1950,11 @@ void blockDebugShowDataBlocks(const SArray* dataBlocks, const char* flag) {
     }
   }
 }
-
 #endif
 
 // for debug
 char* dumpBlockData(SSDataBlock* pDataBlock, const char* flag, char** pDataBuf) {
-  int32_t size = 2048;
+  int32_t size = 2048*1024;
   *pDataBuf = taosMemoryCalloc(size, 1);
   char*   dumpBuf = *pDataBuf;
   char    pBuf[128] = {0};
@@ -1970,7 +1970,7 @@ char* dumpBlockData(SSDataBlock* pDataBlock, const char* flag, char** pDataBuf) 
   if (len >= size - 1) return dumpBuf;
 
   for (int32_t j = 0; j < rows; j++) {
-    len += snprintf(dumpBuf + len, size - len, "%s |", flag);
+    len += snprintf(dumpBuf + len, size - len, "%s|", flag);
     if (len >= size - 1) return dumpBuf;
 
     for (int32_t k = 0; k < colNum; k++) {
@@ -2033,7 +2033,8 @@ char* dumpBlockData(SSDataBlock* pDataBlock, const char* flag, char** pDataBuf) 
           len += snprintf(dumpBuf + len, size - len, " %15d |", *(bool*)var);
           if (len >= size - 1) return dumpBuf;
           break;
-        case TSDB_DATA_TYPE_VARCHAR: {
+        case TSDB_DATA_TYPE_VARCHAR:
+        case TSDB_DATA_TYPE_GEOMETRY: {
           memset(pBuf, 0, sizeof(pBuf));
           char*   pData = colDataGetVarData(pColInfoData, j);
           int32_t dataSize = TMIN(sizeof(pBuf), varDataLen(pData));
@@ -2052,7 +2053,7 @@ char* dumpBlockData(SSDataBlock* pDataBlock, const char* flag, char** pDataBuf) 
         } break;
       }
     }
-    len += snprintf(dumpBuf + len, size - len, "\n");
+    len += snprintf(dumpBuf + len, size - len, "%d\n", j);
     if (len >= size - 1) return dumpBuf;
   }
   len += snprintf(dumpBuf + len, size - len, "%s |end\n", flag);
@@ -2139,7 +2140,8 @@ int32_t buildSubmitReqFromDataBlock(SSubmitReq** pReq, const SSDataBlock* pDataB
             }
             break;
           case TSDB_DATA_TYPE_NCHAR:
-          case TSDB_DATA_TYPE_VARCHAR: {  // TSDB_DATA_TYPE_BINARY
+          case TSDB_DATA_TYPE_VARCHAR:  // TSDB_DATA_TYPE_BINARY
+          case TSDB_DATA_TYPE_GEOMETRY: {
             if (colDataIsNull_s(pColInfoData, j)) {
               tdAppendColValToRow(&rb, PRIMARYKEY_TIMESTAMP_COL_ID + k, pColInfoData->info.type, TD_VTYPE_NULL, NULL,
                                   false, offset, k);
@@ -2374,7 +2376,7 @@ int32_t buildSubmitReqFromDataBlock(SSubmitReq2** ppReq, const SSDataBlock* pDat
       }
       SRow* pRow = NULL;
       if ((terrno = tRowBuild(pVals, pTSchema, &pRow)) < 0) {
-        tDestroySSubmitTbData(&tbData, TSDB_MSG_FLG_ENCODE);
+        tDestroySubmitTbData(&tbData, TSDB_MSG_FLG_ENCODE);
         goto _end;
       }
       ASSERT(pRow);
@@ -2388,7 +2390,7 @@ _end:
   if (terrno != 0) {
     *ppReq = NULL;
     if (pReq) {
-      tDestroySSubmitReq2(pReq, TSDB_MSG_FLG_ENCODE);
+      tDestroySubmitReq(pReq, TSDB_MSG_FLG_ENCODE);
       taosMemoryFreeClear(pReq);
     }
 
@@ -2514,9 +2516,6 @@ int32_t blockEncode(const SSDataBlock* pBlock, char* data, int32_t numOfCols) {
   *actualLen = dataLen;
   *groupId = pBlock->info.id.groupId;
   ASSERT(dataLen > 0);
-
-  uDebug("build data block, actualLen:%d, rows:%d, cols:%d", dataLen, *rows, *cols);
-
   return dataLen;
 }
 

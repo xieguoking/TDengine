@@ -169,6 +169,7 @@ typedef struct {
   int32_t         uid; // used for automatic create child table
 
   SHashObj *childTables;
+  SHashObj *tableUids;
   SHashObj *superTables;
   SHashObj *pVgHash;
 
@@ -231,9 +232,9 @@ int           smlJsonParseObjFirst(char **start, SSmlLineInfo *element, int8_t *
 int           smlJsonParseObj(char **start, SSmlLineInfo *element, int8_t *offset);
 //SArray       *smlJsonParseTags(char *start, char *end);
 bool          smlParseNumberOld(SSmlKv *kvVal, SSmlMsgBuf *msg);
-void*         nodeListGet(NodeList* list, const void *key, int32_t len, _equal_fn_sml fn);
-int           nodeListSet(NodeList** list, const void *key, int32_t len, void* value, _equal_fn_sml fn);
-int           nodeListSize(NodeList* list);
+//void*         nodeListGet(NodeList* list, const void *key, int32_t len, _equal_fn_sml fn);
+//int           nodeListSet(NodeList** list, const void *key, int32_t len, void* value, _equal_fn_sml fn);
+//int           nodeListSize(NodeList* list);
 bool          smlDoubleToInt64OverFlow(double num);
 int32_t       smlBuildInvalidDataMsg(SSmlMsgBuf *pBuf, const char *msg1, const char *msg2);
 bool          smlParseNumber(SSmlKv *kvVal, SSmlMsgBuf *msg);
@@ -242,6 +243,7 @@ int8_t        smlGetTsTypeByLen(int32_t len);
 SSmlTableInfo*    smlBuildTableInfo(int numRows, const char* measure, int32_t measureLen);
 SSmlSTableMeta*   smlBuildSTableMeta(bool isDataFormat);
 int32_t           smlSetCTableName(SSmlTableInfo *oneTable);
+void              getTableUid(SSmlHandle *info, SSmlLineInfo *currElement, SSmlTableInfo *tinfo);
 STableMeta*       smlGetMeta(SSmlHandle *info, const void* measure, int32_t measureLen);
 int32_t           is_same_child_table_telnet(const void *a, const void *b);
 int64_t           smlParseOpenTsdbTime(SSmlHandle *info, const char *data, int32_t len);

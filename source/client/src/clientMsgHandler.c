@@ -92,7 +92,6 @@ int32_t processConnectRsp(void* param, SDataBuf* pMsg, int32_t code) {
     goto End;
   }
 
-  /*assert(connectRsp.epSet.numOfEps > 0);*/
   if (connectRsp.epSet.numOfEps == 0) {
     setErrno(pRequest, TSDB_CODE_INVALID_MSG);
     tsem_post(&pRequest->body.rspSem);
@@ -130,6 +129,7 @@ int32_t processConnectRsp(void* param, SDataBuf* pMsg, int32_t code) {
   lastClusterId = connectRsp.clusterId;
 
   pTscObj->connType = connectRsp.connType;
+  pTscObj->passInfo.ver = connectRsp.passVer;
 
   hbRegisterConn(pTscObj->pAppInfo->pAppHbMgr, pTscObj->id, connectRsp.clusterId, connectRsp.connType);
 

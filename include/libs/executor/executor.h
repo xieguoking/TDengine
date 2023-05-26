@@ -23,6 +23,7 @@ extern "C" {
 #include "query.h"
 #include "tcommon.h"
 #include "tmsgcb.h"
+#include "storageapi.h"
 
 typedef void* qTaskInfo_t;
 typedef void* DataSinkHandle;
@@ -41,7 +42,6 @@ typedef struct {
 
 typedef struct {
   void*   tqReader;
-  void*   meta;
   void*   config;
   void*   vnode;
   void*   mnd;
@@ -51,10 +51,10 @@ typedef struct {
   bool    initTableReader;
   bool    initTqReader;
   int32_t numOfVgroups;
+  void*   sContext;  // SSnapContext*
 
-  void* sContext;  // SSnapContext*
-
-  void* pStateBackend;
+  void*   pStateBackend;
+  struct SStorageAPI api;
 } SReadHandle;
 
 // in queue mode, data streams are seperated by msg
@@ -192,8 +192,6 @@ SArray* qGetQueriedTableListInfo(qTaskInfo_t tinfo);
 
 int32_t qStreamPrepareScan(qTaskInfo_t tinfo, STqOffsetVal* pOffset, int8_t subType);
 
-int32_t qStreamSetScanMemData(qTaskInfo_t tinfo, SPackedData submit);
-
 void qStreamSetOpen(qTaskInfo_t tinfo);
 
 void qStreamExtractOffset(qTaskInfo_t tinfo, STqOffsetVal* pOffset);
@@ -207,8 +205,6 @@ const char* qExtractTbnameFromTask(qTaskInfo_t tinfo);
 void* qExtractReaderFromStreamScanner(void* scanner);
 
 int32_t qExtractStreamScanner(qTaskInfo_t tinfo, void** scanner);
-
-int32_t qStreamInput(qTaskInfo_t tinfo, void* pItem);
 
 int32_t qStreamSetParamForRecover(qTaskInfo_t tinfo);
 int32_t qStreamSourceRecoverStep1(qTaskInfo_t tinfo, int64_t ver);

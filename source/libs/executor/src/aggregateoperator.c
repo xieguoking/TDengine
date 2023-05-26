@@ -15,24 +15,21 @@
 
 #include "filter.h"
 #include "function.h"
-#include "functionMgt.h"
 #include "os.h"
 #include "querynodes.h"
 #include "tfill.h"
 #include "tname.h"
 
+#include "executorInt.h"
+#include "operator.h"
+#include "query.h"
+#include "querytask.h"
+#include "tcompare.h"
 #include "tdatablock.h"
 #include "tglobal.h"
-#include "tmsg.h"
-#include "ttime.h"
-
-#include "executorimpl.h"
-#include "index.h"
-#include "query.h"
-#include "tcompare.h"
 #include "thash.h"
 #include "ttypes.h"
-#include "vnode.h"
+#include "index.h"
 
 typedef struct {
   bool    hasAgg;
@@ -87,7 +84,7 @@ SOperatorInfo* createAggregateOperatorInfo(SOperatorInfo* downstream, SAggPhysiN
   int32_t    num = 0;
   SExprInfo* pExprInfo = createExprInfo(pAggNode->pAggFuncs, pAggNode->pGroupKeys, &num);
   int32_t    code = initAggSup(&pOperator->exprSupp, &pInfo->aggSup, pExprInfo, num, keyBufSize, pTaskInfo->id.str,
-                               pTaskInfo->streamInfo.pState);
+                               pTaskInfo->streamInfo.pState, &pTaskInfo->storageAPI.functionStore);
   if (code != TSDB_CODE_SUCCESS) {
     goto _error;
   }
@@ -98,7 +95,7 @@ SOperatorInfo* createAggregateOperatorInfo(SOperatorInfo* downstream, SAggPhysiN
     pScalarExprInfo = createExprInfo(pAggNode->pExprs, NULL, &numOfScalarExpr);
   }
 
-  code = initExprSupp(&pInfo->scalarExprSup, pScalarExprInfo, numOfScalarExpr);
+  code = initExprSupp(&pInfo->scalarExprSup, pScalarExprInfo, numOfScalarExpr, &pTaskInfo->storageAPI.functionStore);
   if (code != TSDB_CODE_SUCCESS) {
     goto _error;
   }
@@ -467,8 +464,8 @@ int32_t doInitAggInfoSup(SAggSupporter* pAggSup, SqlFunctionCtx* pCtx, int32_t n
   getBufferPgSize(pAggSup->resultRowSize, &defaultPgsz, &defaultBufsz);
 
   if (!osTempSpaceAvailable()) {
-    code = TSDB_CODE_NO_AVAIL_DISK;
-    qError("Init stream agg supporter failed since %s, %s", terrstr(code), pKey);
+    code = TSDB_CODE_NO_DISKSPACE;
+    qError("Init stream agg supporter failed since %s, key:%s, tempDir:%s", terrstr(code), pKey, tsTempDir);
     return code;
   }
 
@@ -488,8 +485,8 @@ void cleanupAggSup(SAggSupporter* pAggSup) {
 }
 
 int32_t initAggSup(SExprSupp* pSup, SAggSupporter* pAggSup, SExprInfo* pExprInfo, int32_t numOfCols, size_t keyBufSize,
-                   const char* pkey, void* pState) {
-  int32_t code = initExprSupp(pSup, pExprInfo, numOfCols);
+                   const char* pkey, void* pState, SFunctionStateStore* pStore) {
+  int32_t code = initExprSupp(pSup, pExprInfo, numOfCols, pStore);
   if (code != TSDB_CODE_SUCCESS) {
     return code;
   }
