@@ -148,6 +148,11 @@ class TDTestCase:
             sql = f"create table t{i} using st tags({i}) "
             tdSql.execute(sql)
 
+        # create stream
+        sql = "create stream ma into sta as select count(ts) from st interval(100b)"
+        tdLog.info(sql)
+        tdSql.execute(sql)
+
         # insert data
         self.insertData()
 
@@ -227,6 +232,43 @@ class TDTestCase:
         tdLog.debug(f"start to excute {__file__}")
         tdSql.init(conn.cursor(), True)
 
+    # where
+    def checkWhere(self):
+        cnt = 300
+        start = self.ts - cnt
+        sql = f"select count(ts) from st where ts >= {start} and ts <= {self.ts}"
+        self.checkExpect(sql, cnt)
+
+        for i in range(50):
+            cnt =  random.randint(1,40000)
+            base = 2000
+            start = self.ts - cnt - base
+            end   = self.ts - base 
+            sql = f"select count(ts) from st where ts >= {start} and ts < {end}"
+            self.checkExpect(sql, cnt)
+
+    # stream
+    def checkStream(self):
+        allRows = self.childCnt * self.childRow
+        # ensure write data is expected
+        sql = "select count(*) from (select diff(ts) as a from (select ts from st order by ts asc)) where a=1;"
+        self.checkExpect(sql, allRows - 1)
+
+        # stream count is ok
+        sql =f"select count(*) from sta"
+        cnt = int(allRows / 100)
+        self.checkExpect(sql, cnt)
+
+        # check fields
+        sql =f"select count(*) from sta where `count(ts)` != 100"
+        self.checkExpect(sql, 0)
+
+        # check timestamp
+        sql =f"select count(*) from (select diff(`_wstart`) from sta)"
+        self.checkExpect(sql, cnt - 1)
+        sql =f"select count(*) from (select diff(`_wstart`) as a from sta) where a != 100"
+        self.checkExpect(sql, 0)
+
     # run
     def run(self):
         # prepare env
@@ -235,6 +277,11 @@ class TDTestCase:
         # time macro like 1w 1d 1h 1m 1s 1a 1u 1b 
         self.checkTimeMacro()
 
+        # check where
+        self.checkWhere()
+
+        # check stream
+        self.checkStream()
 
     # stop
     def stop(self):
