@@ -70,7 +70,7 @@ int32_t processConnectRsp(void* param, SDataBuf* pMsg, int32_t code) {
 
   SConnectRsp connectRsp = {0};
   if (tDeserializeSConnectRsp(pMsg->pData, pMsg->len, &connectRsp) != 0) {
-    code = TSDB_CODE_TSC_INVALID_VERSION;
+    code = TSDB_CODE_INVALID_MSG;
     setErrno(pRequest, code);
     tsem_post(&pRequest->body.rspSem);
     goto End;
@@ -298,7 +298,7 @@ int32_t processUseDbRsp(void* param, SDataBuf* pMsg, int32_t code) {
 
 int32_t processCreateSTableRsp(void* param, SDataBuf* pMsg, int32_t code) {
   if (pMsg == NULL || param == NULL) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
   SRequestObj* pRequest = param;
 
@@ -485,7 +485,7 @@ static int32_t buildShowVariablesRsp(SArray* pVars, SRetrieveTableRsp** pRsp) {
   if (len != rspSize - sizeof(SRetrieveTableRsp)) {
     uError("buildShowVariablesRsp error, len:%d != rspSize - sizeof(SRetrieveTableRsp):%" PRIu64, len,
            (uint64_t)(rspSize - sizeof(SRetrieveTableRsp)));
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   return TSDB_CODE_SUCCESS;

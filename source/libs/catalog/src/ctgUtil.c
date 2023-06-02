@@ -979,7 +979,7 @@ int32_t ctgGetVgInfoFromHashValue(SCatalog* pCtg, SDBVgInfo* dbInfo, const SName
 
   if (vgNum <= 0) {
     ctgError("db vgroup cache invalid, db:%s, vgroup number:%d", db, vgNum);
-    CTG_ERR_RET(TSDB_CODE_TSC_DB_NOT_SELECTED);
+    CTG_ERR_RET(TSDB_CODE_INVALID_VALUE);
   }
 
   SVgroupInfo* vgInfo = NULL;
@@ -1117,7 +1117,7 @@ int32_t ctgGetVgIdsFromHashValue(SCatalog* pCtg, SDBVgInfo* dbInfo, char* dbFNam
 
   if (vgNum <= 0) {
     ctgError("db vgroup cache invalid, db:%s, vgroup number:%d", dbFName, vgNum);
-    CTG_ERR_RET(TSDB_CODE_TSC_DB_NOT_SELECTED);
+    CTG_ERR_RET(TSDB_CODE_INVALID_VALUE);
   }
 
   SVgroupInfo* vgInfo = NULL;

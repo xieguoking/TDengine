@@ -289,8 +289,9 @@ static int parseTime(const char** end, SToken* pToken, int16_t timePrec, int64_t
     }
 
     char unit = 0;
-    if (parseAbsoluteDuration(valueToken.z, valueToken.n, &interval, &unit, timePrec) != TSDB_CODE_SUCCESS) {
-      return TSDB_CODE_TSC_INVALID_OPERATION;
+    int32_t code = parseAbsoluteDuration(valueToken.z, valueToken.n, &interval, &unit, timePrec);
+    if (code != TSDB_CODE_SUCCESS) {
+      return code;
     }
 
     if (token.type == TK_NK_PLUS) {

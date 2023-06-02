@@ -46,7 +46,7 @@ int32_t dsCreateDataSinker(const SDataSinkNode* pDataSink, DataSinkHandle* pHand
   }
 
   qError("invalid input node type:%d, %s", nodeType(pDataSink), id);
-  return TSDB_CODE_QRY_INVALID_INPUT;
+  return TSDB_CODE_INVALID_VALUE;
 }
 
 int32_t dsPutDataBlock(DataSinkHandle handle, const SInputData* pInput, bool* pContinue) {

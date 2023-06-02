@@ -3168,7 +3168,7 @@ static int32_t datumToJson(const void* pObj, SJson* pJson) {
       code = taosHexEncode(varDataVal(pNode->datum.p), buf, varDataLen(pNode->datum.p));
       if (code != TSDB_CODE_SUCCESS) {
         taosMemoryFree(buf);
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_VALUE;
       }
       code = tjsonAddStringToObject(pJson, jkValueDatum, buf);
       taosMemoryFree(buf);
@@ -3185,7 +3185,7 @@ static int32_t datumToJson(const void* pObj, SJson* pJson) {
       code = taosHexEncode(pNode->datum.p, buf, len);
       if (code != TSDB_CODE_SUCCESS) {
         taosMemoryFree(buf);
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_VALUE;
       }
       code = tjsonAddStringToObject(pJson, jkValueDatum, buf);
       taosMemoryFree(buf);

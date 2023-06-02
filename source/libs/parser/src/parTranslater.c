@@ -2667,7 +2667,7 @@ static int32_t translateTable(STranslateContext* pCxt, SNode* pTable) {
           if (isSelectStmt(pCxt->pCurrStmt)) {
             ((SSelectStmt*)pCxt->pCurrStmt)->isTimeLineResult = false;
           } else if (isDeleteStmt(pCxt->pCurrStmt)) {
-            code = TSDB_CODE_TSC_INVALID_OPERATION;
+            code = TSDB_CODE_INVALID_OPERATION;
             break;
           }
         }

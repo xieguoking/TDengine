@@ -105,7 +105,7 @@ static FORCE_INLINE int32_t sifGetFuncFromSql(EOperatorType src, EIndexQueryType
   } else if (src == OP_TYPE_JSON_CONTAINS) {
     *dst = QUERY_PREFIX;
   } else {
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_VALUE;
   }
   return TSDB_CODE_SUCCESS;
 }
@@ -141,10 +141,10 @@ static FORCE_INLINE int32_t sifValidOp(EOperatorType ty) {
 static FORCE_INLINE int32_t sifValidColumn(SColumnNode *cn) {
   // add more check
   if (cn == NULL) {
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
   if (cn->colType != COLUMN_TYPE_TAG) {
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_VALUE;
   }
   return TSDB_CODE_SUCCESS;
 }
@@ -216,7 +216,7 @@ static FORCE_INLINE int32_t sifInitJsonParam(SNode *node, SIFParam *param, SIFCt
   param->colId = l->colId;
   param->colValType = l->node.resType.type;
   memcpy(param->dbName, l->dbName, sizeof(l->dbName));
-  if (r->literal == NULL) return TSDB_CODE_QRY_INVALID_INPUT;
+  if (r->literal == NULL) return TSDB_CODE_INVALID_PTR;
   memcpy(param->colName, r->literal, strlen(r->literal));
   param->colValType = r->typeData;
   param->status = SFLT_COARSE_INDEX;
@@ -323,7 +323,7 @@ static int32_t sifInitParam(SNode *node, SIFParam *param, SIFCtx *ctx) {
       SNodeListNode *nl = (SNodeListNode *)node;
       if (LIST_LENGTH(nl->pNodeList) <= 0) {
         indexError("invalid length for node:%p, length: %d", node, LIST_LENGTH(nl->pNodeList));
-        SIF_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+        SIF_ERR_RET(TSDB_CODE_INVALID_VALUE);
       }
       SIF_ERR_RET(scalarGenerateSetFromList((void **)&param->pFilter, node, nl->node.resType.type));
       if (taosHashPut(ctx->pRes, &node, POINTER_BYTES, param, sizeof(*param))) {
@@ -355,7 +355,7 @@ static int32_t sifInitOperParams(SIFParam **params, SOperatorNode *node, SIFCtx 
   int32_t nParam = sifGetOperParamNum(node->opType);
   if (NULL == node->pLeft || (nParam == 2 && NULL == node->pRight)) {
     indexError("invalid operation node, left: %p, rigth: %p", node->pLeft, node->pRight);
-    SIF_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    SIF_ERR_RET(TSDB_CODE_INVALID_VALUE);
   }
   if (node->opType == OP_TYPE_JSON_GET_VALUE) {
     return code;
@@ -364,7 +364,7 @@ static int32_t sifInitOperParams(SIFParam **params, SOperatorNode *node, SIFCtx 
       (node->pRight != NULL && nodeType(node->pRight) == QUERY_NODE_VALUE)) {
     SColumnNode *cn = (SColumnNode *)(node->pLeft);
     if (cn->node.resType.type == TSDB_DATA_TYPE_JSON) {
-      SIF_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+      SIF_ERR_RET(TSDB_CODE_INVALID_VALUE);
     }
   }
 
@@ -417,7 +417,7 @@ static int32_t sifInitParamList(SIFParam **params, SNodeList *nodeList, SIFCtx *
   SListCell *cell = nodeList->pHead;
   for (int32_t i = 0; i < nodeList->length; i++) {
     if (NULL == cell || NULL == cell->pNode) {
-      SIF_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+      SIF_ERR_JRET(TSDB_CODE_INVALID_VALUE);
     }
     SIF_ERR_JRET(sifInitParam(cell->pNode, &tParams[i], ctx));
     cell = cell->pNext;
@@ -431,7 +431,7 @@ _return:
 }
 static int32_t sifExecFunction(SFunctionNode *node, SIFCtx *ctx, SIFParam *output) {
   indexError("index-filter not support buildin function");
-  return TSDB_CODE_QRY_INVALID_INPUT;
+  return TSDB_CODE_INVALID_VALUE;
 }
 
 typedef int (*FilterFunc)(void *a, void *b, int16_t dtype);
@@ -730,7 +730,7 @@ static FORCE_INLINE int32_t sifJsonGetValue(SIFParam *left, SIFParam *rigth, SIF
 
 static FORCE_INLINE int32_t sifDefaultFunc(SIFParam *left, SIFParam *right, SIFParam *output) {
   // add more except
-  return TSDB_CODE_QRY_INVALID_INPUT;
+  return TSDB_CODE_INVALID_VALUE;
 }
 
 static FORCE_INLINE int32_t sifGetOperFn(int32_t funcId, sif_func_t *func, SIdxFltStatus *status) {
@@ -799,7 +799,7 @@ static FORCE_INLINE int32_t sifGetOperFn(int32_t funcId, sif_func_t *func, SIdxF
 static int32_t sifExecOper(SOperatorNode *node, SIFCtx *ctx, SIFParam *output) {
   int32_t code = -1;
   if (sifValidOp(node->opType) < 0) {
-    code = TSDB_CODE_QRY_INVALID_INPUT;
+    code = TSDB_CODE_INVALID_VALUE;
     ctx->code = code;
     output->status = SFLT_NOT_INDEX;
     return code;
@@ -854,7 +854,7 @@ static int32_t sifExecLogic(SLogicConditionNode *node, SIFCtx *ctx, SIFParam *ou
   if (NULL == node->pParameterList || node->pParameterList->length <= 0) {
     indexError("invalid logic parameter list, list:%p, paramNum:%d", node->pParameterList,
                node->pParameterList ? node->pParameterList->length : 0);
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   int32_t   code = TSDB_CODE_SUCCESS;
@@ -957,7 +957,7 @@ EDealRes sifCalcWalker(SNode *node, void *context) {
   }
 
   // indexError("invalid node type for index filter calculating, type:%d", nodeType(node));
-  ctx->code = TSDB_CODE_QRY_INVALID_INPUT;
+  ctx->code = TSDB_CODE_INVALID_VALUE;
   return DEAL_RES_ERROR;
 }
 
@@ -974,7 +974,7 @@ void sifFreeRes(SHashObj *res) {
 }
 static int32_t sifCalculate(SNode *pNode, SIFParam *pDst) {
   if (pNode == NULL || pDst == NULL) {
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   int32_t code = 0;
@@ -1014,7 +1014,7 @@ static int32_t sifCalculate(SNode *pNode, SIFParam *pDst) {
 static int32_t sifGetFltHint(SNode *pNode, SIdxFltStatus *status, SMetaDataFilterAPI* pAPI) {
   int32_t code = TSDB_CODE_SUCCESS;
   if (pNode == NULL) {
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SIFCtx ctx = {.code = 0, .noExec = true, .pAPI = pAPI};

@@ -232,7 +232,7 @@ int32_t smlBuildCol(STableDataCxt* pTableCxt, SSchema* schema, void* data, int32
         goto end;
       }
       taosMemoryFree(pUcs4);
-      ret = TSDB_CODE_TSC_INVALID_VALUE;
+      ret = TSDB_CODE_INVALID_VALUE;
       goto end;
     }
     pVal->value.pData = pUcs4;

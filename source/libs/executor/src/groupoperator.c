@@ -194,7 +194,7 @@ static void recordNewGroupKeys(SArray* pGroupCols, SArray* pGroupColVals, SSData
       char* val = colDataGetData(pColInfoData, rowIndex);
       if (pkey->type == TSDB_DATA_TYPE_JSON) {
         if (tTagIsJson(val)) {
-          terrno = TSDB_CODE_QRY_JSON_IN_GROUP_ERROR;
+          terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
           return;
         }
         int32_t dataLen = getJsonValueLen(val);

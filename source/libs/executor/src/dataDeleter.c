@@ -257,7 +257,7 @@ int32_t createDataDeleter(SDataSinkManager* pManager, const SDataSinkNode* pData
   deleter->pSchema = pDataSink->pInputDataBlockDesc;
 
   if (pParam == NULL) {
-    code = TSDB_CODE_QRY_INVALID_INPUT;
+    code = TSDB_CODE_INVALID_PTR;
     qError("invalid input param in creating data deleter, code%s", tstrerror(code));
     goto _end;
   }

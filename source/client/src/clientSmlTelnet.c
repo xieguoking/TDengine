@@ -155,7 +155,7 @@ static int32_t smlParseTelnetTags(SSmlHandle *info, char *data, char *sqlEnd, SS
 
     if (unlikely(valueLen == 0)) {
       smlBuildInvalidDataMsg(msg, "invalid value", value);
-      return TSDB_CODE_TSC_INVALID_VALUE;
+      return TSDB_CODE_INVALID_VALUE;
     }
 
     if (unlikely(valueLen > (TSDB_MAX_TAGS_LEN - VARSTR_HEADER_SIZE) / TSDB_NCHAR_SIZE)) {
@@ -266,12 +266,12 @@ int32_t smlParseTelnetString(SSmlHandle *info, char *sql, char *sqlEnd, SSmlLine
   smlParseTelnetElement(&sql, sqlEnd, &elements->cols, &elements->colsLen);
   if (unlikely(!elements->cols || elements->colsLen == 0)) {
     smlBuildInvalidDataMsg(&info->msgBuf, "invalid value", sql);
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   SSmlKv kv = {.key = VALUE, .keyLen = VALUE_LEN, .value = elements->cols, .length = (size_t)elements->colsLen};
   if (smlParseValue(&kv, &info->msgBuf) != TSDB_CODE_SUCCESS) {
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   JUMP_SPACE(sql, sqlEnd)
@@ -280,7 +280,7 @@ int32_t smlParseTelnetString(SSmlHandle *info, char *sql, char *sqlEnd, SSmlLine
   elements->tagsLen = sqlEnd - sql;
   if (unlikely(!elements->tags || elements->tagsLen == 0)) {
     smlBuildInvalidDataMsg(&info->msgBuf, "invalid value", sql);
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   int ret = smlParseTelnetTags(info, sql, sqlEnd, elements, &info->msgBuf);

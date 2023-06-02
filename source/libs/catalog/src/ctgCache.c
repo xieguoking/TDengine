@@ -851,7 +851,7 @@ int32_t ctgEnqueue(SCatalog *pCtg, SCtgCacheOperation *operation) {
   if (gCtgMgmt.queue.stopQueue) {
     ctgFreeQNode(node);
     CTG_UNLOCK(CTG_WRITE, &gCtgMgmt.queue.qlock);
-    CTG_RET(TSDB_CODE_CTG_EXIT);
+    CTG_RET(TSDB_CODE_CTG_OUT_OF_SERVICE);
   }
 
   gCtgMgmt.queue.tail->next = node;

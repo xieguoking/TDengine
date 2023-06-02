@@ -51,8 +51,8 @@ static char* getSyntaxErrFormat(int32_t errCode) {
       return "Tags number not matched";
     case TSDB_CODE_PAR_INVALID_TAG_NAME:
       return "Invalid tag name: %s";
-    case TSDB_CODE_PAR_NAME_OR_PASSWD_TOO_LONG:
-      return "Name or password too long";
+    case TSDB_CODE_PAR_VALUE_TOO_LONG:
+      return "Value is too long";
     case TSDB_CODE_PAR_PASSWD_EMPTY:
       return "Password can not be empty";
     case TSDB_CODE_PAR_INVALID_PORT:
@@ -201,7 +201,7 @@ int32_t generateSyntaxErrMsgExt(SMsgBuf* pBuf, int32_t errCode, const char* pFor
 
 int32_t buildInvalidOperationMsg(SMsgBuf* pBuf, const char* msg) {
   strncpy(pBuf->buf, msg, pBuf->len);
-  return TSDB_CODE_TSC_INVALID_OPERATION;
+  return TSDB_CODE_INVALID_OPERATION;
 }
 
 int32_t buildSyntaxErrMsg(SMsgBuf* pBuf, const char* additionalInfo, const char* sourceStr) {

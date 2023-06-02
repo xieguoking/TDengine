@@ -3119,11 +3119,11 @@ int32_t tblCountScanGetGroupTagsSlotId(const SNodeList* scanCols, STableCountSca
     SNode* pNode = NULL;
     FOREACH(pNode, scanCols) {
       if (nodeType(pNode) != QUERY_NODE_TARGET) {
-        return TSDB_CODE_QRY_SYS_ERROR;
+        return TSDB_CODE_INVALID_VALUE;
       }
       STargetNode* targetNode = (STargetNode*)pNode;
       if (nodeType(targetNode->pExpr) != QUERY_NODE_COLUMN) {
-        return TSDB_CODE_QRY_SYS_ERROR;
+        return TSDB_CODE_INVALID_VALUE;
       }
       SColumnNode* colNode = (SColumnNode*)(targetNode->pExpr);
       if (strcmp(colNode->colName, GROUP_TAG_DB_NAME) == 0) {
@@ -3141,11 +3141,11 @@ int32_t tblCountScanGetCountSlotId(const SNodeList* pseudoCols, STableCountScanS
     SNode* pNode = NULL;
     FOREACH(pNode, pseudoCols) {
       if (nodeType(pNode) != QUERY_NODE_TARGET) {
-        return TSDB_CODE_QRY_SYS_ERROR;
+        return TSDB_CODE_INVALID_VALUE;
       }
       STargetNode* targetNode = (STargetNode*)pNode;
       if (nodeType(targetNode->pExpr) != QUERY_NODE_FUNCTION) {
-        return TSDB_CODE_QRY_SYS_ERROR;
+        return TSDB_CODE_INVALID_VALUE;
       }
       SFunctionNode* funcNode = (SFunctionNode*)(targetNode->pExpr);
       if (funcNode->funcType == FUNCTION_TYPE_TABLE_COUNT) {
@@ -3161,7 +3161,7 @@ int32_t tblCountScanGetInputs(SNodeList* groupTags, SName* tableName, STableCoun
     SNode* pNode = NULL;
     FOREACH(pNode, groupTags) {
       if (nodeType(pNode) != QUERY_NODE_COLUMN) {
-        return TSDB_CODE_QRY_SYS_ERROR;
+        return TSDB_CODE_INVALID_VALUE;
       }
       SColumnNode* colNode = (SColumnNode*)pNode;
       if (strcmp(colNode->colName, GROUP_TAG_DB_NAME) == 0) {

@@ -1597,13 +1597,13 @@ int32_t qExplainPrepareCtx(SQueryPlan *pDag, SExplainCtx **pCtx) {
 
   if (pDag->numOfSubplans <= 0) {
     qError("invalid subplan num:%d", pDag->numOfSubplans);
-    QRY_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QRY_ERR_RET(TSDB_CODE_INVALID_VALUE);
   }
 
   int32_t levelNum = (int32_t)LIST_LENGTH(pDag->pSubplans);
   if (levelNum <= 0) {
     qError("invalid level num:%d", levelNum);
-    QRY_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QRY_ERR_RET(TSDB_CODE_INVALID_VALUE);
   }
 
   SHashObj *groupHash =
@@ -1620,13 +1620,13 @@ int32_t qExplainPrepareCtx(SQueryPlan *pDag, SExplainCtx **pCtx) {
     plans = (SNodeListNode *)nodesListGetNode(pDag->pSubplans, i);
     if (NULL == plans) {
       qError("empty level plan, level:%d", i);
-      QRY_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+      QRY_ERR_JRET(TSDB_CODE_INVALID_VALUE);
     }
 
     taskNum = (int32_t)LIST_LENGTH(plans->pNodeList);
     if (taskNum <= 0) {
       qError("invalid level plan number:%d, level:%d", taskNum, i);
-      QRY_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+      QRY_ERR_JRET(TSDB_CODE_INVALID_VALUE);
     }
 
     SSubplan *plan = NULL;
@@ -1651,7 +1651,7 @@ int32_t qExplainPrepareCtx(SQueryPlan *pDag, SExplainCtx **pCtx) {
     if (0 == i) {
       if (taskNum > 1) {
         qError("invalid taskNum %d for level 0", taskNum);
-        QRY_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+        QRY_ERR_JRET(TSDB_CODE_INVALID_VALUE);
       }
 
       ctx->rootGroupId = plan->id.groupId;

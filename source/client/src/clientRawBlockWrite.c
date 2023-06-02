@@ -1717,7 +1717,7 @@ static int32_t tmqWriteRawMetaDataImpl(TAOS* taos, void* data, int32_t dataLen) 
 
       if (pCreateReq.type != TSDB_CHILD_TABLE) {
         uError("WriteRaw:pCreateReq.type != TSDB_CHILD_TABLE. table name: %s", tbName);
-        code = TSDB_CODE_TSC_INVALID_VALUE;
+        code = TSDB_CODE_INVALID_VALUE;
         tDecoderClear(&decoderTmp);
         tDestroySVCreateTbReq(&pCreateReq, TSDB_MSG_FLG_DECODE);
         goto end;

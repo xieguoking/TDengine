@@ -528,7 +528,7 @@ uint64_t syncUtilAddr2U64(const char* host, uint16_t port) {
   uint32_t hostU32 = taosGetIpv4FromFqdn(host);
   if (hostU32 == (uint32_t)-1) {
     sError("failed to resolve ipv4 addr, host:%s", host);
-    terrno = TSDB_CODE_TSC_INVALID_FQDN;
+    terrno = TSDB_CODE_INVALID_FQDN;
     return -1;
   }
 

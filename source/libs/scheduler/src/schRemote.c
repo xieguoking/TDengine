@@ -79,7 +79,7 @@ int32_t schProcessFetchRsp(SSchJob *pJob, SSchTask *pTask, char *msg, int32_t rs
   SCH_ERR_JRET(rspCode);
   
   if (NULL == msg) {
-    SCH_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    SCH_ERR_RET(TSDB_CODE_INVALID_PTR);
   }
   
   if (SCH_IS_EXPLAIN_JOB(pJob)) {
@@ -235,7 +235,7 @@ int32_t schProcessResponseMsg(SSchJob *pJob, SSchTask *pTask, int32_t execId, SD
       SCH_ERR_JRET(rspCode);
 
       if (NULL == msg) {
-        SCH_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+        SCH_ERR_JRET(TSDB_CODE_INVALID_PTR);
       }
 
       taosMemoryFreeClear(msg);
@@ -325,7 +325,7 @@ int32_t schProcessResponseMsg(SSchJob *pJob, SSchTask *pTask, int32_t execId, SD
     case TDMT_SCH_MERGE_QUERY_RSP: {
       SCH_ERR_JRET(rspCode);
       if (NULL == msg) {
-        SCH_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+        SCH_ERR_JRET(TSDB_CODE_INVALID_PTR);
       }
 
       if (taosArrayGetSize(pTask->parents) == 0 && SCH_IS_EXPLAIN_JOB(pJob) && SCH_IS_INSERT_JOB(pJob)) {
@@ -339,7 +339,7 @@ int32_t schProcessResponseMsg(SSchJob *pJob, SSchTask *pTask, int32_t execId, SD
       SQueryTableRsp rsp = {0};
       if (tDeserializeSQueryTableRsp(msg, msgSize, &rsp) < 0) {
         SCH_TASK_ELOG("tDeserializeSQueryTableRsp failed, msgSize:%d", msgSize);
-        SCH_ERR_JRET(TSDB_CODE_QRY_INVALID_MSG);
+        SCH_ERR_JRET(TSDB_CODE_INVALID_MSG);
       }
       
       SCH_ERR_JRET(rsp.code);
@@ -357,12 +357,12 @@ int32_t schProcessResponseMsg(SSchJob *pJob, SSchTask *pTask, int32_t execId, SD
     case TDMT_SCH_EXPLAIN_RSP: {
       SCH_ERR_JRET(rspCode);
       if (NULL == msg) {
-        SCH_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+        SCH_ERR_JRET(TSDB_CODE_INVALID_PTR);
       }
 
       if (!SCH_IS_EXPLAIN_JOB(pJob)) {
         SCH_TASK_ELOG("invalid msg received for none explain query, msg type:%s", TMSG_INFO(msgType));
-        SCH_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+        SCH_ERR_JRET(TSDB_CODE_INVALID_MSG);
       }
 
       if (pJob->fetchRes) {
@@ -399,7 +399,7 @@ int32_t schProcessResponseMsg(SSchJob *pJob, SSchTask *pTask, int32_t execId, SD
       break;
     default:
       SCH_TASK_ELOG("unknown rsp msg, type:%d, status:%s", msgType, SCH_GET_TASK_STATUS_STR(pTask));
-      SCH_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+      SCH_ERR_JRET(TSDB_CODE_INVALID_MSG);
   }
 
   return TSDB_CODE_SUCCESS;
@@ -517,7 +517,7 @@ int32_t schHandleHbCallback(void *param, SDataBuf *pMsg, int32_t code) {
 
   if (tDeserializeSSchedulerHbRsp(pMsg->pData, pMsg->len, &rsp)) {
     qError("invalid hb rsp msg, size:%d", pMsg->len);
-    SCH_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+    SCH_ERR_JRET(TSDB_CODE_INVALID_MSG);
   }
 
   SSchTrans trans = {0};

@@ -602,7 +602,7 @@ int32_t getColInfoResultForGroupby(void* pVnode, SNodeList* group, STableListInf
         char* data = colDataGetData(pValue, i);
         if (pValue->info.type == TSDB_DATA_TYPE_JSON) {
           if (tTagIsJson(data)) {
-            code = TSDB_CODE_QRY_JSON_IN_GROUP_ERROR;
+            code = TSDB_CODE_QRY_JSON_USAGE_ERROR;
             goto end;
           }
           if (tTagIsJsonNull(data)) {
@@ -1204,7 +1204,7 @@ int32_t getGroupIdFromTagsVal(void* pVnode, uint64_t uid, SNodeList* pGroupNode,
       char* data = nodesGetValueFromNode(pValue);
       if (pValue->node.resType.type == TSDB_DATA_TYPE_JSON) {
         if (tTagIsJson(data)) {
-          terrno = TSDB_CODE_QRY_JSON_IN_GROUP_ERROR;
+          terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
           nodesDestroyList(groupNew);
           pAPI->metaReaderFn.clearReader(&mr);
           return terrno;

@@ -814,7 +814,7 @@ int32_t convertTagDataToStr(char* str, int type, void* buf, int32_t bufSize, int
 
     case TSDB_DATA_TYPE_BINARY:
       if (bufSize < 0) {
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_VALUE;
       }
 
       memcpy(str, buf, bufSize);
@@ -822,12 +822,12 @@ int32_t convertTagDataToStr(char* str, int type, void* buf, int32_t bufSize, int
       break;
     case TSDB_DATA_TYPE_NCHAR:
       if (bufSize < 0) {
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_VALUE;
       }
 
       int32_t length = taosUcs4ToMbs((TdUcs4*)buf, bufSize, str);
       if (length <= 0) {
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_VALUE;
       }
       n = length;
       break;
@@ -848,7 +848,7 @@ int32_t convertTagDataToStr(char* str, int type, void* buf, int32_t bufSize, int
       break;
 
     default:
-      return TSDB_CODE_TSC_INVALID_VALUE;
+      return TSDB_CODE_INVALID_VALUE;
   }
 
   if (len) *len = n;

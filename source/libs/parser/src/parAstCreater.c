@@ -72,7 +72,7 @@ static bool checkUserName(SAstCreateContext* pCxt, SToken* pUserName) {
     pCxt->errCode = TSDB_CODE_PAR_SYNTAX_ERROR;
   } else {
     if (pUserName->n >= TSDB_USER_LEN) {
-      pCxt->errCode = generateSyntaxErrMsg(&pCxt->msgBuf, TSDB_CODE_PAR_NAME_OR_PASSWD_TOO_LONG);
+      pCxt->errCode = generateSyntaxErrMsg(&pCxt->msgBuf, TSDB_CODE_PAR_VALUE_TOO_LONG);
     }
   }
   if (TSDB_CODE_SUCCESS == pCxt->errCode) {
@@ -98,7 +98,7 @@ static bool checkPassword(SAstCreateContext* pCxt, const SToken* pPasswordToken,
   if (NULL == pPasswordToken) {
     pCxt->errCode = TSDB_CODE_PAR_SYNTAX_ERROR;
   } else if (pPasswordToken->n >= (TSDB_USET_PASSWORD_LEN + 2)) {
-    pCxt->errCode = generateSyntaxErrMsg(&pCxt->msgBuf, TSDB_CODE_PAR_NAME_OR_PASSWD_TOO_LONG);
+    pCxt->errCode = generateSyntaxErrMsg(&pCxt->msgBuf, TSDB_CODE_PAR_VALUE_TOO_LONG);
   } else {
     strncpy(pPassword, pPasswordToken->z, pPasswordToken->n);
     strdequote(pPassword);
@@ -121,7 +121,7 @@ static int32_t parsePort(SAstCreateContext* pCxt, const char* p, int32_t* pPort)
 
 static int32_t parseEndpoint(SAstCreateContext* pCxt, const SToken* pEp, char* pFqdn, int32_t* pPort) {
   if (pEp->n >= (NULL == pPort ? (TSDB_FQDN_LEN + 1 + 5) : TSDB_FQDN_LEN)) {  // format 'fqdn:port' or 'fqdn'
-    return generateSyntaxErrMsg(&pCxt->msgBuf, TSDB_CODE_PAR_NAME_OR_PASSWD_TOO_LONG);
+    return generateSyntaxErrMsg(&pCxt->msgBuf, TSDB_CODE_PAR_VALUE_TOO_LONG);
   }
 
   char ep[TSDB_FQDN_LEN + 1 + 5] = {0};

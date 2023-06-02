@@ -134,7 +134,7 @@ int32_t schUpdateJobStatus(SSchJob *pJob, int8_t newStatus) {
 
         break;
       case JOB_TASK_STATUS_DROP:
-        SCH_ERR_JRET(TSDB_CODE_QRY_JOB_FREED);
+        SCH_ERR_JRET(TSDB_CODE_SCH_STATUS_ERROR);
 
       default:
         SCH_JOB_ELOG("invalid job status:%s", jobTaskStatusStr(oriStatus));
@@ -271,7 +271,7 @@ int32_t schValidateAndBuildJob(SQueryPlan *pDag, SSchJob *pJob) {
 
   if (pDag->numOfSubplans <= 0) {
     SCH_JOB_ELOG("invalid subplan num:%d", pDag->numOfSubplans);
-    SCH_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    SCH_ERR_RET(TSDB_CODE_INVALID_VALUE);
   }
 
   pJob->dataSrcTasks = taosArrayInit(pDag->numOfSubplans, POINTER_BYTES);
@@ -282,7 +282,7 @@ int32_t schValidateAndBuildJob(SQueryPlan *pDag, SSchJob *pJob) {
   int32_t levelNum = (int32_t)LIST_LENGTH(pDag->pSubplans);
   if (levelNum <= 0) {
     SCH_JOB_ELOG("invalid level num:%d", levelNum);
-    SCH_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    SCH_ERR_RET(TSDB_CODE_INVALID_VALUE);
   }
 
   SHashObj *planToTask = taosHashInit(
@@ -322,13 +322,13 @@ int32_t schValidateAndBuildJob(SQueryPlan *pDag, SSchJob *pJob) {
     plans = (SNodeListNode *)nodesListGetNode(pDag->pSubplans, i);
     if (NULL == plans) {
       SCH_JOB_ELOG("empty level plan, level:%d", i);
-      SCH_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+      SCH_ERR_JRET(TSDB_CODE_INVALID_VALUE);
     }
 
     taskNum = (int32_t)LIST_LENGTH(plans->pNodeList);
     if (taskNum <= 0) {
       SCH_JOB_ELOG("invalid level plan number:%d, level:%d", taskNum, i);
-      SCH_ERR_JRET(TSDB_CODE_QRY_INVALID_INPUT);
+      SCH_ERR_JRET(TSDB_CODE_INVALID_VALUE);
     }
 
     pLevel->taskNum = taskNum;

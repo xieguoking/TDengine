@@ -594,17 +594,17 @@ static int32_t smlParseValueFromJSONObj(cJSON *root, SSmlKv *kv) {
   int32_t size = cJSON_GetArraySize(root);
 
   if (size != OTD_JSON_SUB_FIELDS_NUM) {
-    return TSDB_CODE_TSC_INVALID_JSON;
+    return TSDB_CODE_INVALID_JSON_FORMAT;
   }
 
   cJSON *value = cJSON_GetObjectItem(root, "value");
   if (value == NULL) {
-    return TSDB_CODE_TSC_INVALID_JSON;
+    return TSDB_CODE_INVALID_JSON_FORMAT;
   }
 
   cJSON *type = cJSON_GetObjectItem(root, "type");
   if (!cJSON_IsString(type)) {
-    return TSDB_CODE_TSC_INVALID_JSON;
+    return TSDB_CODE_INVALID_JSON_FORMAT;
   }
 
   switch (value->type) {
@@ -670,7 +670,7 @@ static int32_t smlParseValueFromJSON(cJSON *root, SSmlKv *kv) {
       break;
     }
     default:
-      return TSDB_CODE_TSC_INVALID_JSON;
+      return TSDB_CODE_INVALID_JSON_FORMAT;
   }
 
   return TSDB_CODE_SUCCESS;
@@ -713,12 +713,12 @@ static int32_t smlParseTagsFromJSON(SSmlHandle *info, cJSON *tags, SSmlLineInfo 
   int32_t tagNum = cJSON_GetArraySize(tags);
   if (unlikely(tagNum == 0)) {
     uError("SML:Tag should not be empty");
-    return TSDB_CODE_TSC_INVALID_JSON;
+    return TSDB_CODE_INVALID_JSON_FORMAT;
   }
   for (int32_t i = 0; i < tagNum; ++i) {
     cJSON *tag = cJSON_GetArrayItem(tags, i);
     if (unlikely(tag == NULL)) {
-      return TSDB_CODE_TSC_INVALID_JSON;
+      return TSDB_CODE_INVALID_JSON_FORMAT;
     }
     //    if(unlikely(tag == cMeasure)) continue;
     size_t keyLen = strlen(tag->string);
@@ -936,7 +936,7 @@ static int32_t smlParseJSONStringExt(SSmlHandle *info, cJSON *root, SSmlLineInfo
   // outmost json fields has to be exactly 4
   if (size != OTD_JSON_FIELDS_NUM) {
     uError("OTD:0x%" PRIx64 " Invalid number of JSON fields in data point %d", info->id, size);
-    return TSDB_CODE_TSC_INVALID_JSON;
+    return TSDB_CODE_INVALID_JSON_FORMAT;
   }
 
   cJSON **marks[OTD_JSON_FIELDS_NUM] = {&metricJson, &tsJson, &valueJson, &tagsJson};
@@ -1029,13 +1029,13 @@ static int32_t smlParseJSONExt(SSmlHandle *info, char *payload) {
 
   if (unlikely(payload == NULL)) {
     uError("SML:0x%" PRIx64 " empty JSON Payload", info->id);
-    return TSDB_CODE_TSC_INVALID_JSON;
+    return TSDB_CODE_INVALID_JSON_FORMAT;
   }
 
   info->root = cJSON_Parse(payload);
   if (unlikely(info->root == NULL)) {
     uError("SML:0x%" PRIx64 " parse json failed:%s", info->id, payload);
-    return TSDB_CODE_TSC_INVALID_JSON;
+    return TSDB_CODE_INVALID_JSON_FORMAT;
   }
 
   // multiple data points must be sent in JSON array
@@ -1045,7 +1045,7 @@ static int32_t smlParseJSONExt(SSmlHandle *info, char *payload) {
     payloadNum = 1;
   } else {
     uError("SML:0x%" PRIx64 " Invalid JSON Payload 3:%s", info->id, payload);
-    return TSDB_CODE_TSC_INVALID_JSON;
+    return TSDB_CODE_INVALID_JSON_FORMAT;
   }
 
   info->lineNum = payloadNum;
@@ -1103,7 +1103,7 @@ static int32_t smlParseJSONString(SSmlHandle *info, char **start, SSmlLineInfo *
   }
 
   if (ret != TSDB_CODE_SUCCESS) {
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   if (unlikely(**start == '\0' && elements->measure == NULL)) return TSDB_CODE_SUCCESS;
@@ -1117,26 +1117,26 @@ static int32_t smlParseJSONString(SSmlHandle *info, char **start, SSmlLineInfo *
 
   if (unlikely(elements->colsLen == 0)) {
     uError("SML:colsLen == 0");
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   } else if (unlikely(elements->cols[0] == '{')) {
     char tmp = elements->cols[elements->colsLen];
     elements->cols[elements->colsLen] = '\0';
     cJSON *valueJson = cJSON_Parse(elements->cols);
     if (unlikely(valueJson == NULL)) {
       uError("SML:0x%" PRIx64 " parse json cols failed:%s", info->id, elements->cols);
-      return TSDB_CODE_TSC_INVALID_JSON;
+      return TSDB_CODE_INVALID_JSON_FORMAT;
     }
     taosArrayPush(info->tagJsonArray, &valueJson);
     ret = smlParseValueFromJSONObj(valueJson, &kv);
     if (ret != TSDB_CODE_SUCCESS) {
       uError("SML:Failed to parse value from JSON Obj:%s", elements->cols);
       elements->cols[elements->colsLen] = tmp;
-      return TSDB_CODE_TSC_INVALID_VALUE;
+      return TSDB_CODE_INVALID_VALUE;
     }
     elements->cols[elements->colsLen] = tmp;
   } else if (smlParseValue(&kv, &info->msgBuf) != TSDB_CODE_SUCCESS) {
     uError("SML:cols invalidate:%s", elements->cols);
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   // Parse tags
@@ -1147,7 +1147,7 @@ static int32_t smlParseJSONString(SSmlHandle *info, char **start, SSmlLineInfo *
     *(elements->tags + elements->tagsLen) = tmp;
     if (unlikely(tagsJson == NULL)) {
       uError("SML:0x%" PRIx64 " parse json tag failed:%s", info->id, elements->tags);
-      return TSDB_CODE_TSC_INVALID_JSON;
+      return TSDB_CODE_INVALID_JSON_FORMAT;
     }
 
     taosArrayPush(info->tagJsonArray, &tagsJson);

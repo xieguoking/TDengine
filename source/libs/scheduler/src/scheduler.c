@@ -27,7 +27,7 @@ SSchedulerMgmt schMgmt = {
 int32_t schedulerInit() {
   if (schMgmt.jobRef >= 0) {
     qError("scheduler already initialized");
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_OPERATION;
   }
 
   schMgmt.cfg.maxJobNum = SCHEDULE_DEFAULT_MAX_JOB_NUM;
@@ -141,7 +141,7 @@ int32_t schedulerUpdatePolicy(int32_t policy) {
       qDebug("schedule policy updated to %d", schMgmt.cfg.schPolicy);
       break;
     default:
-      return TSDB_CODE_TSC_INVALID_INPUT;
+      return TSDB_CODE_INVALID_CFG;
   }
 
   return TSDB_CODE_SUCCESS;

@@ -1204,13 +1204,13 @@ int initEpSetFromCfg(const char* firstEp, const char* secondEp, SCorEpSet* pEpSe
 
   if (firstEp && firstEp[0] != 0) {
     if (strlen(firstEp) >= TSDB_EP_LEN) {
-      terrno = TSDB_CODE_TSC_INVALID_FQDN;
+      terrno = TSDB_CODE_INVALID_FQDN;
       return -1;
     }
 
     int32_t code = taosGetFqdnPortFromEp(firstEp, &mgmtEpSet->eps[0]);
     if (code != TSDB_CODE_SUCCESS) {
-      terrno = TSDB_CODE_TSC_INVALID_FQDN;
+      terrno = TSDB_CODE_INVALID_FQDN;
       return terrno;
     }
 
@@ -1219,7 +1219,7 @@ int initEpSetFromCfg(const char* firstEp, const char* secondEp, SCorEpSet* pEpSe
 
   if (secondEp && secondEp[0] != 0) {
     if (strlen(secondEp) >= TSDB_EP_LEN) {
-      terrno = TSDB_CODE_TSC_INVALID_FQDN;
+      terrno = TSDB_CODE_INVALID_FQDN;
       return -1;
     }
 
@@ -1228,7 +1228,7 @@ int initEpSetFromCfg(const char* firstEp, const char* secondEp, SCorEpSet* pEpSe
   }
 
   if (mgmtEpSet->numOfEps == 0) {
-    terrno = TSDB_CODE_TSC_INVALID_FQDN;
+    terrno = TSDB_CODE_INVALID_FQDN;
     return -1;
   }
 
@@ -2260,7 +2260,7 @@ int32_t transferTableNameList(const char* tbList, int32_t acctId, char* dbName, 
 
 _return:
 
-  terrno = TSDB_CODE_TSC_INVALID_OPERATION;
+  terrno = TSDB_CODE_INVALID_OPERATION;
 
   pIter = taosHashIterate(pHash, NULL);
   while (pIter) {

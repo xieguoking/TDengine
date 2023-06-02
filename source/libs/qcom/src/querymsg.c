@@ -72,7 +72,7 @@ int32_t queryBuildTableMetaReqMsg(void *input, char **msg, int32_t msgSize, int3
                                   void *(*mallcFp)(int64_t)) {
   SBuildTableInput *pInput = input;
   if (NULL == input || NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   STableInfoReq infoReq = {0};
@@ -95,7 +95,7 @@ int32_t queryBuildTableMetaReqMsg(void *input, char **msg, int32_t msgSize, int3
 int32_t queryBuildUseDbMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, void *(*mallcFp)(int64_t)) {
   SBuildUseDBInput *pInput = input;
   if (NULL == pInput || NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SUseDbReq usedbReq = {0};
@@ -118,7 +118,7 @@ int32_t queryBuildUseDbMsg(void *input, char **msg, int32_t msgSize, int32_t *ms
 
 int32_t queryBuildQnodeListMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, void *(*mallcFp)(int64_t)) {
   if (NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SQnodeListReq qnodeListReq = {0};
@@ -136,7 +136,7 @@ int32_t queryBuildQnodeListMsg(void *input, char **msg, int32_t msgSize, int32_t
 
 int32_t queryBuildDnodeListMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, void *(*mallcFp)(int64_t)) {
   if (NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SDnodeListReq dnodeListReq = {0};
@@ -154,7 +154,7 @@ int32_t queryBuildDnodeListMsg(void *input, char **msg, int32_t msgSize, int32_t
 
 int32_t queryBuildGetSerVerMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, void *(*mallcFp)(int64_t)) {
   if (NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SServerVerReq req = {0};
@@ -171,7 +171,7 @@ int32_t queryBuildGetSerVerMsg(void *input, char **msg, int32_t msgSize, int32_t
 
 int32_t queryBuildGetDBCfgMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, void *(*mallcFp)(int64_t)) {
   if (NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SDbCfgReq dbCfgReq = {0};
@@ -189,7 +189,7 @@ int32_t queryBuildGetDBCfgMsg(void *input, char **msg, int32_t msgSize, int32_t 
 
 int32_t queryBuildGetIndexMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, void *(*mallcFp)(int64_t)) {
   if (NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SUserIndexReq indexReq = {0};
@@ -208,7 +208,7 @@ int32_t queryBuildGetIndexMsg(void *input, char **msg, int32_t msgSize, int32_t 
 int32_t queryBuildRetrieveFuncMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, 
                                   void *(*mallcFp)(int64_t)) {
   if (NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SRetrieveFuncReq funcReq = {0};
@@ -231,7 +231,7 @@ int32_t queryBuildRetrieveFuncMsg(void *input, char **msg, int32_t msgSize, int3
 
 int32_t queryBuildGetUserAuthMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, void *(*mallcFp)(int64_t)) {
   if (NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SGetUserAuthReq req = {0};
@@ -249,7 +249,7 @@ int32_t queryBuildGetUserAuthMsg(void *input, char **msg, int32_t msgSize, int32
 
 int32_t queryBuildGetTbIndexMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, void *(*mallcFp)(int64_t)) {
   if (NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   STableIndexReq indexReq = {0};
@@ -267,7 +267,7 @@ int32_t queryBuildGetTbIndexMsg(void *input, char **msg, int32_t msgSize, int32_
 
 int32_t queryBuildGetTbCfgMsg(void *input, char **msg, int32_t msgSize, int32_t *msgLen, void *(*mallcFp)(int64_t)) {
   if (NULL == msg || NULL == msgLen) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SBuildTableInput *pInput = input;
@@ -292,7 +292,7 @@ int32_t queryProcessUseDBRsp(void *output, char *msg, int32_t msgSize) {
   int32_t       code = -1;
 
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    code = TSDB_CODE_TSC_INVALID_INPUT;
+    code = TSDB_CODE_INVALID_PTR;
     goto PROCESS_USEDB_OVER;
   }
 
@@ -304,7 +304,7 @@ int32_t queryProcessUseDBRsp(void *output, char *msg, int32_t msgSize) {
 
   if (usedbRsp.vgNum < 0) {
     qError("invalid db[%s] vgroup number[%d]", usedbRsp.db, usedbRsp.vgNum);
-    code = TSDB_CODE_TSC_INVALID_VALUE;
+    code = TSDB_CODE_INVALID_MSG;
     goto PROCESS_USEDB_OVER;
   }
 
@@ -336,33 +336,33 @@ PROCESS_USEDB_OVER:
 static int32_t queryConvertTableMetaMsg(STableMetaRsp *pMetaMsg) {
   if (pMetaMsg->numOfTags < 0 || pMetaMsg->numOfTags > TSDB_MAX_TAGS) {
     qError("invalid numOfTags[%d] in table meta rsp msg", pMetaMsg->numOfTags);
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_MSG;
   }
 
   if (pMetaMsg->numOfColumns > TSDB_MAX_COLUMNS || pMetaMsg->numOfColumns <= 0) {
     qError("invalid numOfColumns[%d] in table meta rsp msg", pMetaMsg->numOfColumns);
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_MSG;
   }
 
   if (pMetaMsg->tableType != TSDB_SUPER_TABLE && pMetaMsg->tableType != TSDB_CHILD_TABLE &&
       pMetaMsg->tableType != TSDB_NORMAL_TABLE && pMetaMsg->tableType != TSDB_SYSTEM_TABLE) {
     qError("invalid tableType[%d] in table meta rsp msg", pMetaMsg->tableType);
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_MSG;
   }
 
   if (pMetaMsg->sversion < 0) {
     qError("invalid sversion[%d] in table meta rsp msg", pMetaMsg->sversion);
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_MSG;
   }
 
   if (pMetaMsg->tversion < 0) {
     qError("invalid tversion[%d] in table meta rsp msg", pMetaMsg->tversion);
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_MSG;
   }
 
   if (pMetaMsg->pSchemas[0].colId != PRIMARYKEY_TIMESTAMP_COL_ID) {
     qError("invalid colId[%" PRIi16 "] for the first column in table meta rsp msg", pMetaMsg->pSchemas[0].colId);
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_MSG;
   }
 
   return TSDB_CODE_SUCCESS;
@@ -422,7 +422,7 @@ int32_t queryProcessTableMetaRsp(void *output, char *msg, int32_t msgSize) {
   STableMetaRsp metaRsp = {0};
 
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    code = TSDB_CODE_TSC_INVALID_INPUT;
+    code = TSDB_CODE_INVALID_PTR;
     goto PROCESS_META_OVER;
   }
 
@@ -438,7 +438,7 @@ int32_t queryProcessTableMetaRsp(void *output, char *msg, int32_t msgSize) {
 
   if (0 != strcmp(metaRsp.dbFName, TSDB_INFORMATION_SCHEMA_DB) &&
       !tIsValidSchema(metaRsp.pSchemas, metaRsp.numOfColumns, metaRsp.numOfTags)) {
-    code = TSDB_CODE_TSC_INVALID_VALUE;
+    code = TSDB_CODE_INVALID_MSG;
     goto PROCESS_META_OVER;
   }
 
@@ -478,7 +478,7 @@ int32_t queryProcessQnodeListRsp(void *output, char *msg, int32_t msgSize) {
   int32_t       code = 0;
 
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    code = TSDB_CODE_TSC_INVALID_INPUT;
+    code = TSDB_CODE_INVALID_PTR;
     return code;
   }
 
@@ -497,7 +497,7 @@ int32_t queryProcessDnodeListRsp(void *output, char *msg, int32_t msgSize) {
   int32_t       code = 0;
 
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    code = TSDB_CODE_TSC_INVALID_INPUT;
+    code = TSDB_CODE_INVALID_PTR;
     return code;
   }
 
@@ -517,7 +517,7 @@ int32_t queryProcessGetSerVerRsp(void *output, char *msg, int32_t msgSize) {
   int32_t       code = 0;
 
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    code = TSDB_CODE_TSC_INVALID_INPUT;
+    code = TSDB_CODE_INVALID_PTR;
     return code;
   }
 
@@ -536,7 +536,7 @@ int32_t queryProcessGetDbCfgRsp(void *output, char *msg, int32_t msgSize) {
   SDbCfgRsp out = {0};
 
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   if (tDeserializeSDbCfgRsp(msg, msgSize, &out) != 0) {
@@ -553,7 +553,7 @@ int32_t queryProcessGetIndexRsp(void *output, char *msg, int32_t msgSize) {
   SUserIndexRsp out = {0};
 
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   if (tDeserializeSUserIndexRsp(msg, msgSize, &out) != 0) {
@@ -570,7 +570,7 @@ int32_t queryProcessRetrieveFuncRsp(void *output, char *msg, int32_t msgSize) {
   SRetrieveFuncRsp out = {0};
 
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   if (tDeserializeSRetrieveFuncRsp(msg, msgSize, &out) != 0) {
@@ -594,7 +594,7 @@ int32_t queryProcessRetrieveFuncRsp(void *output, char *msg, int32_t msgSize) {
 
 int32_t queryProcessGetUserAuthRsp(void *output, char *msg, int32_t msgSize) {
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   if (tDeserializeSGetUserAuthRsp(msg, msgSize, (SGetUserAuthRsp *)output) != 0) {
@@ -607,7 +607,7 @@ int32_t queryProcessGetUserAuthRsp(void *output, char *msg, int32_t msgSize) {
 
 int32_t queryProcessGetTbIndexRsp(void *output, char *msg, int32_t msgSize) {
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   STableIndexRsp *out = (STableIndexRsp *)output;
@@ -621,7 +621,7 @@ int32_t queryProcessGetTbIndexRsp(void *output, char *msg, int32_t msgSize) {
 
 int32_t queryProcessGetTbCfgRsp(void *output, char *msg, int32_t msgSize) {
   if (NULL == output || NULL == msg || msgSize <= 0) {
-    return TSDB_CODE_TSC_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   STableCfgRsp *out = taosMemoryCalloc(1, sizeof(STableCfgRsp));

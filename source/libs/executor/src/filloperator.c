@@ -303,7 +303,7 @@ static int32_t createPrimaryTsExprIfNeeded(SFillOperatorInfo* pInfo, SFillPhysiN
   if (wstartExist == false) {
     if (pPhyFillNode->pWStartTs->type != QUERY_NODE_TARGET) {
       qError("pWStartTs of fill physical node is not a target node, %s", idStr);
-      return TSDB_CODE_QRY_SYS_ERROR;
+      return TSDB_CODE_INVALID_VALUE;
     }
 
     SExprInfo* pExpr = taosMemoryRealloc(pExprSupp->pExprInfo, (pExprSupp->numOfExprs + 1) * sizeof(SExprInfo));

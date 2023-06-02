@@ -48,12 +48,12 @@ int32_t mndConvertRsmaTask(char** pDst, int32_t* pDstLen, const char* ast, int64
   terrno = TSDB_CODE_SUCCESS;
 
   if (nodesStringToNode(ast, &pAst) < 0) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
+    terrno = TSDB_CODE_INVALID_MSG;
     goto END;
   }
 
   if (qSetSTableIdForRsma(pAst, uid) < 0) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
+    terrno = TSDB_CODE_INVALID_VALUE;
     goto END;
   }
 
@@ -68,26 +68,25 @@ int32_t mndConvertRsmaTask(char** pDst, int32_t* pDstLen, const char* ast, int64
   };
 
   if (qCreateQueryPlan(&cxt, &pPlan, NULL) < 0) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
     goto END;
   }
 
   int32_t levelNum = LIST_LENGTH(pPlan->pSubplans);
   if (levelNum != 1) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
+    terrno = TSDB_CODE_INVALID_VALUE;
     goto END;
   }
   SNodeListNode* inner = (SNodeListNode*)nodesListGetNode(pPlan->pSubplans, 0);
 
   int32_t opNum = LIST_LENGTH(inner->pNodeList);
   if (opNum != 1) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
+    terrno = TSDB_CODE_INVALID_VALUE;
     goto END;
   }
 
   SSubplan* plan = (SSubplan*)nodesListGetNode(inner->pNodeList, 0);
   if (qSubPlanToString(plan, pDst, pDstLen) < 0) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
+    terrno = TSDB_CODE_INVALID_MSG;
     goto END;
   }
 
@@ -165,7 +164,7 @@ int32_t mndAssignTaskToVg(SMnode* pMnode, SStreamTask* pTask, SSubplan* plan, co
   plan->execNode.epSet = pTask->epSet;
 
   if (qSubPlanToString(plan, &pTask->exec.qmsg, &msgLen) < 0) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
+    terrno = TSDB_CODE_INVALID_MSG;
     return -1;
   }
   return 0;
@@ -189,7 +188,7 @@ int32_t mndAssignTaskToSnode(SMnode* pMnode, SStreamTask* pTask, SSubplan* plan,
   plan->execNode.epSet = pTask->epSet;
 
   if (qSubPlanToString(plan, &pTask->exec.qmsg, &msgLen) < 0) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
+    terrno = TSDB_CODE_INVALID_MSG;
     return -1;
   }
   return 0;
@@ -298,7 +297,7 @@ int32_t mndScheduleStream(SMnode* pMnode, SStreamObj* pStream) {
   SSdb*       pSdb = pMnode->pSdb;
   SQueryPlan* pPlan = qStringToQueryPlan(pStream->physicalPlan);
   if (pPlan == NULL) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
+    terrno = TSDB_CODE_INVALID_MSG;
     return -1;
   }
   int32_t planTotLevel = LIST_LENGTH(pPlan->pSubplans);
@@ -309,7 +308,7 @@ int32_t mndScheduleStream(SMnode* pMnode, SStreamObj* pStream) {
   bool    externalTargetDB = strcmp(pStream->sourceDb, pStream->targetDb) != 0;
   SDbObj* pDbObj = mndAcquireDb(pMnode, pStream->targetDb);
   if (pDbObj == NULL) {
-    terrno = TSDB_CODE_QRY_INVALID_INPUT;
+    terrno = TSDB_CODE_INVALID_VALUE;
     return -1;
   }
 
@@ -346,7 +345,7 @@ int32_t mndScheduleStream(SMnode* pMnode, SStreamObj* pStream) {
       SNodeListNode* inner = (SNodeListNode*)nodesListGetNode(pPlan->pSubplans, 0);
       SSubplan*      plan = (SSubplan*)nodesListGetNode(inner->pNodeList, 0);
       if (plan->subplanType != SUBPLAN_TYPE_MERGE) {
-        terrno = TSDB_CODE_QRY_INVALID_INPUT;
+        terrno = TSDB_CODE_INVALID_VALUE;
         return -1;
       }
 
@@ -408,7 +407,7 @@ int32_t mndScheduleStream(SMnode* pMnode, SStreamObj* pStream) {
     SNodeListNode* inner = (SNodeListNode*)nodesListGetNode(pPlan->pSubplans, 1);
     SSubplan*      plan = (SSubplan*)nodesListGetNode(inner->pNodeList, 0);
     if (plan->subplanType != SUBPLAN_TYPE_SCAN) {
-      terrno = TSDB_CODE_QRY_INVALID_INPUT;
+      terrno = TSDB_CODE_INVALID_VALUE;
       return -1;
     }
 
@@ -473,12 +472,12 @@ int32_t mndScheduleStream(SMnode* pMnode, SStreamObj* pStream) {
 
     SNodeListNode* inner = (SNodeListNode*)nodesListGetNode(pPlan->pSubplans, 0);
     if (LIST_LENGTH(inner->pNodeList) != 1) {
-      terrno = TSDB_CODE_QRY_INVALID_INPUT;
+      terrno = TSDB_CODE_INVALID_VALUE;
       return -1;
     }
     SSubplan* plan = (SSubplan*)nodesListGetNode(inner->pNodeList, 0);
     if (plan->subplanType != SUBPLAN_TYPE_SCAN) {
-      terrno = TSDB_CODE_QRY_INVALID_INPUT;
+      terrno = TSDB_CODE_INVALID_VALUE;
       return -1;
     }
 
@@ -535,7 +534,7 @@ int32_t mndSchedInitSubEp(SMnode* pMnode, const SMqTopicObj* pTopic, SMqSubscrib
   if (pTopic->subType == TOPIC_SUB_TYPE__COLUMN) {
     pPlan = qStringToQueryPlan(pTopic->physicalPlan);
     if (pPlan == NULL) {
-      terrno = TSDB_CODE_QRY_INVALID_INPUT;
+      terrno = TSDB_CODE_INVALID_MSG;
       return -1;
     }
 
@@ -588,7 +587,7 @@ int32_t mndSchedInitSubEp(SMnode* pMnode, const SMqTopicObj* pTopic, SMqSubscrib
       if (qSubPlanToString(pSubplan, &pVgEp->qmsg, &msgLen) < 0) {
         sdbRelease(pSdb, pVgroup);
         qDestroyQueryPlan(pPlan);
-        terrno = TSDB_CODE_QRY_INVALID_INPUT;
+        terrno = TSDB_CODE_INVALID_MSG;
         return -1;
       }
     } else {

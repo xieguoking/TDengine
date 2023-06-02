@@ -318,7 +318,7 @@ int32_t qwGetQueryResFromSink(QW_FPARAMS_DEF, SQWTaskCtx *ctx, int32_t *dataLen,
 
     if (len < 0) {
       QW_TASK_ELOG("invalid length from dsGetDataLength, length:%" PRId64 "", len);
-      QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+      QW_ERR_RET(TSDB_CODE_INVALID_VALUE);
     }
 
     if (len == 0) {
@@ -408,7 +408,7 @@ int32_t qwGetDeleteResFromSink(QW_FPARAMS_DEF, SQWTaskCtx *ctx, SDeleteRes *pRes
 
   if (len <= 0 || len != sizeof(SDeleterRes)) {
     QW_TASK_ELOG("invalid length from dsGetDataLength, length:%" PRId64, len);
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_VALUE);
   }
 
   output.pData = taosMemoryCalloc(1, len);
@@ -515,7 +515,7 @@ int32_t qwHandlePrePhaseEvents(QW_FPARAMS_DEF, int8_t phase, SQWPhaseInput *inpu
 
       if (QW_EVENT_RECEIVED(ctx, QW_EVENT_FETCH)) {
         QW_TASK_WLOG("last fetch still not processed, phase:%s", qwPhaseStr(phase));
-        QW_ERR_JRET(TSDB_CODE_QRY_DUPLICATTED_OPERATION);
+        QW_ERR_JRET(TSDB_CODE_QRY_TASK_MSG_ERROR);
       }
 
       if (ctx->rspCode) {
@@ -931,7 +931,7 @@ int32_t qwProcessDrop(QW_FPARAMS_DEF, SQWMsg *qwMsg) {
 
   if (QW_EVENT_RECEIVED(ctx, QW_EVENT_DROP)) {
     QW_TASK_WLOG_E("task already dropping");
-    QW_ERR_JRET(TSDB_CODE_QRY_DUPLICATTED_OPERATION);
+    QW_ERR_JRET(TSDB_CODE_QRY_TASK_MSG_ERROR);
   }
 
   if (QW_QUERY_RUNNING(ctx)) {
@@ -1157,7 +1157,7 @@ _return:
 int32_t qWorkerInit(int8_t nodeType, int32_t nodeId, void **qWorkerMgmt, const SMsgCb *pMsgCb) {
   if (NULL == qWorkerMgmt || (pMsgCb && pMsgCb->mgmt == NULL)) {
     qError("invalid param to init qworker");
-    QW_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_RET(TSDB_CODE_INVALID_PTR);
   }
 
   int32_t qwNum = atomic_add_fetch_32(&gQwMgmt.qwNum, 1);
@@ -1279,7 +1279,7 @@ void qWorkerDestroy(void **qWorkerMgmt) {
 
 int32_t qWorkerGetStat(SReadHandle *handle, void *qWorkerMgmt, SQWorkerStat *pStat) {
   if (NULL == handle || NULL == qWorkerMgmt || NULL == pStat) {
-    QW_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_RET(TSDB_CODE_INVALID_PTR);
   }
 
   SQWorker     *mgmt = (SQWorker *)qWorkerMgmt;

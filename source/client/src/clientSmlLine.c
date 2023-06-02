@@ -86,7 +86,7 @@ int32_t smlParseValue(SSmlKv *pVal, SSmlMsgBuf *msg) {
       pVal->value += (BINARY_ADD_LEN - 1);
       return TSDB_CODE_SUCCESS;
     }
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   if (pVal->value[0] == 'l' || pVal->value[0] == 'L') {  // nchar
@@ -99,7 +99,7 @@ int32_t smlParseValue(SSmlKv *pVal, SSmlMsgBuf *msg) {
       pVal->value += (NCHAR_ADD_LEN - 1);
       return TSDB_CODE_SUCCESS;
     }
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   if (pVal->value[0] == 't' || pVal->value[0] == 'T') {
@@ -111,7 +111,7 @@ int32_t smlParseValue(SSmlKv *pVal, SSmlMsgBuf *msg) {
       pVal->length = (int16_t)tDataTypes[pVal->type].bytes;
       return TSDB_CODE_SUCCESS;
     }
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   if (pVal->value[0] == 'f' || pVal->value[0] == 'F') {
@@ -124,7 +124,7 @@ int32_t smlParseValue(SSmlKv *pVal, SSmlMsgBuf *msg) {
       pVal->length = (int16_t)tDataTypes[pVal->type].bytes;
       return TSDB_CODE_SUCCESS;
     }
-    return TSDB_CODE_TSC_INVALID_VALUE;
+    return TSDB_CODE_INVALID_VALUE;
   }
 
   // number
@@ -133,7 +133,7 @@ int32_t smlParseValue(SSmlKv *pVal, SSmlMsgBuf *msg) {
     return TSDB_CODE_SUCCESS;
   }
 
-  return TSDB_CODE_TSC_INVALID_VALUE;
+  return TSDB_CODE_INVALID_VALUE;
 }
 
 static int32_t smlParseTagKv(SSmlHandle *info, char **sql, char *sqlEnd, SSmlLineInfo *currElement, bool isSameMeasure,

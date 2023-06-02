@@ -221,7 +221,7 @@ static int32_t hbProcessStbInfoRsp(void *value, int32_t valueLen, struct SCatalo
       if (rsp->pSchemas[0].colId != PRIMARYKEY_TIMESTAMP_COL_ID) {
         tscError("invalid colId[%" PRIi16 "] for the first column in table meta rsp msg", rsp->pSchemas[0].colId);
         tFreeSSTbHbRsp(&hbRsp);
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_MSG;
       }
 
       catalogAsyncUpdateTableMeta(pCatalog, rsp);

@@ -355,7 +355,7 @@ int32_t qwRegisterHbBrokenLinkArg(SQWorker *mgmt, uint64_t sId, SRpcHandleInfo *
 
 int32_t qWorkerPreprocessQueryMsg(void *qWorkerMgmt, SRpcMsg *pMsg, bool chkGrant) {
   if (NULL == qWorkerMgmt || NULL == pMsg) {
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_PTR);
   }
 
   int32_t       code = 0;
@@ -363,7 +363,7 @@ int32_t qWorkerPreprocessQueryMsg(void *qWorkerMgmt, SRpcMsg *pMsg, bool chkGran
   SSubQueryMsg  msg = {0};
   if (tDeserializeSSubQueryMsg(pMsg->pCont, pMsg->contLen, &msg) < 0) {
     QW_ELOG("tDeserializeSSubQueryMsg failed, contLen:%d", pMsg->contLen);
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_MSG);
   }
 
   if (chkGrant && (!TEST_SHOW_REWRITE_MASK(msg.msgMask)) && (grantCheck(TSDB_GRANT_TIME) != TSDB_CODE_SUCCESS)) {
@@ -392,14 +392,14 @@ int32_t qWorkerPreprocessQueryMsg(void *qWorkerMgmt, SRpcMsg *pMsg, bool chkGran
 
 int32_t qWorkerAbortPreprocessQueryMsg(void *qWorkerMgmt, SRpcMsg *pMsg) {
   if (NULL == qWorkerMgmt || NULL == pMsg) {
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_PTR);
   }
 
   SQWorker     *mgmt = (SQWorker *)qWorkerMgmt;
   SSubQueryMsg msg = {0};
   if (tDeserializeSSubQueryMsg(pMsg->pCont, pMsg->contLen, &msg) < 0) {
     QW_ELOG("tDeserializeSSubQueryMsg failed, contLen:%d", pMsg->contLen);
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_MSG);
   }
 
   uint64_t sId = msg.sId;
@@ -419,7 +419,7 @@ int32_t qWorkerAbortPreprocessQueryMsg(void *qWorkerMgmt, SRpcMsg *pMsg) {
 
 int32_t qWorkerProcessQueryMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int64_t ts) {
   if (NULL == node || NULL == qWorkerMgmt || NULL == pMsg) {
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_PTR);
   }
 
   int32_t       code = 0;
@@ -431,7 +431,7 @@ int32_t qWorkerProcessQueryMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int
   SSubQueryMsg  msg = {0};
   if (tDeserializeSSubQueryMsg(pMsg->pCont, pMsg->contLen, &msg) < 0) {
     QW_ELOG("tDeserializeSSubQueryMsg failed, contLen:%d", pMsg->contLen);
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_MSG);
   }
 
   uint64_t sId = msg.sId;
@@ -470,7 +470,7 @@ int32_t qWorkerProcessCQueryMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, in
 
   if (NULL == msg || pMsg->contLen < sizeof(*msg)) {
     QW_ELOG("invalid cquery msg, msg:%p, msgLen:%d", msg, pMsg->contLen);
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_MSG);
   }
 
   uint64_t sId = msg->sId;
@@ -492,7 +492,7 @@ int32_t qWorkerProcessCQueryMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, in
 
 int32_t qWorkerProcessFetchMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int64_t ts) {
   if (NULL == node || NULL == qWorkerMgmt || NULL == pMsg) {
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   SResFetchReq req = {0};
@@ -503,7 +503,7 @@ int32_t qWorkerProcessFetchMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int
 
   if (tDeserializeSResFetchReq(pMsg->pCont, pMsg->contLen, &req) < 0) {
     QW_ELOG("tDeserializeSResFetchReq %d failed", pMsg->contLen);
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_MSG);
   }
 
   uint64_t sId = req.sId;
@@ -580,7 +580,7 @@ _return:
 
 int32_t qWorkerProcessDropMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int64_t ts) {
   if (NULL == node || NULL == qWorkerMgmt || NULL == pMsg) {
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   int32_t       code = 0;
@@ -592,7 +592,7 @@ int32_t qWorkerProcessDropMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int6
   STaskDropReq  msg = {0};
   if (tDeserializeSTaskDropReq(pMsg->pCont, pMsg->contLen, &msg) < 0) {
     QW_ELOG("tDeserializeSTaskDropReq failed, contLen:%d", pMsg->contLen);
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_MSG);
   }
 
   uint64_t sId = msg.sId;
@@ -618,7 +618,7 @@ int32_t qWorkerProcessDropMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int6
 
 int32_t qWorkerProcessHbMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int64_t ts) {
   if (NULL == node || NULL == qWorkerMgmt || NULL == pMsg) {
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   int32_t         code = 0;
@@ -630,13 +630,13 @@ int32_t qWorkerProcessHbMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int64_
 
   if (NULL == pMsg->pCont) {
     QW_ELOG("invalid hb msg, msg:%p, msgLen:%d", pMsg->pCont, pMsg->contLen);
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_MSG);
   }
 
   if (tDeserializeSSchedulerHbReq(pMsg->pCont, pMsg->contLen, &req)) {
     QW_ELOG("invalid hb msg, msg:%p, msgLen:%d", pMsg->pCont, pMsg->contLen);
     tFreeSSchedulerHbReq(&req);
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_MSG);
   }
 
   uint64_t sId = req.sId;
@@ -656,7 +656,7 @@ int32_t qWorkerProcessHbMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, int64_
 
 int32_t qWorkerProcessDeleteMsg(void *node, void *qWorkerMgmt, SRpcMsg *pMsg, SDeleteRes *pRes) {
   if (NULL == node || NULL == qWorkerMgmt || NULL == pMsg) {
-    QW_ERR_RET(TSDB_CODE_QRY_INVALID_INPUT);
+    QW_ERR_RET(TSDB_CODE_INVALID_PTR);
   }
 
   int32_t     code = 0;

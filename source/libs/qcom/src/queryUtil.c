@@ -304,7 +304,7 @@ int32_t dataConverToStr(char* str, int type, void* buf, int32_t bufSize, int32_t
     case TSDB_DATA_TYPE_GEOMETRY:
       if (bufSize < 0) {
         //        tscError("invalid buf size");
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_VALUE;
       }
 
       *str = '"';
@@ -315,13 +315,13 @@ int32_t dataConverToStr(char* str, int type, void* buf, int32_t bufSize, int32_t
     case TSDB_DATA_TYPE_NCHAR:
       if (bufSize < 0) {
         //        tscError("invalid buf size");
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_VALUE;
       }
 
       *str = '"';
       int32_t length = taosUcs4ToMbs((TdUcs4*)buf, bufSize, str + 1);
       if (length <= 0) {
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_VALUE;
       }
       *(str + length + 1) = '"';
       n = length + 2;
@@ -344,7 +344,7 @@ int32_t dataConverToStr(char* str, int type, void* buf, int32_t bufSize, int32_t
 
     default:
       //      tscError("unsupported type:%d", type);
-      return TSDB_CODE_TSC_INVALID_VALUE;
+      return TSDB_CODE_INVALID_VALUE;
   }
 
   if (len) *len = n;

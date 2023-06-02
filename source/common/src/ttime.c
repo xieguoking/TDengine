@@ -613,31 +613,31 @@ static int32_t getDuration(int64_t val, char unit, int64_t* result, int32_t time
   switch (unit) {
     case 's':
       if (val > INT64_MAX / MILLISECOND_PER_SECOND) {
-        return -1;
+        return TSDB_CODE_INVALID_TIMESTAMP;
       }
       (*result) = convertTimePrecision(val * MILLISECOND_PER_SECOND, TSDB_TIME_PRECISION_MILLI, timePrecision);
       break;
     case 'm':
       if (val > INT64_MAX / MILLISECOND_PER_MINUTE) {
-        return -1;
+        return TSDB_CODE_INVALID_TIMESTAMP;
       }
       (*result) = convertTimePrecision(val * MILLISECOND_PER_MINUTE, TSDB_TIME_PRECISION_MILLI, timePrecision);
       break;
     case 'h':
       if (val > INT64_MAX / MILLISECOND_PER_MINUTE) {
-        return -1;
+        return TSDB_CODE_INVALID_TIMESTAMP;
       }
       (*result) = convertTimePrecision(val * MILLISECOND_PER_HOUR, TSDB_TIME_PRECISION_MILLI, timePrecision);
       break;
     case 'd':
       if (val > INT64_MAX / MILLISECOND_PER_DAY) {
-        return -1;
+        return TSDB_CODE_INVALID_TIMESTAMP;
       }
       (*result) = convertTimePrecision(val * MILLISECOND_PER_DAY, TSDB_TIME_PRECISION_MILLI, timePrecision);
       break;
     case 'w':
       if (val > INT64_MAX / MILLISECOND_PER_WEEK) {
-        return -1;
+        return TSDB_CODE_INVALID_TIMESTAMP;
       }
       (*result) = convertTimePrecision(val * MILLISECOND_PER_WEEK, TSDB_TIME_PRECISION_MILLI, timePrecision);
       break;
@@ -651,7 +651,7 @@ static int32_t getDuration(int64_t val, char unit, int64_t* result, int32_t time
       (*result) = convertTimePrecision(val, TSDB_TIME_PRECISION_NANO, timePrecision);
       break;
     default: {
-      return -1;
+      return TSDB_CODE_INVALID_TIMESTAMP;
     }
   }
   return 0;
@@ -679,13 +679,13 @@ int32_t parseAbsoluteDuration(const char* token, int32_t tokenlen, int64_t* dura
   /* get the basic numeric value */
   int64_t timestamp = taosStr2Int64(token, &endPtr, 10);
   if (timestamp < 0 || errno != 0) {
-    return -1;
+    return TSDB_CODE_INVALID_TIMESTAMP;
   }
 
   /* natual month/year are not allowed in absolute duration */
   *unit = token[tokenlen - 1];
   if (*unit == 'n' || *unit == 'y') {
-    return -1;
+    return TSDB_CODE_INVALID_OPTION;
   }
 
   return getDuration(timestamp, *unit, duration, timePrecision);

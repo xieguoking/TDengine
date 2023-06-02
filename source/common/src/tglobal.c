@@ -733,7 +733,7 @@ static int32_t taosSetSlowLogScope(char *pScope) {
   }
 
   uError("Invalid slowLog scope value:%s", pScope);
-  terrno = TSDB_CODE_INVALID_CFG_VALUE;
+  terrno = TSDB_CODE_INVALID_CFG;
   return -1;
 }
 

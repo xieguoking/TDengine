@@ -803,7 +803,7 @@ int32_t dataBlockCompar(const void* p1, const void* p2, const void* param) {
     void* right1 = colDataGetData(pColInfoData, right);
     if (pColInfoData->info.type == TSDB_DATA_TYPE_JSON) {
       if (tTagIsJson(left1) || tTagIsJson(right1)) {
-        terrno = TSDB_CODE_QRY_JSON_NOT_SUPPORT_ERROR;
+        terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
         return 0;
       }
     }

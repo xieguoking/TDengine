@@ -1337,7 +1337,7 @@ int taos_load_table_info(TAOS *taos, const char *tableNameList) {
     return TSDB_CODE_SUCCESS;
   } else if (length > MAX_TABLE_NAME_LENGTH) {
     tscError("tableNameList too long, length:%d, maximum allowed:%d", length, MAX_TABLE_NAME_LENGTH);
-    return TSDB_CODE_TSC_INVALID_OPERATION;
+    return TSDB_CODE_INVALID_OPERATION;
   }
 
   char *sql = "taos_load_table_info";

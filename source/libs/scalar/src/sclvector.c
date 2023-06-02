@@ -145,7 +145,7 @@ int64_t getVectorBigintValue_JSON(void *src, int32_t index) {
   } else if (*data == TSDB_DATA_TYPE_NCHAR) {  // json inner type can not be BINARY
     convertNcharToDouble(data + CHAR_BYTES, &out);
   } else if (tTagIsJson(data)) {
-    terrno = TSDB_CODE_QRY_JSON_NOT_SUPPORT_ERROR;
+    terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
     return 0;
   } else {
     convertNumberToNumber(data + CHAR_BYTES, &out, *data, TSDB_DATA_TYPE_DOUBLE);
@@ -422,7 +422,7 @@ int32_t vectorConvertFromVarData(SSclVectorConvCtx *pCtx, int32_t *overflow) {
         data += CHAR_BYTES;
         convertType = TSDB_DATA_TYPE_NCHAR;
       } else if (tTagIsJson(data) || *data == TSDB_DATA_TYPE_NULL) {
-        terrno = TSDB_CODE_QRY_JSON_NOT_SUPPORT_ERROR;
+        terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
         return terrno;
       } else {
         convertNumberToNumber(data + CHAR_BYTES, colDataGetNumData(pCtx->pOut->columnData, i), *data, pCtx->outType);
@@ -481,7 +481,7 @@ double getVectorDoubleValue_JSON(void *src, int32_t index) {
   } else if (*data == TSDB_DATA_TYPE_NCHAR) {  // json inner type can not be BINARY
     convertNcharToDouble(data + CHAR_BYTES, &out);
   } else if (tTagIsJson(data)) {
-    terrno = TSDB_CODE_QRY_JSON_NOT_SUPPORT_ERROR;
+    terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
     return 0;
   } else {
     convertNumberToNumber(data + CHAR_BYTES, &out, *data, TSDB_DATA_TYPE_DOUBLE);
@@ -517,7 +517,7 @@ bool convertJsonValue(__compar_fn_t *fp, int32_t optr, int8_t typeLeft, int8_t t
 
   if (typeLeft == TSDB_DATA_TYPE_JSON) {
     if (tTagIsJson(*pLeftData)) {
-      terrno = TSDB_CODE_QRY_JSON_NOT_SUPPORT_ERROR;
+      terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
       return false;
     }
     typeLeft = **pLeftData;
@@ -525,7 +525,7 @@ bool convertJsonValue(__compar_fn_t *fp, int32_t optr, int8_t typeLeft, int8_t t
   }
   if (typeRight == TSDB_DATA_TYPE_JSON) {
     if (tTagIsJson(*pRightData)) {
-      terrno = TSDB_CODE_QRY_JSON_NOT_SUPPORT_ERROR;
+      terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
       return false;
     }
     typeRight = **pRightData;
@@ -1819,7 +1819,7 @@ void vectorIsTrue(SScalarParam *pLeft, SScalarParam *pRight, SScalarParam *pOut,
 STagVal getJsonValue(char *json, char *key, bool *isExist) {
   STagVal val = {.pKey = key};
   if (json == NULL || tTagIsJson((const STag *)json) == false) {
-    terrno = TSDB_CODE_QRY_JSON_NOT_SUPPORT_ERROR;
+    terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
     if (isExist) {
       *isExist = false;
     }

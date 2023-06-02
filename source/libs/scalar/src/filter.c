@@ -197,7 +197,7 @@ int8_t filterGetCompFuncIdx(int32_t type, int32_t optr) {
       case TSDB_DATA_TYPE_TIMESTAMP:
         return 18;
       case TSDB_DATA_TYPE_JSON:
-        terrno = TSDB_CODE_QRY_JSON_IN_ERROR;
+        terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
         return 0;
       default:
         return 0;
@@ -223,7 +223,7 @@ int8_t filterGetCompFuncIdx(int32_t type, int32_t optr) {
       case TSDB_DATA_TYPE_TIMESTAMP:
         return 24;
       case TSDB_DATA_TYPE_JSON:
-        terrno = TSDB_CODE_QRY_JSON_IN_ERROR;
+        terrno = TSDB_CODE_QRY_JSON_USAGE_ERROR;
         return 0;
       default:
         return 0;
@@ -1517,7 +1517,7 @@ EDealRes fltTreeToGroup(SNode *pNode, void *pContext) {
 
   fltError("invalid node type for filter, type:%d", nodeType(pNode));
 
-  code = TSDB_CODE_QRY_INVALID_INPUT;
+  code = TSDB_CODE_INVALID_VALUE;
 
 _return:
 
@@ -1572,7 +1572,7 @@ int32_t fltConverToStr(char *str, int type, void *buf, int32_t bufSize, int32_t 
     case TSDB_DATA_TYPE_GEOMETRY:
       if (bufSize < 0) {
         //        tscError("invalid buf size");
-        return TSDB_CODE_TSC_INVALID_VALUE;
+        return TSDB_CODE_INVALID_VALUE;
       }
 
       *str = '"';
@@ -1599,7 +1599,7 @@ int32_t fltConverToStr(char *str, int type, void *buf, int32_t bufSize, int32_t 
 
     default:
       //      tscError("unsupported type:%d", type);
-      return TSDB_CODE_TSC_INVALID_VALUE;
+      return TSDB_CODE_INVALID_VALUE;
   }
 
   *len = n;
@@ -1973,7 +1973,7 @@ int32_t fltInitValFieldData(SFilterInfo *info) {
       int32_t code = sclConvertValueToSclParam(var, &out, NULL);
       if (code != TSDB_CODE_SUCCESS) {
         qError("convert value to type[%d] failed", type);
-        return TSDB_CODE_TSC_INVALID_OPERATION;
+        return code;
       }
 
       memcpy(fi->data, out.columnData->pData, out.columnData->info.bytes);
@@ -3715,7 +3715,7 @@ EDealRes fltReviseRewriter(SNode **pNode, void *pContext) {
     for (int32_t i = 0; i < node->pParameterList->length; ++i) {
       if (NULL == cell || NULL == cell->pNode) {
         fltError("invalid cell");
-        stat->code = TSDB_CODE_QRY_INVALID_INPUT;
+        stat->code = TSDB_CODE_INVALID_VALUE;
         return DEAL_RES_ERROR;
       }
 
@@ -3920,7 +3920,7 @@ EDealRes fltReviseRewriter(SNode **pNode, void *pContext) {
 
   fltError("invalid node type for filter, type:%d", nodeType(*pNode));
 
-  stat->code = TSDB_CODE_QRY_INVALID_INPUT;
+  stat->code = TSDB_CODE_INVALID_VALUE;
 
   return DEAL_RES_ERROR;
 }
@@ -3983,7 +3983,7 @@ int32_t fltGetDataFromSlotId(void *param, int32_t id, void **data) {
 
 int32_t filterSetDataFromSlotId(SFilterInfo *info, void *param) {
   if (NULL == info) {
-    return TSDB_CODE_QRY_INVALID_INPUT;
+    return TSDB_CODE_INVALID_PTR;
   }
 
   return fltSetColFieldDataImpl(info, param, fltGetDataFromSlotId, false);
