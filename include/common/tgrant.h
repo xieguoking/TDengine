@@ -48,6 +48,10 @@ typedef enum {
   TSDB_GRANT_TABLE,
 } EGrantType;
 
+static int8_t tsGrant = 1;
+
+static FORCE_INLINE int8_t taosGranted() { return atomic_load_8(&tsGrant); }
+
 int32_t grantCheck(EGrantType grant);
 
 #ifndef GRANTS_CFG

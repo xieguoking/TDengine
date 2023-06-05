@@ -355,7 +355,7 @@ _end:
  */
 static int32_t tdProcessTSmaInsertImpl(SSma *pSma, int64_t indexUid, const char *msg) {
   const SArray *pDataBlocks = (const SArray *)msg;
-  // TODO: destroy SSDataBlocks(msg)
+
   if (!pDataBlocks) {
     terrno = TSDB_CODE_TSMA_INVALID_PTR;
     smaWarn("vgId:%d, insert tsma data failed since pDataBlocks is NULL", SMA_VID(pSma));
