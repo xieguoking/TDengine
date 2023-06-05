@@ -29,7 +29,7 @@ int32_t tdProcessTSmaInsert(SSma *pSma, int64_t indexUid, const char *msg) {
   int32_t code = TSDB_CODE_SUCCESS;
 
   if ((code = tdProcessTSmaInsertImpl(pSma, indexUid, msg)) < 0) {
-    smaWarn("vgId:%d, insert tsma data failed since %s", SMA_VID(pSma), tstrerror(terrno));
+    smaError("vgId:%d, insert tsma data failed since %s", SMA_VID(pSma), tstrerror(terrno));
   }
 
   return code;
