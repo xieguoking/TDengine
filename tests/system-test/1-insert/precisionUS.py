@@ -119,7 +119,7 @@ class TDTestCase:
     # prepareEnv
     def prepareEnv(self):
         # init                
-        self.ts = 1680000000000*1000*1000
+        self.ts = 1680000000000*1000
         self.childCnt = 5
         self.childRow = 10000
         self.batchSize = 5000
@@ -132,7 +132,7 @@ class TDTestCase:
         self.c2Sum = None
 
         # create database  db
-        sql = f"create database db vgroups 2 precision 'ns' "
+        sql = f"create database db vgroups 2 precision 'us' "
         tdLog.info(sql)
         tdSql.execute(sql)
         sql = f"use db"
@@ -149,7 +149,7 @@ class TDTestCase:
             tdSql.execute(sql)
 
         # create stream
-        sql = "create stream ma into sta as select count(ts) from st interval(100b)"
+        sql = "create stream ma into sta as select count(ts) from st interval(100u)"
         tdLog.info(sql)
         tdSql.execute(sql)
 
@@ -168,61 +168,55 @@ class TDTestCase:
 
         tdLog.info(f"check expect ok. sql={sql} expect ={expectVal} rowCnt={rowCnt}")
         return True
-    
 
-        
 
     # check time macro
     def checkTimeMacro(self):
         # 2 week
         val = 2
-        nsval = val*7*24*60*60*1000*1000*1000
+        usval = val*7*24*60*60*1000*1000
         expectVal = self.childCnt * self.childRow
-        sql = f"select count(ts) from st where timediff(ts - {val}w, ts1) = {nsval} "
+        sql = f"select count(ts) from st where timediff(ts - {val}w, ts1) = {usval} "
         self.checkExpect(sql, expectVal)
 
         # 20 day
         val = 20
-        nsval = val*24*60*60*1000*1000*1000
+        usval = val*24*60*60*1000*1000
         uint = "d"
-        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {nsval} "
+        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {usval} "
         self.checkExpect(sql, expectVal)
 
         # 30 hour
         val = 30
-        nsval = val*60*60*1000*1000*1000
+        usval = val*60*60*1000*1000
         uint = "h"
-        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {nsval} "
+        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {usval} "
         self.checkExpect(sql, expectVal)
 
         # 90 minutes
         val = 90
-        nsval = val*60*1000*1000*1000
+        usval = val*60*1000*1000
         uint = "m"
-        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {nsval} "
+        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {usval} "
         self.checkExpect(sql, expectVal)
         # 2s
         val = 2
-        nsval = val*1000*1000*1000
+        usval = val*1000*1000
         uint = "s"
-        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {nsval} "
+        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {usval} "
         self.checkExpect(sql, expectVal)
         # 20a
-        val = 5
-        nsval = val*1000*1000
+        val = 20
+        usval = val*1000
         uint = "a"
-        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {nsval} "
+        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {usval} "
         self.checkExpect(sql, expectVal)
         # 300u
         val = 300
-        nsval = val*1000
+        usval = val*1
         uint = "u"
-        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {nsval} "
+        sql = f"select count(ts) from st where timediff(ts - {val}{uint}, ts1) = {usval} "
         self.checkExpect(sql, expectVal)
-        # 8b
-        val = 8
-        sql = f"select timediff(ts - {val}b, ts1) from st "
-        self.checkExpect(sql, val)
 
     # init
     def init(self, conn, logSql, replicaVar=1):
@@ -274,7 +268,7 @@ class TDTestCase:
         # prepare env
         self.prepareEnv()
 
-        # time macro like 1w 1d 1h 1m 1s 1a 1u 1b 
+        # time macro like 1w 1d 1h 1m 1s 1a 1u
         self.checkTimeMacro()
 
         # check where
