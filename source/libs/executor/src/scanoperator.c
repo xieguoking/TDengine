@@ -2654,6 +2654,8 @@ static SSDataBlock* getTableDataBlockImpl(void* param) {
   void*        p = tableListGetInfo(pInfo->base.pTableListInfo, readIdx + pInfo->tableStartIndex);
   SReadHandle* pHandle = &pInfo->base.readHandle;
 
+  source->multiReader = true;
+
   if (NULL == source->dataReader || !source->multiReader) {
     code = pAPI->tsdReader.tsdReaderOpen(pHandle->vnode, pQueryCond, p, 1, pBlock, (void**)&source->dataReader, GET_TASKID(pTaskInfo), false, NULL);
     if (code != 0) {
@@ -2731,6 +2733,9 @@ static SSDataBlock* getTableDataBlockImpl(void* param) {
     source->dataReader = NULL;
   }
   pInfo->base.dataReader = NULL;
+
+  pAPI->tsdReader.tsdReaderClose(source->dataReader);
+  source->dataReader = NULL;
   return NULL;
 }
 
@@ -2786,7 +2791,10 @@ int32_t startGroupTableMergeScan(SOperatorInfo* pOperator) {
 
   // todo the total available buffer should be determined by total capacity of buffer of this task.
   // the additional one is reserved for merge result
+
   pInfo->sortBufSize = pInfo->bufPageSize * (tableEndIdx - tableStartIdx + 1 + 1);
+  int32_t inMemTables = (int32_t)sqrt(tableEndIdx - tableStartIdx + 1);
+  pInfo->sortBufSize = pInfo->bufPageSize * (inMemTables + 1);
   int32_t numOfBufPage = pInfo->sortBufSize / pInfo->bufPageSize;
   pInfo->pSortHandle = tsortCreateSortHandle(pInfo->pSortInfo, SORT_MULTISOURCE_MERGE, pInfo->bufPageSize, numOfBufPage,
                                              pInfo->pSortInputBlock, pTaskInfo->id.str);
