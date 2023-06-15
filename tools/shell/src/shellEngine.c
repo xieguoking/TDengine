@@ -694,6 +694,7 @@ int32_t shellVerticalPrintResult(TAOS_RES *tres, const char *sql) {
   if (shell.args.commands == NULL && shell.args.file[0] == 0 && !shellIsShowWhole(sql)) {
     resShowMaxNum = SHELL_DEFAULT_RES_SHOW_NUM;
   }
+  resShowMaxNum = SHELL_DEFAULT_RES_SHOW_NUM;
 
   int32_t numOfRows = 0;
   int32_t showMore = 1;
@@ -840,6 +841,8 @@ int32_t shellHorizontalPrintResult(TAOS_RES *tres, const char *sql) {
   if (shell.args.commands == NULL && shell.args.file[0] == 0 && !shellIsShowWhole(sql)) {
     resShowMaxNum = SHELL_DEFAULT_RES_SHOW_NUM;
   }
+
+  resShowMaxNum = SHELL_DEFAULT_RES_SHOW_NUM;
 
   int32_t numOfRows = 0;
   int32_t showMore = 1;

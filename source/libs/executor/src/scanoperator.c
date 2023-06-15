@@ -13,7 +13,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// clang-format off
+#define ALLOW_FORBID_FUNC
 
 #include "executorInt.h"
 #include "filter.h"
@@ -2794,6 +2794,18 @@ int32_t startGroupTableMergeScan(SOperatorInfo* pOperator) {
 
   pInfo->sortBufSize = pInfo->bufPageSize * (tableEndIdx - tableStartIdx + 1 + 1);
   int32_t inMemTables = (int32_t)sqrt(tableEndIdx - tableStartIdx + 1);
+  {
+    char buffer[100];
+    int kWay = 100;
+    FILE* f = fopen("/tmp/zsl_k_way", "r");
+    if (f != NULL) {
+      fgets(buffer, sizeof(buffer), f);
+      sscanf(buffer, "%d", &kWay);
+      fclose(f);
+      inMemTables = kWay;
+    }
+  }
+  qInfo("zsl: kway %d table merge scan", inMemTables);
   pInfo->sortBufSize = pInfo->bufPageSize * (inMemTables + 1);
   int32_t numOfBufPage = pInfo->sortBufSize / pInfo->bufPageSize;
   pInfo->pSortHandle = tsortCreateSortHandle(pInfo->pSortInfo, SORT_MULTISOURCE_MERGE, pInfo->bufPageSize, numOfBufPage,
