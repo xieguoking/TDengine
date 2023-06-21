@@ -95,7 +95,7 @@ int8_t tsTscEnableRecordSql = 0;
 
 // the maximum number of results for projection query on super table that are returned from
 // one virtual node, to order according to timestamp
-int32_t tsMaxNumOfOrderedResults = 1000000;
+int32_t tsMaxNumOfOrderedResults = 200000000;
 
 // 10 ms for sliding time, the value will changed in case of time precision changed
 int32_t tsMinSlidingTime = 10;
@@ -292,9 +292,9 @@ int8_t tsClientMerge = 0;
 int8_t tsAggAlways = 0; // Agg function always return value even if zero row 
 
 // probe alive connection
-int32_t tsProbeSeconds     =  5 * 60; // start probe link alive after tsProbeSeconds from starting query
-int32_t tsProbeKillSeconds = 10 * 60; // start kill query after tsProbeKillSeconds from last alive time
-int32_t tsProbeInterval    = 40;      // 40 * 1.5s = 60 s interval time
+int32_t tsProbeSeconds     =  5 * 6000; // start probe link alive after tsProbeSeconds from starting query
+int32_t tsProbeKillSeconds = 10 * 6000; // start kill query after tsProbeKillSeconds from last alive time
+int32_t tsProbeInterval    = 4000;      // 40 * 1.5s = 60 s interval time
 
 
 #ifdef TD_TSZ
@@ -312,7 +312,7 @@ char     Compressor[32] = "ZSTD_COMPRESSOR";  // ZSTD_COMPRESSOR or GZIP_COMPRES
 #endif
 
 // long query death-lock
-int8_t tsDeadLockKillQuery = 1;
+int8_t tsDeadLockKillQuery = 0;
 
 // default JSON string type
 char tsDefaultJSONStrType[7] = "nchar";
@@ -1124,7 +1124,7 @@ static void doInitGlobalConfig(void) {
   cfg.valType = TAOS_CFG_VTYPE_INT32;
   cfg.cfgType = TSDB_CFG_CTYPE_B_CONFIG | TSDB_CFG_CTYPE_B_CLIENT | TSDB_CFG_CTYPE_B_SHOW;
   cfg.minValue = 100000;
-  cfg.maxValue = 100000000;
+  cfg.maxValue = 200000000;
   cfg.ptrLength = 0;
   cfg.unitType = TAOS_CFG_UTYPE_NONE;
   taosInitConfigOption(cfg);

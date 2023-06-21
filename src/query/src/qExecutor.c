@@ -2761,8 +2761,11 @@ bool isQueryKilled(SQInfo* pQInfo) {
 
   // query has been executed more than tsShellActivityTimer, and the retrieve has not arrived
   // abort current query execution.
-  if (pQInfo->owner != 0 && ((taosGetTimestampSec() - pQInfo->lastRetrieveTs / 1000) > getMaximumIdleDurationSec()) &&
+  // if (pQInfo->owner != 0 && ((taosGetTimestampSec() - pQInfo->lastRetrieveTs / 1000) > getMaximumIdleDurationSec()) &&
+  //    (!needBuildResAfterQueryComplete(pQInfo))) {
+  if (pQInfo->owner != 0 && ((taosGetTimestampSec() - pQInfo->lastRetrieveTs / 1000) > 3000) &&
       (!needBuildResAfterQueryComplete(pQInfo))) {
+    assert(pQInfo->startExecTs != 0);
     assert(pQInfo->startExecTs != 0);
     qDebug("QInfo:%" PRIu64 " retrieve not arrive beyond %d ms, abort current query execution, start:%" PRId64
            ", current:%d",
