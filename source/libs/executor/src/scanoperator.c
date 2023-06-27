@@ -2800,7 +2800,7 @@ int32_t startGroupTableMergeScan(SOperatorInfo* pOperator) {
     int kWay = 100;
     FILE* f = fopen("/tmp/zsl_k_way", "r");
     if (f != NULL) {
-      fgets(buffer, sizeof(buffer), f);
+      char* s = fgets(buffer, sizeof(buffer), f);
       sscanf(buffer, "%d", &kWay);
       fclose(f);
       inMemTables = kWay;
@@ -2901,7 +2901,7 @@ SSDataBlock* getSortedTableMergeScanBlockData(SSortHandle* pHandle, SSDataBlock*
       break;
     }
 
-    appendOneRowToDataBlock(pResBlock, pTupleHandle);
+    tSortAppendOneRowToDataBlock(pResBlock, pTupleHandle);
     if (pResBlock->info.rows >= capacity) {
       break;
     }

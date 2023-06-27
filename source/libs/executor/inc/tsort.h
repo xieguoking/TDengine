@@ -32,6 +32,7 @@ typedef struct SMultiMergeSource {
   int32_t      type;
   int32_t      rowIndex;
   SSDataBlock* pBlock;
+  int64_t* pTsList;
 } SMultiMergeSource;
 
 typedef struct SSortSource {
@@ -53,14 +54,14 @@ typedef struct SMsortComparParam {
   int32_t numOfSources;
   SArray* orderInfo;  // SArray<SBlockOrderInfo>
   bool    cmpGroupId;
+  __compar_fn_t cmpFn;
 } SMsortComparParam;
 
 typedef struct SSortHandle  SSortHandle;
 typedef struct STupleHandle STupleHandle;
 
 typedef SSDataBlock* (*_sort_fetch_block_fn_t)(void* param);
-typedef int32_t (*_sort_merge_compar_fn_t)(const void* p1, const void* p2, void* param);
-
+typedef int32_t (*_sort_merge_compar_fn_t)(int32_t left, int32_t right, void* param);
 /**
  *
  * @param type
@@ -170,6 +171,7 @@ SSortExecInfo tsortGetSortExecInfo(SSortHandle* pHandle);
  */
 int32_t getProperSortPageSize(size_t rowSize, uint32_t numOfCols);
 
+void tSortAppendOneRowToDataBlock(SSDataBlock* pBlock, STupleHandle* pTupleHandle);
 #ifdef __cplusplus
 }
 #endif
