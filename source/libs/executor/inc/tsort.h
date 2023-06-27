@@ -45,6 +45,7 @@ typedef struct SSortSource {
     void* param;
     bool  onlyRef;
   };
+  bool cleanUpSrcBlock;
   int64_t fetchUs;
   int64_t fetchNum;
 } SSortSource;
@@ -172,6 +173,8 @@ SSortExecInfo tsortGetSortExecInfo(SSortHandle* pHandle);
 int32_t getProperSortPageSize(size_t rowSize, uint32_t numOfCols);
 
 void tSortAppendOneRowToDataBlock(SSDataBlock* pBlock, STupleHandle* pTupleHandle);
+
+void tsortSetMaxInternalLimit(SSortHandle* pSortHandle, int64_t maxInternalLimit);
 #ifdef __cplusplus
 }
 #endif

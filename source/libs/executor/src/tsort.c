@@ -146,6 +146,8 @@ struct SSortHandle {
   uint64_t       sortElapsed;
   int64_t        startTs;
   uint64_t       totalElapsed;
+  int64_t        maxInternalLimit; // offset + limit for multi-level internal merge sort, -1 mean no limit
+  int64_t        currInternalRows; 
 
   int32_t           sourceId;
   SSDataBlock*      pDataBlock;
@@ -203,6 +205,8 @@ SSortHandle* tsortCreateSortHandle(SArray* pSortInfo, int32_t type, int32_t page
     pSortHandle->idStr = taosStrdup(idstr);
   }
 
+  pSortHandle->currInternalRows = 0;
+  pSortHandle->maxInternalLimit = -1;
   return pSortHandle;
 }
 
@@ -210,7 +214,10 @@ static int32_t sortComparCleanup(SMsortComparParam* cmpParam) {
   // NOTICE: pSource may be, if it is SORT_MULTISOURCE_MERGE
   for (int32_t i = 0; i < cmpParam->numOfSources; ++i) {
     SSortSource* pSource = cmpParam->pSources[i];
-    blockDataDestroy(pSource->src.pBlock);
+    if (pSource->cleanUpSrcBlock) {
+      blockDataDestroy(pSource->src.pBlock);
+      pSource->src.pBlock = NULL;
+    }
     if (pSource->pageIdList) {
       taosArrayDestroy(pSource->pageIdList);
     }
@@ -282,7 +289,13 @@ int32_t tsortAddSource(SSortHandle* pSortHandle, void* pSource) {
   return TSDB_CODE_SUCCESS;
 }
 
-static int32_t setMultiWayMergeSourceTsList(int32_t tsSlotId, SMultiMergeSource* mmSrc) {
+void tsortSetMaxInternalLimit(SSortHandle* pSortHandle, int64_t maxInternalLimit) {
+  pSortHandle->maxInternalLimit = maxInternalLimit;
+}
+
+//TODO: change it to tsortSetMultiwayMergeSource(int32_t tsSlotId, SSDataBlock* pBlock)
+//TODO: Introduce only ts mode for table merge scan and multiway merge sort.
+static int32_t tsortSetMultiWayMergeSourceTsList(int32_t tsSlotId, SMultiMergeSource* mmSrc) {
   if (mmSrc->pBlock) {
     SColumnInfoData* pColInfoData = taosArrayGet(mmSrc->pBlock->pDataBlock, tsSlotId);
     mmSrc->pTsList = (int64_t*)pColInfoData->pData;
@@ -301,7 +314,7 @@ static int32_t doAddNewExternalMemSource(SDiskbasedBuf* pBuf, SArray* pAllSource
   }
 
   pSource->src.pBlock = pBlock;
-  setMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
+  tsortSetMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
   pSource->pageIdList = pPageIdList;
   taosArrayPush(pAllSources, &pSource);
 
@@ -430,7 +443,8 @@ static int32_t sortComparInit(SMsortComparParam* pParam, SArray* pSources, int32
       }
 
       code = blockDataFromBuf(pSource->src.pBlock, pPage);
-      setMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
+      pSource->cleanUpSrcBlock = true;
+      tsortSetMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
       if (code != TSDB_CODE_SUCCESS) {
         terrno = code;
         return code;
@@ -445,7 +459,8 @@ static int32_t sortComparInit(SMsortComparParam* pParam, SArray* pSources, int32
     for (int32_t i = 0; i < pParam->numOfSources; ++i) {
       SSortSource* pSource = pParam->pSources[i];
       pSource->src.pBlock = pHandle->fetchfp(pSource->param);
-      setMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
+      pSource->cleanUpSrcBlock = false;
+      tsortSetMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
 
       // set current source is done
       if (pSource->src.pBlock == NULL) {
@@ -507,7 +522,7 @@ static int32_t adjustMergeTreeForNextTuple(SSortSource* pSource, SMultiwayMergeT
         pSource->src.rowIndex = -1;
         pSource->pageIndex = -1;
         pSource->src.pBlock = blockDataDestroy(pSource->src.pBlock);
-        setMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
+        tsortSetMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
       } else {
         int32_t* pPgId = taosArrayGet(pSource->pageIdList, pSource->pageIndex);
 
@@ -521,13 +536,13 @@ static int32_t adjustMergeTreeForNextTuple(SSortSource* pSource, SMultiwayMergeT
         if (code != TSDB_CODE_SUCCESS) {
           return code;
         }
-        setMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
+        tsortSetMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
         releaseBufPage(pHandle->pBuf, pPage);
       }
     } else {
       int64_t st = taosGetTimestampUs();
       pSource->src.pBlock = pHandle->fetchfp(((SSortSource*)pSource)->param);
-      setMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
+      tsortSetMultiWayMergeSourceTsList(tsSlotId, &pSource->src);
       pSource->fetchUs += taosGetTimestampUs() - st;
       pSource->fetchNum++;
       if (pSource->src.pBlock == NULL) {
@@ -758,11 +773,16 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
       }
 
       SArray* pPageIdList = taosArrayInit(4, sizeof(int32_t));
+      pHandle->currInternalRows = 0;
       while (1) {
+        if (pHandle->maxInternalLimit != -1 && pHandle->currInternalRows > pHandle->maxInternalLimit) {
+          break;
+        }
         SSDataBlock* pDataBlock = getSortedBlockDataInner(pHandle, &pHandle->cmpParam, numOfRows);
         if (pDataBlock == NULL) {
           break;
         }
+        pHandle->currInternalRows += pDataBlock->info.rows;
 
         int32_t pageId = -1;
         void*   pPage = getNewBufPage(pHandle->pBuf, &pageId);
@@ -801,7 +821,7 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
         taosArrayDestroy(pResList);
         return code;
       }
-    }
+    } // for each group
 
     tsortClearOrderdSource(pHandle->pOrderedSource, NULL, NULL);
     taosArrayAddAll(pHandle->pOrderedSource, pResList);
@@ -820,7 +840,7 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
       pHandle->type = SORT_SINGLESOURCE_SORT;
       pHandle->comparFn = msortComparTsFn;
     }
-  }
+  } // for each pass
 
   pHandle->cmpParam.numOfSources = taosArrayGetSize(pHandle->pOrderedSource);
   return 0;
@@ -879,7 +899,7 @@ static int32_t createInitialSources(SSortHandle* pHandle) {
         if (!source->onlyRef && source->src.pBlock) {
           blockDataDestroy(source->src.pBlock);
           source->src.pBlock = NULL;
-          setMultiWayMergeSourceTsList(tsSlotId, &source->src);
+          tsortSetMultiWayMergeSourceTsList(tsSlotId, &source->src);
         }
         taosMemoryFree(source);
         return code;
@@ -897,7 +917,7 @@ static int32_t createInitialSources(SSortHandle* pHandle) {
           if (!source->onlyRef && source->src.pBlock) {
             blockDataDestroy(source->src.pBlock);
             source->src.pBlock = NULL;
-            setMultiWayMergeSourceTsList(tsSlotId, &source->src);
+            tsortSetMultiWayMergeSourceTsList(tsSlotId, &source->src);
           }
 
           taosMemoryFree(source);

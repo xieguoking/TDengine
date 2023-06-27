@@ -2813,7 +2813,9 @@ int32_t startGroupTableMergeScan(SOperatorInfo* pOperator) {
                                              pInfo->pSortInputBlock, pTaskInfo->id.str);
 
   tsortSetFetchRawDataFp(pInfo->pSortHandle, getTableDataBlockImpl, NULL, NULL);
-
+  if (pInfo->limitInfo.limit.limit != -1 && pInfo->limitInfo.limit.offset != -1) {
+    tsortSetMaxInternalLimit(pInfo->pSortHandle, pInfo->limitInfo.limit.limit + pInfo->limitInfo.limit.offset);
+  }
   // one table has one data block
   int32_t numOfTable = tableEndIdx - tableStartIdx + 1;
   pInfo->queryConds = taosArrayInit(numOfTable, sizeof(SQueryTableDataCond));
