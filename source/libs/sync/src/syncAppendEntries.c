@@ -22,6 +22,10 @@
 #include "syncReplication.h"
 #include "syncUtil.h"
 #include "syncCommit.h"
+#include "syncVoteMgr.h"
+#include "syncIndexMgr.h"
+
+void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry);
 
 // TLA+ Spec
 // HandleAppendEntriesRequest(i, j, m) ==
@@ -142,6 +146,7 @@ int32_t syncNodeOnAppendEntries(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
     sError("vgId:%d, failed to get raft entry from append entries since %s", ths->vgId, terrstr());
     goto _IGNORE;
   }
+  //taosAssertDebug(pMsg->term == pEntry->term);
 
   if (pMsg->prevLogIndex + 1 != pEntry->index || pEntry->term < 0) {
     sError("vgId:%d, invalid previous log index in msg. index:%" PRId64 ",  term:%" PRId64 ", prevLogIndex:%" PRId64
@@ -151,8 +156,9 @@ int32_t syncNodeOnAppendEntries(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
   }
 
   sTrace("vgId:%d, recv append entries msg. index:%" PRId64 ", term:%" PRId64 ", preLogIndex:%" PRId64
-         ", prevLogTerm:%" PRId64 " commitIndex:%" PRId64 "",
-         pMsg->vgId, pMsg->prevLogIndex + 1, pMsg->term, pMsg->prevLogIndex, pMsg->prevLogTerm, pMsg->commitIndex);
+         ", prevLogTerm:%" PRId64 " commitIndex:%" PRId64 " entryterm:%" PRId64,
+         pMsg->vgId, pMsg->prevLogIndex + 1, pMsg->term, pMsg->prevLogIndex, pMsg->prevLogTerm, pMsg->commitIndex,
+         pEntry->term);
 
   // accept
   if (syncLogBufferAccept(ths->pLogBuf, ths, pEntry, pMsg->prevLogTerm) < 0) {
@@ -161,7 +167,7 @@ int32_t syncNodeOnAppendEntries(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
   accepted = true;
 
 _SEND_RESPONSE:
-  pEntry = NULL;
+
   pReply->matchIndex = syncLogBufferProceed(ths->pLogBuf, ths, &pReply->lastMatchTerm);
   bool matched = (pReply->matchIndex >= pReply->lastSendIndex);
   if (accepted && matched) {
@@ -172,6 +178,14 @@ _SEND_RESPONSE:
 
   // ack, i.e. send response
   (void)syncNodeSendMsgById(&pReply->destId, ths, &rpcRsp);
+
+  //syncNodeChageConfig(ths, pEntry);
+  if(ths->commitIndex == pEntry->index -1){
+    syncNodeChageConfig_lastcommit(ths, pEntry);
+  }
+  //TODO here
+  pEntry = NULL;
+  //TODO set null
 
   // commit index, i.e. leader notice me
   if (syncLogBufferCommit(ths->pLogBuf, ths, ths->commitIndex) < 0) {

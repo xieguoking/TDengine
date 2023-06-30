@@ -58,6 +58,55 @@ int32_t vnodeCreate(const char *path, SVnodeCfg *pCfg, STfs *pTfs) {
   return 0;
 }
 
+int32_t vnodeAlterReplica1(SVnode *pVnode, SAlterVnodeReplicaReq *pReq){
+  SSyncCfg cfg = {0};
+
+  for (int i = 0; i < pReq->replica; ++i) {
+    SNodeInfo *pNode = &cfg.nodeInfo[i];
+    pNode->nodeId = pReq->replicas[i].id;
+    pNode->nodePort = pReq->replicas[i].port;
+    tstrncpy(pNode->nodeFqdn, pReq->replicas[i].fqdn, sizeof(pNode->nodeFqdn));
+    pNode->nodeRole = TAOS_SYNC_ROLE_VOTER;
+    (void)tmsgUpdateDnodeInfo(&pNode->nodeId, &pNode->clusterId, pNode->nodeFqdn, &pNode->nodePort);
+    vInfo("vgId:%d, replica:%d ep:%s:%u dnode:%d nodeRole:%d", pReq->vgId, i, pNode->nodeFqdn, pNode->nodePort, pNode->nodeId, pNode->nodeRole);
+    cfg.replicaNum++;
+  }
+  if(pReq->selfIndex != -1){
+    cfg.myIndex = pReq->selfIndex;
+  }
+  for (int i = cfg.replicaNum; i < pReq->replica + pReq->learnerReplica; ++i) {
+    SNodeInfo *pNode = &cfg.nodeInfo[i];
+    pNode->nodeId = pReq->learnerReplicas[cfg.totalReplicaNum].id;
+    pNode->nodePort = pReq->learnerReplicas[cfg.totalReplicaNum].port;
+    pNode->nodeRole = TAOS_SYNC_ROLE_LEARNER;
+    tstrncpy(pNode->nodeFqdn, pReq->learnerReplicas[cfg.totalReplicaNum].fqdn, sizeof(pNode->nodeFqdn));
+    (void)tmsgUpdateDnodeInfo(&pNode->nodeId, &pNode->clusterId, pNode->nodeFqdn, &pNode->nodePort);
+    vInfo("vgId:%d, replica:%d ep:%s:%u dnode:%d nodeRole:%d", pReq->vgId, i, pNode->nodeFqdn, pNode->nodePort, pNode->nodeId, pNode->nodeRole);
+    cfg.totalReplicaNum++;
+  }
+  cfg.totalReplicaNum += pReq->replica;
+  if(pReq->learnerSelfIndex != -1){
+    cfg.myIndex = pReq->replica + pReq->learnerSelfIndex;
+  }
+
+  SRpcMsg req = {.msgType = TDMT_SYNC_CONFIG_CHANGE, .contLen = sizeof(SMsgHead) + sizeof(SSyncCfg)};
+  if (req.contLen <= 0) return -1;
+
+  req.pCont = rpcMallocCont(req.contLen);
+  if (req.pCont == NULL) return -1;
+
+  SMsgHead *pHead = (SMsgHead *)req.pCont;
+  pHead->contLen = sizeof(SSyncCfg);
+  pHead->vgId = pReq->vgId;
+  void *pBuf = POINTER_SHIFT(pHead, sizeof(SMsgHead));
+  memcpy(pBuf, &cfg, pHead->contLen);
+
+  syncPropose(pVnode->sync, &req, false, NULL);
+  //TODO isweak
+
+  return 0;
+}
+
 int32_t vnodeAlterReplica(const char *path, SAlterVnodeReplicaReq *pReq, STfs *pTfs) {
   SVnodeInfo info = {0};
   char       dir[TSDB_FILENAME_LEN] = {0};

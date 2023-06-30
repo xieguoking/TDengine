@@ -1403,7 +1403,8 @@ typedef struct {
   int8_t   learnerSelfIndex;
   int8_t   learnerReplica;
   SReplica learnerReplicas[TSDB_MAX_LEARNER_REPLICA];
-} SAlterVnodeReplicaReq, SAlterVnodeTypeReq;
+} SAlterVnodeReplicaReq, SAlterVnodeTypeReq, SCheckLearnCatchupReq, SAlterRaftTypeReq;
+//TODO
 
 int32_t tSerializeSAlterVnodeReplicaReq(void* buf, int32_t bufLen, SAlterVnodeReplicaReq* pReq);
 int32_t tDeserializeSAlterVnodeReplicaReq(void* buf, int32_t bufLen, SAlterVnodeReplicaReq* pReq);

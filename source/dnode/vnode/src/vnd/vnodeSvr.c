@@ -36,6 +36,7 @@ static int32_t vnodeProcessBatchDeleteReq(SVnode *pVnode, int64_t ver, void *pRe
 static int32_t vnodeProcessCreateIndexReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp);
 static int32_t vnodeProcessDropIndexReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp);
 static int32_t vnodeProcessCompactVnodeReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp);
+static int32_t vnodeProcessConfigChangeReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp);
 
 static int32_t vnodePreprocessCreateTableReq(SVnode *pVnode, SDecoder *pCoder, int64_t ctime, int64_t *pUid) {
   int32_t code = 0;
@@ -316,10 +317,13 @@ int32_t vnodeProcessWriteMsg(SVnode *pVnode, SRpcMsg *pMsg, int64_t ver, SRpcMsg
     return -1;
   }
 
-  vDebug("vgId:%d, start to process write request %s, index:%" PRId64, TD_VID(pVnode), TMSG_INFO(pMsg->msgType), ver);
+  vInfo("vgId:%d, start to process write request %s, index:%" PRId64 ", applied:%" PRId64 
+        ", state.applyTerm:%" PRId64 ", conn.applyTerm:%" PRId64, 
+        TD_VID(pVnode), TMSG_INFO(pMsg->msgType), ver, pVnode->state.applied,
+        pVnode->state.applyTerm, pMsg->info.conn.applyTerm);
 
   ASSERT(pVnode->state.applyTerm <= pMsg->info.conn.applyTerm);
-  ASSERT(pVnode->state.applied + 1 == ver);
+  ASSERTS(pVnode->state.applied + 1 == ver, "applied:%" PRId64 ", ver:%" PRId64, pVnode->state.applied, ver);
 
   atomic_store_64(&pVnode->state.applied, ver);
   atomic_store_64(&pVnode->state.applyTerm, pMsg->info.conn.applyTerm);
@@ -456,6 +460,11 @@ int32_t vnodeProcessWriteMsg(SVnode *pVnode, SRpcMsg *pMsg, int64_t ver, SRpcMsg
     case TDMT_VND_COMPACT:
       vnodeProcessCompactVnodeReq(pVnode, ver, pReq, len, pRsp);
       goto _exit;
+    case TDMT_SYNC_CONFIG_CHANGE:
+      vnodeProcessConfigChangeReq(pVnode, ver, pReq, len, pRsp);
+      //needCommit = true;
+      //TODO needcommit
+      break;
     default:
       vError("vgId:%d, unprocessed msg, %d", TD_VID(pVnode), pMsg->msgType);
       return -1;
@@ -1734,6 +1743,17 @@ extern int32_t vnodeProcessCompactVnodeReqImpl(SVnode *pVnode, int64_t ver, void
 
 static int32_t vnodeProcessCompactVnodeReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp) {
   return vnodeProcessCompactVnodeReqImpl(pVnode, ver, pReq, len, pRsp);
+}
+
+static int32_t vnodeProcessConfigChangeReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp) {
+  syncCheckMember(pVnode->sync);
+
+  pRsp->msgType = TDMT_SYNC_CONFIG_CHANGE;
+  pRsp->code = TSDB_CODE_SUCCESS;
+  pRsp->pCont = NULL;
+  pRsp->contLen = 0;
+
+  return 0;
 }
 
 #ifndef TD_ENTERPRISE

@@ -59,7 +59,10 @@ void voteGrantedUpdate(SVotesGranted *pVotesGranted, SSyncNode *pNode) {
   pVotesGranted->pNode = pNode;
 }
 
-bool voteGrantedMajority(SVotesGranted *pVotesGranted) { return pVotesGranted->votes >= pVotesGranted->quorum; }
+bool voteGrantedMajority(SVotesGranted *pVotesGranted) {
+  sDebug("pVotesGranted->votes:%d, pVotesGranted->quorum:%d", pVotesGranted->votes, pVotesGranted->quorum);
+  return pVotesGranted->votes >= pVotesGranted->quorum; 
+}
 
 void voteGrantedVote(SVotesGranted *pVotesGranted, SyncRequestVoteReply *pMsg) {
   if (!pMsg->voteGranted) {
