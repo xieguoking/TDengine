@@ -2249,7 +2249,18 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     if (mndAddAlterVnodeTypeAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[2].dnodeId) != 0) return -1;
 
     //change raft type
-    if (mndAddAlterRaftTypeAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
+    newVgroup.vnodeGid[0].nodeRole = TAOS_SYNC_ROLE_VOTER;
+    newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_VOTER;
+    newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_LEARNER;
+    if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
+      return -1;
+
+    if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
+
+    newVgroup.vnodeGid[0].nodeRole = TAOS_SYNC_ROLE_VOTER;
+    newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_VOTER;
+    newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_VOTER;
+    if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
       return -1;
 
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;

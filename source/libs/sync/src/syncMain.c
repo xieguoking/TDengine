@@ -2363,7 +2363,6 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry){
 
     SSyncCfg scfg = {0};
 
-
     getConfig(&req, &scfg);
 
     SSyncCfg *cfg = &scfg;
@@ -2524,6 +2523,69 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry){
       grant->quorum = syncUtilQuorum(ths->replicaNum);
       //TODO为什么3-1要改
     }
+    else{
+      ths->replicaNum = 0;
+      ths->pMatchIndex->replicaNum = 0;
+      ths->pNextIndex->replicaNum = 0;
+      ths->raftCfg.cfg.replicaNum = 0;
+
+      for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
+        if(strcmp(ths->myNodeInfo.nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
+          && ths->myNodeInfo.nodePort == cfg->nodeInfo[j].nodePort){
+          if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
+            ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_VOTER;
+            ths->replicaNum++;
+            ths->pMatchIndex->replicaNum++;
+            ths->pNextIndex->replicaNum++;
+          }
+        }
+      }
+
+      for (int32_t i = 0; i < ths->peersNum; ++i) {
+        for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
+          if(strcmp(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
+            && ths->peersNodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
+            if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
+              ths->peersNodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
+              ths->replicaNum++;
+              ths->pMatchIndex->replicaNum++;
+              ths->pNextIndex->replicaNum++;
+            }
+          }
+        }
+      }
+
+      for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
+        for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
+          if(strcmp(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
+            && ths->raftCfg.cfg.nodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
+            if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
+              ths->raftCfg.cfg.nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
+              ths->raftCfg.cfg.replicaNum++;
+            }
+          }
+        }
+      }
+
+      ths->pVotesGranted = voteGrantedCreate(ths);
+      if (ths->pVotesGranted == NULL) {
+        sError("vgId:%d, failed to create VotesGranted", ths->vgId);
+        //goto _error;]
+        //TODO _error
+      }
+      ths->pVotesRespond = votesRespondCreate(ths);
+      if (ths->pVotesRespond == NULL) {
+        sError("vgId:%d, failed to create VotesRespond", ths->vgId);
+        //goto _error;
+      }
+
+      if(ths->state ==TAOS_SYNC_STATE_LEARNER){
+        if(ths->myNodeInfo.nodeRole == TAOS_SYNC_ROLE_VOTER ){
+          ths->state = TAOS_SYNC_STATE_FOLLOWER;
+        }
+      }
+    }
+
     ths->quorum = syncUtilQuorum(ths->replicaNum);
 
     ths->raftCfg.lastConfigIndex = pEntry->index;
@@ -2547,6 +2609,8 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry){
       ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, 
       ths->raftCfg.cfg.nodeInfo[i].nodePort, ths->raftCfg.cfg.nodeInfo[i].nodeRole);
     }
+
+    syncWriteCfgFile(ths);
   }  
 }
 
