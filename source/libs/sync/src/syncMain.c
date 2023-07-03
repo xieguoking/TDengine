@@ -2350,7 +2350,7 @@ int32_t syncNodecheckChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry){
   return 0;
 }
 
-void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry){
+void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
   if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
     SMsgHead *head = (SMsgHead *)pEntry->data;
     void *pReq = POINTER_SHIFT(head, sizeof(SMsgHead));
@@ -2376,9 +2376,9 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry){
       return;
     }
 
-    sInfo("vgId:%d, syncNodeChageConfig_lastcommit. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
+    sInfo("vgId:%d, syncNodeChageConfig_lastcommit from %s. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
           "cfg->totalReplicaNum:%d", 
-          ths->vgId, pEntry->index,
+          ths->vgId, str, pEntry->index,
           pEntry->term, ths->replicaNum, ths->peersNum, cfg->totalReplicaNum);
 
     sDebug("before config change, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
@@ -2590,7 +2590,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry){
 
     ths->raftCfg.lastConfigIndex = pEntry->index;
 
-    sInfo("vgId:%d, syncNodeChageConfig_lastcommit. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d", 
+    sInfo("vgId:%d, after config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d", 
           ths->vgId, pEntry->index,
           pEntry->term, ths->replicaNum, ths->peersNum);
 
@@ -2735,7 +2735,7 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
 
   //syncNodeChageConfig_2cfg(ths, pEntry);
   if(ths->commitIndex == pEntry->index -1){
-    syncNodeChageConfig_lastcommit(ths, pEntry);
+    syncNodeChageConfig_lastcommit(ths, pEntry, "node append");
   }
   //TODO here
 

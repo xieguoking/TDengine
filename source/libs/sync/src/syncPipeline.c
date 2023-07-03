@@ -583,9 +583,9 @@ int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTe
     SSyncCfg *cfg = &scfg;
     
     sInfo("vgId:%d, fsm execute config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
-          "cfg->totalReplicaNum:%d", 
+          "quorum:%d, cfg->totalReplicaNum:%d", 
           pNode->vgId, pEntry->index,
-          pEntry->term, pNode->replicaNum, pNode->peersNum, cfg->totalReplicaNum);
+          pEntry->term, pNode->replicaNum, pNode->peersNum, pNode->quorum, cfg->totalReplicaNum);
 
     sDebug("myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
       pNode->myNodeInfo.clusterId, pNode->myNodeInfo.nodeId, pNode->myNodeInfo.nodeFqdn, 
@@ -648,7 +648,7 @@ int32_t syncLogBufferValidate(SSyncLogBuffer* pBuf) {
   return 0;
 }
 
-void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry);
+void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str);
 //TODO remove this
 
 int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t commitIndex) {
@@ -692,7 +692,7 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
 
     pNextEntry = syncLogBufferGetOneEntry(pBuf, pNode, index + 1, &inBuf);
     if (pNextEntry != NULL) {
-      syncNodeChageConfig_lastcommit(pNode, pNextEntry);
+      syncNodeChageConfig_lastcommit(pNode, pNextEntry, "Log Buffer Commit");
     }
 
     if (syncFsmExecute(pNode, pFsm, role, currentTerm, pEntry, 0) != 0) {
