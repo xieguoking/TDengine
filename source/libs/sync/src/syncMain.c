@@ -2494,6 +2494,8 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry){
 
         ths->pNextIndex->totalReplicaNum = 1;
         ths->pNextIndex->totalReplicaNum = 1;
+
+        ths->state = TAOS_SYNC_STATE_LEARNER;
       }
 
       /*
@@ -2516,8 +2518,6 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry){
       ths->pNextIndex->totalReplicaNum = 1;
       ths->pNextIndex->totalReplicaNum = 1;
       */
-
-      ths->state = TAOS_SYNC_STATE_LEARNER;
 
       SVotesGranted *grant = ths->pVotesGranted;
       grant->quorum = syncUtilQuorum(ths->replicaNum);
@@ -2764,6 +2764,7 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
     return 0;
   }
 
+/*
   if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
     sTrace("vgId:%d, config change. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
          ", %" PRId64 ")",
@@ -2771,6 +2772,7 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
          ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
     return 0;
   }
+*/
 
   // single replica
   (void)syncNodeUpdateCommitIndex(ths, matchIndex);

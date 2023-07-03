@@ -1133,6 +1133,51 @@ _OVER:
   return 0;
 }
 
+static int32_t mndRemoveVnodeFromVgroup1(SMnode *pMnode, STrans *pTrans, SVgObj *pVgroup, SArray *pArray,
+                                        SVnodeGid *pDelVgid) {
+  taosArraySort(pArray, (__compar_fn_t)mndCompareDnodeVnodes);
+  for (int32_t i = 0; i < taosArrayGetSize(pArray); ++i) {
+    SDnodeObj *pDnode = taosArrayGet(pArray, i);
+    mInfo("dnode:%d, equivalent vnodes:%d others:%d", pDnode->id, pDnode->numOfVnodes, pDnode->numOfOtherNodes);
+  }
+
+  int32_t code = -1;
+  for (int32_t d = taosArrayGetSize(pArray) - 1; d >= 0; --d) {
+    SDnodeObj *pDnode = taosArrayGet(pArray, d);
+
+    for (int32_t vn = 0; vn < pVgroup->replica; ++vn) {
+      SVnodeGid *pVgid = &pVgroup->vnodeGid[vn];
+      if (pVgid->dnodeId == pDnode->id) {
+        int64_t vgMem = mndGetVgroupMemory(pMnode, NULL, pVgroup);
+        pDnode->memUsed -= vgMem;
+        mInfo("db:%s, vgId:%d, vn:%d is removed, memory:%" PRId64 ", dnode:%d avail:%" PRId64 " used:%" PRId64,
+              pVgroup->dbName, pVgroup->vgId, vn, vgMem, pVgid->dnodeId, pDnode->memAvail, pDnode->memUsed);
+        pDnode->numOfVnodes--;
+        pVgroup->replica--;
+        *pDelVgid = *pVgid;
+        *pVgid = pVgroup->vnodeGid[pVgroup->replica];
+        memset(&pVgroup->vnodeGid[pVgroup->replica], 0, sizeof(SVnodeGid));
+        code = 0;
+        goto _OVER;
+      }
+    }
+  }
+
+_OVER:
+  if (code != 0) {
+    terrno = TSDB_CODE_APP_ERROR;
+    mError("db:%s, failed to remove vnode from vgId:%d since %s", pVgroup->dbName, pVgroup->vgId, terrstr());
+    return -1;
+  }
+
+  for (int32_t vn = 0; vn < pVgroup->replica; ++vn) {
+    SVnodeGid *pVgid = &pVgroup->vnodeGid[vn];
+    mInfo("db:%s, vgId:%d, vn:%d dnode:%d is reserved", pVgroup->dbName, pVgroup->vgId, vn, pVgid->dnodeId);
+  }
+
+  return 0;
+}
+
 int32_t mndAddCreateVnodeAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, SVgObj *pVgroup, SVnodeGid *pVgid) {
   STransAction action = {0};
 
@@ -2269,35 +2314,44 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
           pVgroup->vgId, pVgroup->vnodeGid[0].dnodeId, pVgroup->vnodeGid[1].dnodeId, pVgroup->vnodeGid[2].dnodeId);
     
     SVnodeGid del1 = {0};
-    if (mndRemoveVnodeFromVgroup(pMnode, pTrans, &newVgroup, pArray, &del1) != 0) return -1;
+    if (mndRemoveVnodeFromVgroup1(pMnode, pTrans, &newVgroup, pArray, &del1) != 0) return -1;
+    //TODO mndRemoveVnodeFromVgroup1
     if (mndAddAlterVnodeTypeAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
 
     if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
 
-    //if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
-/*
+    if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
+
+    if (mndAddDropVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &del1, true) != 0) return -1;
+    //TODO drop 在confirm之后
+
+    SSdbRaw *pVgRaw = mndVgroupActionEncode(&newVgroup);
+    if (pVgRaw == NULL) return -1;
+    if (mndTransAppendRedolog(pTrans, pVgRaw) != 0) {
+      sdbFreeRaw(pVgRaw);
+      return -1;
+    }
+    (void)sdbSetRawStatus(pVgRaw, SDB_STATUS_READY);
+    //TODO 这部分挪到最后，有什么影响
+
     SVnodeGid del2 = {0};
-    if (mndRemoveVnodeFromVgroup(pMnode, pTrans, &newVgroup, pArray, &del2) != 0) return -1;
+    if (mndRemoveVnodeFromVgroup1(pMnode, pTrans, &newVgroup, pArray, &del2) != 0) return -1;
     if (mndAddAlterVnodeTypeAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
     
     if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
 
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
-*/
-    //------------------
 
-    //if (mndAddDropVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &del1, true) != 0) return -1;
-    /*if (mndAddAlterVnodeReplicaAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
-      return -1;
-    if (mndAddAlterVnodeReplicaAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[1].dnodeId) != 0)
-      return -1;
-    if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;*/
+    if (mndAddDropVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &del2, true) != 0) return -1;
 
-
-    //if (mndAddDropVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &del2, true) != 0) return -1;
-    /*if (mndAddAlterVnodeReplicaAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
+    pVgRaw = mndVgroupActionEncode(pVgroup);
+    if (pVgRaw == NULL) return -1;
+    if (mndTransAppendRedolog(pTrans, pVgRaw) != 0) {
+      sdbFreeRaw(pVgRaw);
       return -1;
-    if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;*/
+    }
+    (void)sdbSetRawStatus(pVgRaw, SDB_STATUS_READY);
+    //TODO 中途停下来会怎么样
   } else {
     return -1;
   }
