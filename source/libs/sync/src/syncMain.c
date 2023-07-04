@@ -2381,9 +2381,10 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
     }
 
     sInfo("vgId:%d, syncNodeChageConfig_lastcommit from %s. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
-          "cfg->totalReplicaNum:%d", 
+          "cfg->totalReplicaNum:%d, ths->commitIndex:%" PRId64 ", log buffer: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 ")",
           ths->vgId, str, pEntry->index,
-          pEntry->term, ths->replicaNum, ths->peersNum, cfg->totalReplicaNum);
+          pEntry->term, ths->replicaNum, ths->peersNum, cfg->totalReplicaNum, ths->commitIndex,
+          ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex, ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
 
     sDebug("before config change, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
       ths->myNodeInfo.clusterId, ths->myNodeInfo.nodeId, ths->myNodeInfo.nodeFqdn, 
@@ -2747,20 +2748,21 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
     syncNodeChageConfig_lastcommit(ths, pEntry, "node append");
   }
   //TODO here
+  //TODO ths->commitIndex, ths->pLogBuf->commitIndex
 
   sTrace("vgId:%d, append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
          ", %" PRId64 ")",
          ths->vgId, pEntry->index, pEntry->term, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
          ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
 
-  if(ths->pLogBuf->matchIndex - ths->pLogBuf->commitIndex > 2){
+  if(ths->pLogBuf->matchIndex - ths->pLogBuf->commitIndex >= 2){
     sTrace("vgId:%d, commit delay, append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
          ", %" PRId64 ")",
          ths->vgId, pEntry->index, pEntry->term, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
          ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
   }
 
-  if(ths->pLogBuf->commitIndex - ths->pLogBuf->endIndex> 2){
+  if(ths->pLogBuf->commitIndex - ths->pLogBuf->endIndex>= 2){
     sTrace("vgId:%d, reply delay, append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
          ", %" PRId64 ")",
          ths->vgId, pEntry->index, pEntry->term, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
