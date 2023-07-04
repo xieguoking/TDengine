@@ -25,7 +25,8 @@
 #include "syncVoteMgr.h"
 #include "syncIndexMgr.h"
 
-void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry);
+void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str);
+//TODO remove this
 
 // TLA+ Spec
 // HandleAppendEntriesRequest(i, j, m) ==
@@ -181,7 +182,7 @@ _SEND_RESPONSE:
 
   //syncNodeChageConfig(ths, pEntry);
   if(ths->commitIndex == pEntry->index -1){
-    syncNodeChageConfig_lastcommit(ths, pEntry);
+    syncNodeChageConfig_lastcommit(ths, pEntry, "OnAppendEntries");
   }
   //TODO here
   pEntry = NULL;

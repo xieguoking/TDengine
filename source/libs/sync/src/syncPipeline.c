@@ -691,9 +691,10 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
     }
 
     pNextEntry = syncLogBufferGetOneEntry(pBuf, pNode, index + 1, &inBuf);
-    if (pNextEntry != NULL) {
+    if (pNextEntry != NULL && pNode->state != TAOS_SYNC_STATE_LEARNER) {
       syncNodeChageConfig_lastcommit(pNode, pNextEntry, "Log Buffer Commit");
     }
+    //TODO state != TAOS_SYNC_STATE_LEARNER
 
     if (syncFsmExecute(pNode, pFsm, role, currentTerm, pEntry, 0) != 0) {
       sError("vgId:%d, failed to execute sync log entry. index:%" PRId64 ", term:%" PRId64

@@ -2367,12 +2367,16 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
 
     SSyncCfg *cfg = &scfg;
 
-    sInfo("vgId:%d, no config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
+    sTrace("vgId:%d, check lastConfigIndex from %s, index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
+          "cfg->totalReplicaNum:%d, lastConfigIndex:%" PRId64, 
+          ths->vgId, str, pEntry->index,
+          pEntry->term, ths->replicaNum, ths->peersNum, cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex);
+
+    if(pEntry->index <= ths->raftCfg.lastConfigIndex){
+      sInfo("vgId:%d, no config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
           "cfg->totalReplicaNum:%d, lastConfigIndex:%" PRId64, 
           ths->vgId, pEntry->index,
           pEntry->term, ths->replicaNum, ths->peersNum, cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex);
-    if(pEntry->index <= ths->raftCfg.lastConfigIndex){
-      
       return;
     }
 
@@ -2522,6 +2526,9 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
       SVotesGranted *grant = ths->pVotesGranted;
       grant->quorum = syncUtilQuorum(ths->replicaNum);
       //TODO为什么3-1要改
+
+      ths->restoreFinish = false;
+      //TODO 3-1的时候，config的apply比alterconfirm晚
     }
     else{
       ths->replicaNum = 0;
@@ -2589,10 +2596,12 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
     ths->quorum = syncUtilQuorum(ths->replicaNum);
 
     ths->raftCfg.lastConfigIndex = pEntry->index;
+    ths->raftCfg.cfg.lastIndex = pEntry->index;
 
-    sInfo("vgId:%d, after config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d", 
+    sInfo("vgId:%d, after config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
+          "lastConfigIndex=%" PRId64, 
           ths->vgId, pEntry->index,
-          pEntry->term, ths->replicaNum, ths->peersNum);
+          pEntry->term, ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex);
 
     sDebug("afer config change, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
       ths->myNodeInfo.clusterId, ths->myNodeInfo.nodeId, ths->myNodeInfo.nodeFqdn, 
