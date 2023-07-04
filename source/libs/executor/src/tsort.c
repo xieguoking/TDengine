@@ -316,6 +316,7 @@ static void setCurrentSourceDone(SSortSource* pSource, SSortHandle* pHandle) {
 
 static int32_t sortComparInit(SMsortComparParam* pParam, SArray* pSources, int32_t startIndex, int32_t endIndex,
                               SSortHandle* pHandle) {
+  char location[1024];                              
   pParam->pSources = taosArrayGet(pSources, startIndex);
   pParam->numOfSources = (endIndex - startIndex + 1);
 
@@ -362,6 +363,8 @@ static int32_t sortComparInit(SMsortComparParam* pParam, SArray* pSources, int32
       }
 
       releaseBufPage(pHandle->pBuf, pPage);
+      snprintf(location, sizeof(location), "sort compare init , source %p after restore from page", pSource);
+      //tlogMemUsage(location);
     }
   } else {
     qDebug("start init for the multiway merge sort, %s", pHandle->idStr);
@@ -370,7 +373,8 @@ static int32_t sortComparInit(SMsortComparParam* pParam, SArray* pSources, int32
     for (int32_t i = 0; i < pParam->numOfSources; ++i) {
       SSortSource* pSource = pParam->pSources[i];
       pSource->src.pBlock = pHandle->fetchfp(pSource->param);
-
+      snprintf(location, sizeof(location), "sort compare init , source %p after reading block", pSource);
+      //tlogMemUsage(location);
       // set current source is done
       if (pSource->src.pBlock == NULL) {
         setCurrentSourceDone(pSource, pHandle);
@@ -405,6 +409,7 @@ static void appendOneRowToDataBlock(SSDataBlock* pBlock, const SSDataBlock* pSou
 
 static int32_t adjustMergeTreeForNextTuple(SSortSource* pSource, SMultiwayMergeTreeInfo* pTree, SSortHandle* pHandle,
                                            int32_t* numOfCompleted) {
+  char location[1024];                                          
   /*
    * load a new SDataBlock into memory of a given intermediate data-set source,
    * since it's last record in buffer has been chosen to be processed, as the winner of loser-tree
@@ -419,9 +424,12 @@ static int32_t adjustMergeTreeForNextTuple(SSortSource* pSource, SMultiwayMergeT
         pSource->src.rowIndex = -1;
         pSource->pageIndex = -1;
         pSource->src.pBlock = blockDataDestroy(pSource->src.pBlock);
+        snprintf(location, sizeof(location), "adjust merge tree. page source %p exhausted", pSource);
+        tlogMemUsage(location);
       } else {
         int32_t* pPgId = taosArrayGet(pSource->pageIdList, pSource->pageIndex);
-
+        snprintf(location, sizeof(location), "adjust merge tree. before page datablock source: %p, pagId %d", pSource, *pPgId);
+        //tlogMemUsage(location);
         void*   pPage = getBufPage(pHandle->pBuf, *pPgId);
         if (pPage == NULL) {
           qError("failed to get buffer, code:%s", tstrerror(terrno));
@@ -434,15 +442,23 @@ static int32_t adjustMergeTreeForNextTuple(SSortSource* pSource, SMultiwayMergeT
         }
 
         releaseBufPage(pHandle->pBuf, pPage);
+        snprintf(location, sizeof(location), "adjust merge tree. after page datablock source: %p, pagId %d", pSource, *pPgId);
+        //tlogMemUsage(location);
       }
     } else {
+      snprintf(location, sizeof(location), "adjust merge tree. before table scan data block. source %p %"PRId64, pSource, pSource->fetchNum);
+      //tlogMemUsage(location);
       int64_t st = taosGetTimestampUs();      
       pSource->src.pBlock = pHandle->fetchfp(((SSortSource*)pSource)->param);
       pSource->fetchUs += taosGetTimestampUs() - st;
       pSource->fetchNum++;
+      snprintf(location, sizeof(location), "adjust merge tree. after table scan data block. source %p ", pSource);
+      //tlogMemUsage(location);
       if (pSource->src.pBlock == NULL) {
         (*numOfCompleted) += 1;
         pSource->src.rowIndex = -1;
+        snprintf(location, sizeof(location), "adjust merge tree. source exhausted from source %p %d", pSource, *numOfCompleted);
+        tlogMemUsage(location);
       }
     }
   }
@@ -576,6 +592,8 @@ int32_t msortComparFn(const void* pLeft, const void* pRight, void* param) {
 }
 
 static int32_t doInternalMergeSort(SSortHandle* pHandle) {
+  char location[1024];
+
   size_t numOfSources = taosArrayGetSize(pHandle->pOrderedSource);
   if (numOfSources == 0) {
     return 0;
@@ -614,6 +632,9 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
 
     // Only *numOfInputSources* can be loaded into buffer to perform the external sort.
     for (int32_t i = 0; i < sortGroup; ++i) {
+      snprintf(location, sizeof(location), "begin pass %d group %d", t, i);
+      tlogMemUsage(location);
+
       pHandle->sourceId += 1;
 
       int32_t end = (i + 1) * numOfInputSources - 1;
@@ -628,13 +649,16 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
         taosArrayDestroy(pResList);
         return code;
       }
-
+      snprintf(location, sizeof(location), "pass %d group %d. after compare init", t, i);
+      tlogMemUsage(location);
       code =
           tMergeTreeCreate(&pHandle->pMergeTree, pHandle->cmpParam.numOfSources, &pHandle->cmpParam, pHandle->comparFn);
       if (code != TSDB_CODE_SUCCESS) {
         taosArrayDestroy(pResList);
         return code;
       }
+      snprintf(location, sizeof(location), "pass %d group %d. after merge tree create", t, i);
+      tlogMemUsage(location);
 
       SArray* pPageIdList = taosArrayInit(4, sizeof(int32_t));
       while (1) {
@@ -655,6 +679,8 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
           taosArrayDestroy(pPageIdList);
           return terrno;
         }
+        //snprintf(location, sizeof(location), "pass %d group %d. after a new page for sorted inner data block", t, i);
+        //tlogMemUsage(location);
 
         taosArrayPush(pPageIdList, &pageId);
 
@@ -680,6 +706,8 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
         taosArrayDestroy(pResList);
         return code;
       }
+      snprintf(location, sizeof(location), "pass %d group %d. finished group", t, i);
+      tlogMemUsage(location);
     }
 
     tsortClearOrderdSource(pHandle->pOrderedSource, NULL, NULL);
@@ -694,7 +722,8 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
     SDiskbasedBufStatis statis = getDBufStatis(pHandle->pBuf);
     qDebug("%s %d round mergesort, elapsed:%" PRId64 " readDisk:%.2f Kb, flushDisk:%.2f Kb", pHandle->idStr, t + 1, el,
            statis.loadBytes / 1024.0, statis.flushBytes / 1024.0);
-
+    snprintf(location, sizeof(location), "pass %d. finished", t);
+    tlogMemUsage(location);
     if (pHandle->type == SORT_MULTISOURCE_MERGE) {
       pHandle->type = SORT_SINGLESOURCE_SORT;
       pHandle->comparFn = msortComparFn;
@@ -826,6 +855,9 @@ static int32_t createInitialSources(SSortHandle* pHandle) {
 }
 
 static bool tsortOpenForBufMergeSort(SSortHandle* pHandle) {
+  char location[1024];
+  snprintf(location, sizeof(location), "sort open");
+  tlogMemUsage(location);
   int32_t code = createInitialSources(pHandle);
   if (code != TSDB_CODE_SUCCESS) {
     return code;
@@ -836,7 +868,8 @@ static bool tsortOpenForBufMergeSort(SSortHandle* pHandle) {
   if (code != TSDB_CODE_SUCCESS) {
     return code;
   }
-
+  snprintf(location, sizeof(location), "after internal merge sort");
+  tlogMemUsage(location);
   int32_t numOfSources = taosArrayGetSize(pHandle->pOrderedSource);
   if (pHandle->pBuf != NULL) {
     ASSERT(numOfSources <= getNumOfInMemBufPages(pHandle->pBuf));
@@ -850,6 +883,8 @@ static bool tsortOpenForBufMergeSort(SSortHandle* pHandle) {
   if (code != TSDB_CODE_SUCCESS) {
     return code;
   }
+  snprintf(location, sizeof(location), "before final merge sort");
+  tlogMemUsage(location);
 
   return tMergeTreeCreate(&pHandle->pMergeTree, pHandle->cmpParam.numOfSources, &pHandle->cmpParam, pHandle->comparFn);
 }

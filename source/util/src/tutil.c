@@ -17,6 +17,12 @@
 #include "tutil.h"
 #include "tlog.h"
 
+void tlogMemUsage(const char* location) {
+  int64_t usedKB = 0;
+  taosGetProcMemory(&usedKB);
+  uInfo("zsl: %s mem %.3f", location, usedKB/(1024.0*1024.0));
+}
+
 void *tmemmem(const char *haystack, int32_t hlen, const char *needle, int32_t nlen) {
   const char *limit;
 

@@ -2729,12 +2729,16 @@ static SSDataBlock* getTableDataBlockImpl(void* param) {
     pInfo->base.dataReader = NULL;
     return pBlock;
   }
-
+  char location[1024];
+  snprintf(location, sizeof(location), "before close the reader and destory datablock. source: %p", source);
+  tlogMemUsage(location);
   pAPI->tsdReader.tsdReaderClose(source->dataReader);
   source->dataReader = NULL;
   pInfo->base.dataReader = NULL;
   blockDataDestroy(source->inputBlock);
   source->inputBlock = NULL;
+  snprintf(location, sizeof(location), "after close the reader and destory datablock. source: %p", source);
+  tlogMemUsage(location);
   return NULL;
 }
 
