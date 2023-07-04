@@ -603,6 +603,9 @@ int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTe
       pNode->raftCfg.cfg.nodeInfo[i].nodePort, pNode->raftCfg.cfg.nodeInfo[i].nodeRole);
     }
 
+    pNode->restoreFinish = false;
+    //TODO
+
     /*
     if(pNode->myNodeInfo.nodeRole == TAOS_SYNC_ROLE_VOTER){
       syncNodeStepDown(pNode, term);
