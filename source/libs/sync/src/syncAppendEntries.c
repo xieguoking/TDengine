@@ -181,10 +181,16 @@ _SEND_RESPONSE:
   (void)syncNodeSendMsgById(&pReply->destId, ths, &rpcRsp);
 
   //syncNodeChageConfig(ths, pEntry);
-  if(ths->commitIndex == pEntry->index -1){
-    syncNodeChageConfig_lastcommit(ths, pEntry, "OnAppendEntries");
+  if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
+    if(ths->commitIndex == pEntry->index -1){
+      syncNodeChageConfig_lastcommit(ths, pEntry, "OnAppendEntries");
+    }
+    else{
+      sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from OnAppendEntry, ths->commitIndex:%" PRId64 ", pEntry->index:%" PRId64,
+           ths->vgId, ths->commitIndex, pEntry->index);
+    }
+    //TODO here
   }
-  //TODO here
   pEntry = NULL;
   //TODO set null
 

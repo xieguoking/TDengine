@@ -2744,11 +2744,20 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
   SyncIndex matchIndex = syncLogBufferProceed(ths->pLogBuf, ths, NULL);
 
   //syncNodeChageConfig_2cfg(ths, pEntry);
-  if(ths->commitIndex == pEntry->index -1){
-    syncNodeChageConfig_lastcommit(ths, pEntry, "node append");
+  if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
+    if(ths->commitIndex == pEntry->index -1){
+      syncNodeChageConfig_lastcommit(ths, pEntry, "node append");
+    }
+    else{
+      sTrace("vgId:%d, not syncNodeChageConfig_lastcommit from Node Append. index:%" PRId64 ", term:%" PRId64 ", ths->commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64
+         ", %" PRId64 ")",
+         ths->vgId, pEntry->index, pEntry->term, ths->commitIndex, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
+         ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
+    }
+    //TODO here
+    //TODO ths->commitIndex, ths->pLogBuf->commitIndex
   }
-  //TODO here
-  //TODO ths->commitIndex, ths->pLogBuf->commitIndex
+  
 
   sTrace("vgId:%d, append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
          ", %" PRId64 ")",
