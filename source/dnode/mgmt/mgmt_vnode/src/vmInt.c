@@ -175,7 +175,7 @@ static void *vmOpenVnodeInThread(void *param) {
     tmsgReportStartup("vnode-open", stepDesc);
 
     snprintf(path, TSDB_FILENAME_LEN, "vnode%svnode%d", TD_DIRSEP, pCfg->vgId);
-    SVnode *pImpl = vnodeOpen(path, pMgmt->pTfs, pMgmt->msgCb);
+    SVnode *pImpl = vnodeOpen(path, pMgmt->pTfs, pMgmt->msgCb, false);
     if (pImpl == NULL) {
       dError("vgId:%d, failed to open vnode by thread:%d", pCfg->vgId, pThread->threadIndex);
       pThread->failed++;

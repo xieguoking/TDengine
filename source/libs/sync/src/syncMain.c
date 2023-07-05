@@ -60,8 +60,8 @@ static int32_t syncDoLeaderTransfer(SSyncNode* ths, SRpcMsg* pRpcMsg, SSyncRaftE
 
 static ESyncStrategy syncNodeStrategy(SSyncNode* pSyncNode);
 
-int64_t syncOpen(SSyncInfo* pSyncInfo) {
-  SSyncNode* pSyncNode = syncNodeOpen(pSyncInfo);
+int64_t syncOpen(SSyncInfo* pSyncInfo, bool isFirst) {
+  SSyncNode* pSyncNode = syncNodeOpen(pSyncInfo, isFirst);
   if (pSyncNode == NULL) {
     sError("vgId:%d, failed to open sync node", pSyncInfo->vgId);
     return -1;
@@ -756,7 +756,7 @@ int32_t syncNodeLogStoreRestoreOnNeed(SSyncNode* pNode) {
 }
 
 // open/close --------------
-SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo) {
+SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo, bool isFirst) {
   SSyncNode* pSyncNode = taosMemoryCalloc(1, sizeof(SSyncNode));
   if (pSyncNode == NULL) {
     terrno = TSDB_CODE_OUT_OF_MEMORY;
@@ -776,7 +776,7 @@ SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo) {
            TD_DIRSEP);
   snprintf(pSyncNode->configPath, sizeof(pSyncNode->configPath), "%s%sraft_config.json", pSyncInfo->path, TD_DIRSEP);
 
-  if (!taosCheckExistFile(pSyncNode->configPath)) {
+  if (!taosCheckExistFile(pSyncNode->configPath) && isFirst) {
     // create a new raft config file
     sInfo("vgId:%d, create a new raft config file", pSyncNode->vgId);
     pSyncNode->raftCfg.isStandBy = pSyncInfo->isStandBy;
@@ -798,20 +798,23 @@ SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo) {
       goto _error;
     }
 
-    if (pSyncInfo->syncCfg.totalReplicaNum > 0 && syncIsConfigChanged(&pSyncNode->raftCfg.cfg, &pSyncInfo->syncCfg)) {
-      sInfo("vgId:%d, use sync config from input options and write to cfg file", pSyncNode->vgId);
-      pSyncNode->raftCfg.cfg = pSyncInfo->syncCfg;
-      if (syncWriteCfgFile(pSyncNode) != 0) {
-        sError("vgId:%d, failed to write sync cfg file", pSyncNode->vgId);
-        goto _error;
+    if(isFirst){
+      if (pSyncInfo->syncCfg.totalReplicaNum > 0 && syncIsConfigChanged(&pSyncNode->raftCfg.cfg, &pSyncInfo->syncCfg)) {
+        sInfo("vgId:%d, use sync config from input options and write to cfg file", pSyncNode->vgId);
+        pSyncNode->raftCfg.cfg = pSyncInfo->syncCfg;
+        if (syncWriteCfgFile(pSyncNode) != 0) {
+          sError("vgId:%d, failed to write sync cfg file", pSyncNode->vgId);
+          goto _error;
+        }
+      } else {
+        sInfo("vgId:%d, use sync config from sync cfg file", pSyncNode->vgId);
+        pSyncInfo->syncCfg = pSyncNode->raftCfg.cfg;
       }
-    } else {
-      sInfo("vgId:%d, use sync config from sync cfg file", pSyncNode->vgId);
-      pSyncInfo->syncCfg = pSyncNode->raftCfg.cfg;
     }
   }
 
-  // init by SSyncInfo
+
+    // init by SSyncInfo
   pSyncNode->vgId = pSyncInfo->vgId;
   SSyncCfg* pCfg = &pSyncNode->raftCfg.cfg;
   bool      updated = false;
@@ -825,15 +828,17 @@ SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo) {
     sInfo("vgId:%d, index:%d ep:%s:%u dnode:%d cluster:%" PRId64, pSyncNode->vgId, i, pNode->nodeFqdn, pNode->nodePort,
           pNode->nodeId, pNode->clusterId);
   }
-
-  if (updated) {
-    sInfo("vgId:%d, save config info since dnode info changed", pSyncNode->vgId);
-    if (syncWriteCfgFile(pSyncNode) != 0) {
-      sError("vgId:%d, failed to write sync cfg file on dnode info updated", pSyncNode->vgId);
-      goto _error;
+  
+  if(isFirst){
+    if (updated) {
+      sInfo("vgId:%d, save config info since dnode info changed", pSyncNode->vgId);
+      if (syncWriteCfgFile(pSyncNode) != 0) {
+        sError("vgId:%d, failed to write sync cfg file on dnode info updated", pSyncNode->vgId);
+        goto _error;
+      }
     }
   }
-
+  
   pSyncNode->pWal = pSyncInfo->pWal;
   pSyncNode->msgcb = pSyncInfo->msgcb;
   pSyncNode->syncSendMSg = pSyncInfo->syncSendMSg;
