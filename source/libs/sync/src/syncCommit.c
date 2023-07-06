@@ -72,6 +72,8 @@ bool syncNodeAgreedUpon(SSyncNode* pNode, SyncIndex index) {
       }
       replica++;
       SyncIndex matchIndex = pMatches->index[i];
+      sInfo("vgId:%d, agreed upon. index:%" PRId64 ", index:%d, pMatches:%" PRId64, pNode->vgId, 
+           index, i, pMatches->index[i]);
       if (matchIndex >= index) {
         count++;
       }
@@ -80,8 +82,8 @@ bool syncNodeAgreedUpon(SSyncNode* pNode, SyncIndex index) {
 
   int32_t quorum = syncUtilQuorum(replica);
 
-  sInfo("vgId:%d, agreed upon. index:%" PRId64 ", quorum:%d", pNode->vgId, 
-           index, quorum);
+  sInfo("vgId:%d, agreed upon. index:%" PRId64 ", quorum:%d, count:%d", pNode->vgId, 
+           index, quorum, count);
 
   return count >= quorum;
 }

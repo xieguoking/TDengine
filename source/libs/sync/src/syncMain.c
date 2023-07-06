@@ -828,7 +828,7 @@ SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo, bool isFirst) {
     sInfo("vgId:%d, index:%d ep:%s:%u dnode:%d cluster:%" PRId64, pSyncNode->vgId, i, pNode->nodeFqdn, pNode->nodePort,
           pNode->nodeId, pNode->clusterId);
   }
-  
+
   if(isFirst){
     if (updated) {
       sInfo("vgId:%d, save config info since dnode info changed", pSyncNode->vgId);
@@ -2419,6 +2419,23 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
       }
 
       if(incfg){
+        /*
+        int32_t removedOne = -1;
+        for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
+          for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i){
+            if(strcmp(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
+              && ths->raftCfg.cfg.nodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
+                removedOne = i;
+              }
+          }
+        }
+
+        SRaftId removedOneId;
+
+        int32_t removedOne = -1;
+        syncUtilNodeInfo2RaftId(&ths->raftCfg.cfg.nodeInfo[removedOne], ths->vgId, &removedOneId);
+        */
+
         SNodeInfo node = {0};
         for (int32_t i = 0; i < ths->peersNum; ++i) {
           memcpy(&ths->peersNodeInfo[i], &node, sizeof(SNodeInfo));
@@ -2450,13 +2467,12 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
 
         ths->replicaNum = 0;
         ths->raftCfg.cfg.replicaNum = 0;
-        ths->pMatchIndex->replicaNum = 0; //TODO 强行修改
+        //ths->pMatchIndex->replicaNum = 0; //TODO 强行修改
         ths->pNextIndex->replicaNum = 0;
 
         ths->totalReplicaNum = 0;
         ths->raftCfg.cfg.totalReplicaNum = 0;
-
-        ths->pNextIndex->totalReplicaNum = 0;
+        //ths->pMatchIndex->totalReplicaNum = 0;
         ths->pNextIndex->totalReplicaNum = 0;
 
         for(int32_t j = 0, i = 0; j < cfg->totalReplicaNum; ++j, i++){
@@ -2468,15 +2484,37 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
 
           ths->replicaNum++;
           ths->raftCfg.cfg.replicaNum++;
-          ths->pMatchIndex->replicaNum++; //TODO 强行修改
+          //ths->pMatchIndex->replicaNum++; //TODO 强行修改
           ths->pNextIndex->replicaNum++;
+
 
           ths->totalReplicaNum++;
           ths->raftCfg.cfg.totalReplicaNum++;
-
-          ths->pNextIndex->totalReplicaNum++;
+          //ths->pMatchIndex->totalReplicaNum++;
           ths->pNextIndex->totalReplicaNum++;
         }
+
+        SRaftId oldReplicasId[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
+        memcpy(oldReplicasId, ths->replicasId, sizeof(oldReplicasId));
+
+        ths->replicaNum = ths->raftCfg.cfg.replicaNum;
+        ths->totalReplicaNum = ths->raftCfg.cfg.totalReplicaNum;
+        for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
+          syncUtilNodeInfo2RaftId(&ths->raftCfg.cfg.nodeInfo[i], ths->vgId, &ths->replicasId[i]);
+        }
+
+        SSyncIndexMgr *oldIndex = ths->pMatchIndex;
+
+        ths->pMatchIndex = syncIndexMgrCreate(ths);
+
+        syncIndexMgrCopyIndexExclude(ths->pMatchIndex, oldIndex, oldReplicasId);
+
+        syncIndexMgrDestroy(oldIndex);
+
+        //syncIndexMgrUpdate(ths->pNextIndex, ths);
+        //syncIndexMgrUpdate(ths->pMatchIndex, ths); //TODO 强行修改
+        //voteGrantedUpdate(ths->pVotesGranted, ths);
+        //votesRespondUpdate(ths->pVotesRespond, ths);
       }
       else{
         ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_LEARNER;
@@ -2586,6 +2624,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         //goto _error;]
         //TODO _error
       }
+      //TODO change to update
       ths->pVotesRespond = votesRespondCreate(ths);
       if (ths->pVotesRespond == NULL) {
         sError("vgId:%d, failed to create VotesRespond", ths->vgId);

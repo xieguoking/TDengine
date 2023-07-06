@@ -30,7 +30,7 @@ typedef struct SSyncIndexMgr {
   int64_t    startTimeArr[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
   int64_t    recvTimeArr[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
   int32_t    replicaNum;
-  int32_t    totalReplicaNum;
+  int32_t    totalReplicaNum; //TODO 这个是不是没有用，也不需要扩充到TSDB_MAX_LEARNER_REPLICA
   SSyncNode *pNode;
 } SSyncIndexMgr;
 
@@ -40,6 +40,7 @@ void           syncIndexMgrDestroy(SSyncIndexMgr *pIndexMgr);
 void           syncIndexMgrClear(SSyncIndexMgr *pIndexMgr);
 void           syncIndexMgrSetIndex(SSyncIndexMgr *pIndexMgr, const SRaftId *pRaftId, SyncIndex index);
 SyncIndex      syncIndexMgrGetIndex(SSyncIndexMgr *pIndexMgr, const SRaftId *pRaftId);
+void           syncIndexMgrCopyIndexExclude(SSyncIndexMgr * pNewIndex, SSyncIndexMgr * pOldIndex, SRaftId *oldReplicasId);
 
 void     syncIndexMgrSetStartTime(SSyncIndexMgr *pIndexMgr, const SRaftId *pRaftId, int64_t startTime);
 int64_t  syncIndexMgrGetStartTime(SSyncIndexMgr *pIndexMgr, const SRaftId *pRaftId);
