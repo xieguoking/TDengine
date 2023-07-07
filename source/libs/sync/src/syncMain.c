@@ -2464,6 +2464,8 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
           memcpy(&ths->raftCfg.cfg.nodeInfo[i], &node, sizeof(SNodeInfo));
         }
+        int32_t oldReplicaNum = ths->replicaNum;
+        int32_t oldtotalReplicaNum = ths->totalReplicaNum;
 
         ths->replicaNum = 0;
         ths->raftCfg.cfg.replicaNum = 0;
@@ -2482,13 +2484,13 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
           ths->raftCfg.cfg.nodeInfo[i].nodeId = cfg->nodeInfo[j].nodeId;
           ths->raftCfg.cfg.nodeInfo[i].nodePort = cfg->nodeInfo[j].nodePort;
 
-          ths->replicaNum++;
+          //ths->replicaNum++;
           ths->raftCfg.cfg.replicaNum++;
           //ths->pMatchIndex->replicaNum++; //TODO 强行修改
           //ths->pNextIndex->replicaNum++;
 
 
-          ths->totalReplicaNum++;
+          //ths->totalReplicaNum++;
           ths->raftCfg.cfg.totalReplicaNum++;
           //ths->pMatchIndex->totalReplicaNum++;
           //ths->pNextIndex->totalReplicaNum++;
@@ -2526,6 +2528,41 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         //syncIndexMgrUpdate(ths->pMatchIndex, ths); //TODO 强行修改
         voteGrantedUpdate(ths->pVotesGranted, ths);
         votesRespondUpdate(ths->pVotesRespond, ths);
+
+        //rebuild logReplMgr
+        for(int i = 0; i < oldtotalReplicaNum; ++i){
+          sDebug("vgId:%d, old logReplMgrs i:%d, peerId:%d, restoreed:%d, [%" PRId64 " %" PRId64 ", %" PRId64 ")", ths->vgId, i,
+                ths->logReplMgrs[i]->peerId, ths->logReplMgrs[i]->restored, ths->logReplMgrs[i]->startIndex, 
+                ths->logReplMgrs[i]->matchIndex, ths->logReplMgrs[i]->endIndex);
+        }
+
+        SSyncLogReplMgr oldLogReplMgrs[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
+
+        for(int i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; i++){
+          //memcpy(&oldLogReplMgrs[i], &ths->logReplMgrs[i], sizeof(SSyncLogReplMgr));
+          oldLogReplMgrs[i] = *(ths->logReplMgrs[i]);
+        }
+
+        for(int i = 0; i < ths->totalReplicaNum; ++i){
+          SSyncLogReplMgr *pOldLogReplMgrs = ths->logReplMgrs[i];
+
+          ths->logReplMgrs[i] = syncLogReplCreate();
+
+          for(int j = 0; j < oldtotalReplicaNum; j++){
+            if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])) {
+              //memcpy(&ths->logReplMgrs[i], &oldLogReplMgrs[j], sizeof(SSyncLogReplMgr));
+              *(ths->logReplMgrs[i]) = oldLogReplMgrs[j];
+            }
+          }
+
+          syncLogReplDestroy(pOldLogReplMgrs);
+        } 
+
+        for(int i = 0; i < ths->totalReplicaNum; ++i){
+          sDebug("vgId:%d, new logReplMgrs i:%d, peerId:%d, restoreed:%d, [%" PRId64 " %" PRId64 ", %" PRId64 ")" , ths->vgId, i,
+                ths->logReplMgrs[i]->peerId, ths->logReplMgrs[i]->restored, ths->logReplMgrs[i]->startIndex, 
+                ths->logReplMgrs[i]->matchIndex, ths->logReplMgrs[i]->endIndex);
+        }      
       }
       else{//remove myself
         ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_LEARNER;
@@ -2662,6 +2699,8 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         //goto _error;
         //TODO _error
       }
+
+      //no need to change logRepMgrs when 1->3
 
       if(ths->state ==TAOS_SYNC_STATE_LEARNER){
         if(ths->myNodeInfo.nodeRole == TAOS_SYNC_ROLE_VOTER ){
