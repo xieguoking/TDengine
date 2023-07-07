@@ -2585,38 +2585,42 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
       ths->restoreFinish = false;
       //TODO 3-1的时候，config的apply比alterconfirm晚
     }
-    else{
-      ths->replicaNum = 0;
-      ths->pMatchIndex->replicaNum = 0;
-      ths->pNextIndex->replicaNum = 0;
-      ths->raftCfg.cfg.replicaNum = 0;
+    else{//add replica, in fact, change replica type
+      //ths->replicaNum = 0;
+      //ths->pMatchIndex->replicaNum = 0;
+      //ths->pNextIndex->replicaNum = 0;
+      
 
+      //change myNodeInfo
       for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
         if(strcmp(ths->myNodeInfo.nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
           && ths->myNodeInfo.nodePort == cfg->nodeInfo[j].nodePort){
           if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
             ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_VOTER;
-            ths->replicaNum++;
-            ths->pMatchIndex->replicaNum++;
-            ths->pNextIndex->replicaNum++;
+            //ths->replicaNum++;
+            //ths->pMatchIndex->replicaNum++;
+            //ths->pNextIndex->replicaNum++;
           }
         }
       }
 
+      //change peersNodeInfo
       for (int32_t i = 0; i < ths->peersNum; ++i) {
         for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
           if(strcmp(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
             && ths->peersNodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
             if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
               ths->peersNodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
-              ths->replicaNum++;
-              ths->pMatchIndex->replicaNum++;
-              ths->pNextIndex->replicaNum++;
+              //ths->replicaNum++;
+              //ths->pMatchIndex->replicaNum++;
+              //ths->pNextIndex->replicaNum++;
             }
           }
         }
       }
 
+      //change cfg nodeInfo
+      ths->raftCfg.cfg.replicaNum = 0;
       for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
         for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
           if(strcmp(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
@@ -2629,6 +2633,22 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         }
       }
 
+      ths->replicaNum = ths->raftCfg.cfg.replicaNum;
+
+      sDebug("vgId:%d, totalReplicaNum:%d", ths->vgId, ths->totalReplicaNum);
+      for (int32_t i = 0; i < ths->totalReplicaNum; ++i){
+        sDebug("vgId:%d, i:%d, replicaId.addr:%" PRIx64, ths->vgId, i, ths->replicasId[i].addr);
+      }
+
+      ths->pMatchIndex->replicaNum = ths->raftCfg.cfg.replicaNum;
+      ths->pNextIndex->replicaNum = ths->raftCfg.cfg.replicaNum;
+
+      sDebug("vgId:%d, pMatchIndex->totalReplicaNum:%d", ths->vgId, ths->pMatchIndex->totalReplicaNum);
+      for (int32_t i = 0; i < ths->pMatchIndex->totalReplicaNum; ++i){
+        sDebug("vgId:%d, i:%d, match.index:%" PRId64, ths->vgId, i, ths->pMatchIndex->index[i]);
+      }
+      //TODO 为什么第一有一个，第二次有三个
+
       ths->pVotesGranted = voteGrantedCreate(ths);
       if (ths->pVotesGranted == NULL) {
         sError("vgId:%d, failed to create VotesGranted", ths->vgId);
@@ -2640,6 +2660,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
       if (ths->pVotesRespond == NULL) {
         sError("vgId:%d, failed to create VotesRespond", ths->vgId);
         //goto _error;
+        //TODO _error
       }
 
       if(ths->state ==TAOS_SYNC_STATE_LEARNER){
@@ -2653,6 +2674,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
 
     ths->raftCfg.lastConfigIndex = pEntry->index;
     ths->raftCfg.cfg.lastIndex = pEntry->index;
+    //TODO no need to set lastIndex?
 
     sInfo("vgId:%d, after config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
           "lastConfigIndex=%" PRId64, 
@@ -2676,6 +2698,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
     }
 
     syncWriteCfgFile(ths);
+    //TODO handle fail
   }  
 }
 
@@ -3203,9 +3226,10 @@ bool syncNodeIsOptimizedOneReplica(SSyncNode* ths, SRpcMsg* pMsg) {
 }
 
 bool syncNodeInRaftGroup(SSyncNode* ths, SRaftId* pRaftId) {
-  sTrace("vgId:%d, ths->totalReplicaNum:%d, pRaftId->addr:%" PRIx64, ths->vgId, ths->totalReplicaNum, pRaftId->addr);
+  sTrace("vgId:%d, check in raft group, ths->totalReplicaNum:%d, pRaftId->addr:%" PRIx64, ths->vgId, ths->totalReplicaNum, pRaftId->addr);
+  //TODO here should be ReplicaNum
   for (int32_t i = 0; i < ths->totalReplicaNum; ++i) {
-    sTrace("vgId:%d, replicasId addr:%" PRIx64, ths->vgId, (ths->replicasId)[i].addr);
+    sTrace("vgId:%d, check in raft group, replicasId addr:%" PRIx64, ths->vgId, (ths->replicasId)[i].addr);
     if (syncUtilSameId(&((ths->replicasId)[i]), pRaftId)) {
       return true;
     }
