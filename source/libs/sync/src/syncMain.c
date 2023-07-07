@@ -2407,7 +2407,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
       ths->raftCfg.cfg.nodeInfo[i].nodePort, ths->raftCfg.cfg.nodeInfo[i].nodeRole);
     }
 
-    if(cfg->totalReplicaNum == 1 || cfg->totalReplicaNum == 2){
+    if(cfg->totalReplicaNum == 1 || cfg->totalReplicaNum == 2){//remove replica
       
       bool incfg = false;
       for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
@@ -2418,7 +2418,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         }
       }
 
-      if(incfg){
+      if(incfg){//remove other
         /*
         int32_t removedOne = -1;
         for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
@@ -2468,12 +2468,12 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         ths->replicaNum = 0;
         ths->raftCfg.cfg.replicaNum = 0;
         //ths->pMatchIndex->replicaNum = 0; //TODO 强行修改
-        ths->pNextIndex->replicaNum = 0;
+        //ths->pNextIndex->replicaNum = 0;
 
         ths->totalReplicaNum = 0;
         ths->raftCfg.cfg.totalReplicaNum = 0;
         //ths->pMatchIndex->totalReplicaNum = 0;
-        ths->pNextIndex->totalReplicaNum = 0;
+        //ths->pNextIndex->totalReplicaNum = 0;
 
         for(int32_t j = 0, i = 0; j < cfg->totalReplicaNum; ++j, i++){
           ths->raftCfg.cfg.nodeInfo[i].nodeRole = cfg->nodeInfo[j].nodeRole;
@@ -2485,15 +2485,16 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
           ths->replicaNum++;
           ths->raftCfg.cfg.replicaNum++;
           //ths->pMatchIndex->replicaNum++; //TODO 强行修改
-          ths->pNextIndex->replicaNum++;
+          //ths->pNextIndex->replicaNum++;
 
 
           ths->totalReplicaNum++;
           ths->raftCfg.cfg.totalReplicaNum++;
           //ths->pMatchIndex->totalReplicaNum++;
-          ths->pNextIndex->totalReplicaNum++;
+          //ths->pNextIndex->totalReplicaNum++;
         }
 
+        //rebuild replicasId, remove deleted one
         SRaftId oldReplicasId[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
         memcpy(oldReplicasId, ths->replicasId, sizeof(oldReplicasId));
 
@@ -2503,6 +2504,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
           syncUtilNodeInfo2RaftId(&ths->raftCfg.cfg.nodeInfo[i], ths->vgId, &ths->replicasId[i]);
         }
 
+        //rebuild MatchIndex, remove deleted one
         SSyncIndexMgr *oldIndex = ths->pMatchIndex;
 
         ths->pMatchIndex = syncIndexMgrCreate(ths);
@@ -2511,12 +2513,21 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
 
         syncIndexMgrDestroy(oldIndex);
 
+        //rebuild NextIndex, remove deleted one
+        SSyncIndexMgr *oldNextIndex = ths->pNextIndex;
+
+        ths->pNextIndex = syncIndexMgrCreate(ths);
+
+        syncIndexMgrCopyIndexExclude(ths->pNextIndex, oldNextIndex, oldReplicasId);
+
+        syncIndexMgrDestroy(oldNextIndex);
+
         //syncIndexMgrUpdate(ths->pNextIndex, ths);
         //syncIndexMgrUpdate(ths->pMatchIndex, ths); //TODO 强行修改
-        //voteGrantedUpdate(ths->pVotesGranted, ths);
-        //votesRespondUpdate(ths->pVotesRespond, ths);
+        voteGrantedUpdate(ths->pVotesGranted, ths);
+        votesRespondUpdate(ths->pVotesRespond, ths);
       }
-      else{
+      else{//remove myself
         ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_LEARNER;
 
         SNodeInfo node = {0};
