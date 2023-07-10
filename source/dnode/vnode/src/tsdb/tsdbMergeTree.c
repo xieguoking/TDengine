@@ -101,6 +101,7 @@ static SBlockData *loadLastBlock(SLDataIter *pIter, const char *idStr) {
                 pIter->iSttBlk, pIter->iStt, pIter->uid, idStr);
       pInfo->currentLoadBlockIndex = 0;
     }
+    tsdbInfo("reuse block data 0 iStt %d iSttBlk %d", pIter->iStt, pIter->iSttBlk);
     return &pInfo->blockData[0];
   }
 
@@ -110,6 +111,7 @@ static SBlockData *loadLastBlock(SLDataIter *pIter, const char *idStr) {
                 pIter->iSttBlk, pIter->iStt, pIter->uid, idStr);
       pInfo->currentLoadBlockIndex = 1;
     }
+    tsdbInfo("reuse block data 1 iStt %d iSttBlk %d", pIter->iStt, pIter->iSttBlk);
     return &pInfo->blockData[1];
   }
 

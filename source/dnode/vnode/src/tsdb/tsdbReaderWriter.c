@@ -848,6 +848,9 @@ _err:
 
 // SDataFReader ====================================================
 int32_t tsdbDataFReaderOpen(SDataFReader **ppReader, STsdb *pTsdb, SDFileSet *pSet) {
+  char location[1024];
+  sprintf(location, "entr tsdbDataFReaderOpen");
+  tlogMemUsage(location);
   int32_t       code = 0;
   int32_t       lino = 0;
   SDataFReader *pReader = NULL;
@@ -900,10 +903,15 @@ _exit:
   } else {
     *ppReader = pReader;
   }
+  sprintf(location, "exit tsdbDataFReaderOpen");
+  tlogMemUsage(location);  
   return code;
 }
 
 int32_t tsdbDataFReaderClose(SDataFReader **ppReader) {
+  char location[1024];
+  sprintf(location, "entr tsdbDataFReaderClose");
+  tlogMemUsage(location);
   int32_t code = 0;
   if (*ppReader == NULL) return code;
 
@@ -928,10 +936,15 @@ int32_t tsdbDataFReaderClose(SDataFReader **ppReader) {
   }
   taosMemoryFree(*ppReader);
   *ppReader = NULL;
+  sprintf(location, "exit tsdbDataFReaderClose");
+  tlogMemUsage(location);
   return code;
 }
 
 int32_t tsdbReadBlockIdx(SDataFReader *pReader, SArray *aBlockIdx) {
+  char location[1024];
+  sprintf(location, "entr tsdbReadBlockIdx");
+  tlogMemUsage(location);  
   int32_t    code = 0;
   SHeadFile *pHeadFile = pReader->pSet->pHeadF;
   int64_t    offset = pHeadFile->offset;
@@ -960,11 +973,14 @@ int32_t tsdbReadBlockIdx(SDataFReader *pReader, SArray *aBlockIdx) {
     }
   }
   ASSERT(n == size);
-
+  sprintf(location, "exit tsdbReadBlockIdx");
+  tlogMemUsage(location);
   return code;
 
 _err:
   tsdbError("vgId:%d, read block idx failed since %s", TD_VID(pReader->pTsdb->pVnode), tstrerror(code));
+  sprintf(location, "exit tsdbReadBlockIdx");
+  tlogMemUsage(location);    
   return code;
 }
 
@@ -1070,6 +1086,7 @@ _err:
 
 static int32_t tsdbReadBlockDataImpl(SDataFReader *pReader, SBlockInfo *pBlkInfo, SBlockData *pBlockData,
                                      int32_t iStt) {
+  char location[1024];
   int32_t code = 0;
 
   tBlockDataClear(pBlockData);
@@ -1174,11 +1191,13 @@ static int32_t tsdbReadBlockDataImpl(SDataFReader *pReader, SBlockInfo *pBlkInfo
         if (code) goto _err;
 
         code = tsdbDecmprColData(pReader->aBuf[1], pBlockCol, hdr.cmprAlg, hdr.nRow, pColData, &pReader->aBuf[2]);
+        tsdbInfo("decompress data szIn b %d o %d v %d szOut d  %d n %d", pBlockCol->szBitmap, pBlockCol->szOffset, pBlockCol->szValue, pColData->nData, pColData->nVal);
         if (code) goto _err;
       }
     }
   }
-
+  snprintf(location, sizeof(location), "read stt blockdata %p %d offset: %"PRId64 "", pReader, iStt, pBlkInfo->offset);
+  tlogMemUsage(location);
 _exit:
   return code;
 
@@ -1211,13 +1230,17 @@ _err:
 }
 
 int32_t tsdbReadDataBlock(SDataFReader *pReader, SDataBlk *pDataBlk, SBlockData *pBlockData) {
+  char location[1024];
+  sprintf(location, "entr tsdbReadDataBlock");
+  tlogMemUsage(location);   
   int32_t code = 0;
 
   code = tsdbReadBlockDataImpl(pReader, &pDataBlk->aSubBlock[0], pBlockData, -1);
   if (code) goto _err;
 
   ASSERT(pDataBlk->nSubBlock == 1);
-
+  sprintf(location, "exit tsdbReadDataBlock");
+  tlogMemUsage(location);
   return code;
 
 _err:
@@ -1226,6 +1249,9 @@ _err:
 }
 
 int32_t tsdbReadSttBlock(SDataFReader *pReader, int32_t iStt, SSttBlk *pSttBlk, SBlockData *pBlockData) {
+  char location[1024];
+  sprintf(location, "entr tsdbReadSttBlock %p %d", pReader, iStt);
+  tlogMemUsage(location);   
   int32_t code = 0;
   int32_t lino = 0;
 
@@ -1236,6 +1262,8 @@ _exit:
   if (code) {
     tsdbError("vgId:%d, %s failed at %d since %s", TD_VID(pReader->pTsdb->pVnode), __func__, lino, tstrerror(code));
   }
+  sprintf(location, "exit tsdbReadSttBlock %p %d", pReader, iStt);
+  tlogMemUsage(location);  
   return code;
 }
 
@@ -1493,6 +1521,9 @@ int32_t tsdbReadDelData(SDelFReader *pReader, SDelIdx *pDelIdx, SArray *aDelData
 }
 
 int32_t tsdbReadDelDatav1(SDelFReader *pReader, SDelIdx *pDelIdx, SArray *aDelData, int64_t maxVer) {
+  char location[1024];
+  sprintf(location, "entr tsdbReadDelDatav1");
+  tlogMemUsage(location);
   int32_t code = 0;
   int64_t offset = pDelIdx->offset;
   int64_t size = pDelIdx->size;
@@ -1524,7 +1555,8 @@ int32_t tsdbReadDelDatav1(SDelFReader *pReader, SDelIdx *pDelIdx, SArray *aDelDa
   }
 
   ASSERT(n == size);
-
+  sprintf(location, "exit tsdbReadDelDatav1");
+  tlogMemUsage(location);
   return code;
 
 _err:
@@ -1533,6 +1565,9 @@ _err:
 }
 
 int32_t tsdbReadDelIdx(SDelFReader *pReader, SArray *aDelIdx) {
+  char location[1024];
+  sprintf(location, "entr tsdbReadDelIdx");
+  tlogMemUsage(location);
   int32_t code = 0;
   int32_t n;
   int64_t offset = pReader->fDel.offset;
@@ -1562,7 +1597,8 @@ int32_t tsdbReadDelIdx(SDelFReader *pReader, SArray *aDelIdx) {
   }
 
   ASSERT(n == size);
-
+  sprintf(location, "exit tsdbReadDelIdx");
+  tlogMemUsage(location);
   return code;
 
 _err:

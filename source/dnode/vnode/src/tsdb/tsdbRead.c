@@ -2654,6 +2654,9 @@ static bool isValidFileBlockRow(SBlockData* pBlockData, SFileBlockDumpInfo* pDum
 }
 
 static bool initLastBlockReader(SLastBlockReader* pLBlockReader, STableBlockScanInfo* pScanInfo, STsdbReader* pReader) {
+  char location[1024];
+  snprintf(location, sizeof(location), "init last block reader %p %p %zu", pReader, pLBlockReader, pScanInfo->uid);
+  tlogMemUsage(location);
   // the last block reader has been initialized for this table.
   if (pLBlockReader->uid == pScanInfo->uid) {
     return hasDataInLastBlock(pLBlockReader);
@@ -3187,6 +3190,7 @@ static int32_t doLoadLastBlockSequentially(STsdbReader* pReader) {
 
     bool hasDataInLastFile = initLastBlockReader(pLastBlockReader, pScanInfo, pReader);
     if (!hasDataInLastFile) {
+      tsdbInfo("no data, move to next table");
       bool hasNexTable = moveToNextTable(pUidList, pStatus);
       if (!hasNexTable) {
         return TSDB_CODE_SUCCESS;

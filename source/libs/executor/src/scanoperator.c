@@ -2647,6 +2647,7 @@ _error:
 }
 
 static SSDataBlock* getTableDataBlockImpl(void* param) {
+  char location[1024];
   STableMergeScanSortSourceParam* source = param;
   SOperatorInfo*                  pOperator = source->pOperator;
   STableMergeScanInfo*            pInfo = pOperator->info;
@@ -2673,7 +2674,8 @@ static SSDataBlock* getTableDataBlockImpl(void* param) {
   STsdbReader* reader = pInfo->base.dataReader;
   bool         hasNext = false;
   qTrace("tsdb/read-table-data: %p, enter next reader", reader);
-
+  sprintf(location, "after reader %p open", reader);
+  tlogMemUsage(location);
   while (true) {
     code = pAPI->tsdReader.tsdNextDataBlock(reader, &hasNext);
     if (code != 0) {
@@ -2685,7 +2687,8 @@ static SSDataBlock* getTableDataBlockImpl(void* param) {
     if (!hasNext) {
       break;
     }
-
+  sprintf(location, "after next datablock %p", reader);
+  tlogMemUsage(location);
     if (isTaskKilled(pTaskInfo)) {
       pAPI->tsdReader.tsdReaderReleaseDataBlock(reader);
       pInfo->base.dataReader = NULL;
@@ -2710,7 +2713,8 @@ static SSDataBlock* getTableDataBlockImpl(void* param) {
     if (code != TSDB_CODE_SUCCESS) {
       T_LONG_JMP(pTaskInfo->env, code);
     }
-
+  sprintf(location, "after load datablock %p", reader);
+  tlogMemUsage(location);
     if (status == FUNC_DATA_REQUIRED_ALL_FILTEROUT) {
       break;
     }
@@ -2729,7 +2733,6 @@ static SSDataBlock* getTableDataBlockImpl(void* param) {
     pInfo->base.dataReader = NULL;
     return pBlock;
   }
-  char location[1024];
   snprintf(location, sizeof(location), "before close the reader and destory datablock. source: %p", source);
   tlogMemUsage(location);
   pAPI->tsdReader.tsdReaderClose(source->dataReader);
