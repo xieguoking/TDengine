@@ -2277,7 +2277,7 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     newVgroup.vnodeGid[0].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_LEARNER;
     newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_LEARNER;
-    if (mndAddAlterVnodeReplicaAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
+    if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
     if (mndAddCreateVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &newVgroup.vnodeGid[1]) != 0) return -1;
     if (mndAddCreateVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &newVgroup.vnodeGid[2]) != 0) return -1;
 
