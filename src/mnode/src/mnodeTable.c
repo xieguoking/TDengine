@@ -1762,6 +1762,7 @@ int32_t mnodeRetrieveShowSuperTables(SShowObj *pShow, char *data, int32_t rows, 
 
   char* pattern = mnodeGetTableShowPattern(pShow);
   if (pShow->payloadLen > 0 && pattern == NULL) {
+    mnodeDecDbRef(pDb);
     return 0;
   }
 
@@ -3373,6 +3374,7 @@ static int32_t mnodeRetrieveShowTables(SShowObj *pShow, char *data, int32_t rows
 
   char* pattern = mnodeGetTableShowPattern(pShow);
   if (pShow->payloadLen > 0 && pattern == NULL) {
+    mnodeDecDbRef(pDb);
     return 0;
   }
 
@@ -3607,6 +3609,7 @@ static int32_t mnodeRetrieveStreamTables(SShowObj *pShow, char *data, int32_t ro
 
   char* pattern = mnodeGetTableShowPattern(pShow);
   if (pShow->payloadLen > 0 && pattern == NULL) {
+    mnodeDecDbRef(pDb);
     return 0;
   }
 
