@@ -2537,15 +2537,15 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         }
 
         SSyncLogReplMgr oldLogReplMgrs[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
+        SSyncLogReplMgr *pOldLogReplMgrs[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
 
-        for(int i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; i++){
+        for(int i = 0; i < oldtotalReplicaNum; i++){
           //memcpy(&oldLogReplMgrs[i], &ths->logReplMgrs[i], sizeof(SSyncLogReplMgr));
           oldLogReplMgrs[i] = *(ths->logReplMgrs[i]);
+          pOldLogReplMgrs[i] = ths->logReplMgrs[i];
         }
 
         for(int i = 0; i < ths->totalReplicaNum; ++i){
-          SSyncLogReplMgr *pOldLogReplMgrs = ths->logReplMgrs[i];
-
           ths->logReplMgrs[i] = syncLogReplCreate();
 
           for(int j = 0; j < oldtotalReplicaNum; j++){
@@ -2553,16 +2553,83 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
               //memcpy(&ths->logReplMgrs[i], &oldLogReplMgrs[j], sizeof(SSyncLogReplMgr));
               *(ths->logReplMgrs[i]) = oldLogReplMgrs[j];
             }
-          }
-
-          syncLogReplDestroy(pOldLogReplMgrs);
+          }       
         } 
+
+        for(int i = 0; i < oldtotalReplicaNum; i++){
+          syncLogReplDestroy(pOldLogReplMgrs[i]);
+        }
 
         for(int i = 0; i < ths->totalReplicaNum; ++i){
           sDebug("vgId:%d, new logReplMgrs i:%d, peerId:%d, restoreed:%d, [%" PRId64 " %" PRId64 ", %" PRId64 ")" , ths->vgId, i,
                 ths->logReplMgrs[i]->peerId, ths->logReplMgrs[i]->restored, ths->logReplMgrs[i]->startIndex, 
                 ths->logReplMgrs[i]->matchIndex, ths->logReplMgrs[i]->endIndex);
-        }      
+        }
+
+        //rebuild sender
+        for(int i = 0; i < oldtotalReplicaNum; ++i){
+          sDebug("vgId:%d, old sender i:%d, replicaIndex:%d, lastSendTime:%" PRId64, 
+                  ths->vgId, i, ths->senders[i]->replicaIndex, ths->senders[i]->lastSendTime)
+        }
+
+        SSyncSnapshotSender oldSender[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
+        SSyncSnapshotSender *pOldSender[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
+        for(int i = 0; i < oldtotalReplicaNum; i++){
+          oldSender[i] = *(ths->senders[i]);
+          pOldSender[i] = ths->senders[i];
+        }
+
+        for(int i = 0; i < ths->totalReplicaNum; i++){
+          ths->senders[i] = snapshotSenderCreate(ths, i);
+
+          for(int j = 0; j < oldtotalReplicaNum; j++){
+            if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])){
+              *(ths->senders[i]) = oldSender[j];
+            }
+          }    
+        }
+        //TODO 直接copy这样状态复制是否可以？
+        //TODO 是不是不需要
+
+        for(int i = 0; i < oldtotalReplicaNum; i++){
+          snapshotSenderDestroy(pOldSender[i]);
+        }
+
+        for(int i = 0; i < ths->totalReplicaNum; i++){
+          sDebug("vgId:%d, new sender i:%d, replicaIndex:%d, lastSendTime:%" PRId64, 
+                  ths->vgId, i, ths->senders[i]->replicaIndex, ths->senders[i]->lastSendTime)
+        }
+
+        //rebuild synctimer
+        SSyncTimer oldSyncTier[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
+        for(int i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; i++){
+          syncHbTimerStop(ths, &ths->peerHeartbeatTimerArr[i]);
+        }
+
+        for(int i = 0; i < ths->totalReplicaNum; i++){
+          for(int j = 0; j < oldtotalReplicaNum; j++){
+            if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])){
+              syncHbTimerInit(ths, &ths->peerHeartbeatTimerArr[i], ths->replicasId[i]);
+              syncHbTimerStart(ths, &ths->peerHeartbeatTimerArr[i]);
+            }
+          }
+        }
+        //TODO 是否会出现不按顺序的删除
+        //TODO 状态没有保留，是否需要保留
+
+        //rebuild peerStates
+        SPeerState oldState[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
+        for(int i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; i++){
+          oldState[i] = ths->peerStates[i];
+        }
+
+        for(int i = 0; i < ths->totalReplicaNum; i++){
+          for(int j = 0; j < oldtotalReplicaNum; j++){
+            if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])){
+              ths->peerStates[i] = oldState[j];
+            }
+          }
+        }
       }
       else{//remove myself
         ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_LEARNER;
