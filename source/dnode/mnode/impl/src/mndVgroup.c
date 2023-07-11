@@ -1257,7 +1257,7 @@ int32_t mndAddAlterVnodeConfirmAction(SMnode *pMnode, STrans *pTrans, SDbObj *pD
 int32_t mndAddAlterVnodeConfirmAction1(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, 
                                   SVgObj *pOldVgroup, SVgObj *pNewVgroup, int32_t dnodeId) {
   STransAction action = {0};
-  action.epSet = mndGetVgroupEpset(pMnode, pOldVgroup);
+  action.epSet = mndGetVgroupEpset(pMnode, pNewVgroup);
 
   int32_t contLen = 0;
   void   *pReq = mndBuildAlterVnodeReplicaReq(pMnode, pDb, pNewVgroup, dnodeId, &contLen);
@@ -2278,6 +2278,7 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_LEARNER;
     newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_LEARNER;
     if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
+    //if (mndAddAlterVnodeReplicaAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
     if (mndAddCreateVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &newVgroup.vnodeGid[1]) != 0) return -1;
     if (mndAddCreateVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &newVgroup.vnodeGid[2]) != 0) return -1;
 

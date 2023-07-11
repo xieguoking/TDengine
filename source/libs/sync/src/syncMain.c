@@ -2519,8 +2519,9 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
 
     sTrace("vgId:%d, check lastConfigIndex from %s, index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
           "cfg->totalReplicaNum:%d, lastConfigIndex:%" PRId64, 
-          ths->vgId, str, pEntry->index,
-          pEntry->term, ths->replicaNum, ths->peersNum, cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex);
+          ths->vgId, str, pEntry->index, pEntry->term, 
+          ths->replicaNum, ths->peersNum, 
+          cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex);
 
     if(pEntry->index <= ths->raftCfg.lastConfigIndex){
       sInfo("vgId:%d, no config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
@@ -2530,10 +2531,12 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
       return;
     }
 
-    sInfo("vgId:%d, syncNodeChageConfig_lastcommit from %s. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
+    sInfo("vgId:%d, syncNodeChageConfig_lastcommit from %s. index:%" PRId64 ", term:%" PRId64 
+          ", replicaNum:%d, peersNum:%d, totalReplicaNum:%d, "
           "cfg->totalReplicaNum:%d, ths->commitIndex:%" PRId64 ", log buffer: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 ")",
           ths->vgId, str, pEntry->index,
-          pEntry->term, ths->replicaNum, ths->peersNum, cfg->totalReplicaNum, ths->commitIndex,
+          pEntry->term, ths->replicaNum, ths->peersNum, ths->totalReplicaNum, 
+          cfg->totalReplicaNum, ths->commitIndex,
           ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex, ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
 
     sDebug("before config change, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
@@ -2686,6 +2689,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
     }
     else{//add replica, or change replica type
       if(ths->totalReplicaNum == 3){ //change replica type
+        sInfo("vgId:%d, begin change replica type", ths->vgId);
         //ths->replicaNum = 0;
         //ths->pMatchIndex->replicaNum = 0;
         //ths->pNextIndex->replicaNum = 0;
@@ -2772,6 +2776,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         }
       }
       else{//add replica
+        sInfo("vgId:%d, begin add replica", ths->vgId);
         //no need to change myNodeInfo
 
         //change peersNodeInfo
@@ -3014,7 +3019,7 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
       syncNodeChageConfig_lastcommit(ths, pEntry, "node append");
     }
     else{
-      sTrace("vgId:%d, not syncNodeChageConfig_lastcommit from Node Append. index:%" PRId64 ", term:%" PRId64 ", ths->commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64
+      sTrace("vgId:%d, delay syncNodeChageConfig_lastcommit from Node Append. index:%" PRId64 ", term:%" PRId64 ", ths->commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64
          ", %" PRId64 ")",
          ths->vgId, pEntry->index, pEntry->term, ths->commitIndex, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
          ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
