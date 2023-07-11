@@ -1211,6 +1211,8 @@ int32_t tsdbOpenCache(STsdb *pTsdb) {
   pTsdb->flushState.flush_count = 0;
 
   pTsdb->sttBlockCache = taosLRUCacheInit(128 * 1024 * 1024, -1, 0.0);
+  taosLRUCacheSetStrictCapacity(pTsdb->sttBlockCache, false);
+
   pTsdb->sttBlkCache = taosLRUCacheInit(4 * 1024 * 1024, -1, 0.0);
 _err:
   pTsdb->lruCache = pCache;
