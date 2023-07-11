@@ -114,6 +114,8 @@ static SBlockData *loadLastBlock(SLDataIter *pIter, const char *idStr) {
 
   LRUHandle* h = taosLRUCacheLookup(pIter->pReader->pTsdb->sttBlockCache, &key, sizeof(key));
   if (!h) {
+    int64_t st = taosGetTimestampUs();
+
     SSttBlockLoadInfo *pInfo = pIter->pBlockLoadInfo;
 
     SBlockData* pBlockData = taosMemoryMalloc(sizeof(SBlockData));
@@ -127,9 +129,20 @@ static SBlockData *loadLastBlock(SLDataIter *pIter, const char *idStr) {
 
     tBlockDataInit(pBlockData, &id, pInfo->pSchema, pInfo->colIds, pInfo->numOfCols);
     tsdbReadSttBlock(pIter->pReader, pIter->iStt, pIter->pSttBlk, pBlockData);
-    int charge = 2 * 1024 * 1024; //TODO
+    double el = (taosGetTimestampUs() - st) / 1000.0;
 
+    tsdbDebug("read last block, total load:%d, trigger by uid:%" PRIu64
+              ", last file index:%d, last block index:%d, entry:%d, rows:%d, %p, elapsed time:%.2f ms, %s",
+              pInfo->loadBlocks, pIter->uid, pIter->iStt, pIter->iSttBlk, pInfo->currentLoadBlockIndex, pBlockData->nRow,
+              pBlockData, el, idStr);
+
+    int charge = 2 * 1024 * 1024; //TODO
     taosLRUCacheInsert(pIter->pReader->pTsdb->sttBlockCache, &key, sizeof(key), pBlockData, charge, deleteSttBlockDataCache, &h, TAOS_LRU_PRIORITY_LOW, NULL);
+    pInfo->elapsedTime += el;
+    pInfo->loadBlocks += 1;
+  } else {
+    tsdbDebug("use global cached last block, block index:%d, file index:%d, block data offset: %"PRId64 " due to uid:%" PRIu64 ", load data, %s",
+                 pIter->iSttBlk, pIter->iStt, pIter->pSttBlk->bInfo.offset, pIter->uid, idStr);
   }
 
   SBlockData* pBlockData = taosLRUCacheValue(pIter->pReader->pTsdb->sttBlockCache, h);
