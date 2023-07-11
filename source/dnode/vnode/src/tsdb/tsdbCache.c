@@ -1210,12 +1210,15 @@ int32_t tsdbOpenCache(STsdb *pTsdb) {
   pTsdb->flushState.pTsdb = pTsdb;
   pTsdb->flushState.flush_count = 0;
 
+  pTsdb->sttBlockCache = taosLRUCacheInit(128 * 1024 * 1024, -1, 0.0);
+  pTsdb->sttBlkCache = taosLRUCacheInit(4 * 1024 * 1024, -1, 0.0);
 _err:
   pTsdb->lruCache = pCache;
   return code;
 }
 
 void tsdbCloseCache(STsdb *pTsdb) {
+  taosLRUCacheCleanup(pTsdb->sttBlockCache);
   SLRUCache *pCache = pTsdb->lruCache;
   if (pCache) {
     taosLRUCacheEraseUnrefEntries(pCache);

@@ -90,11 +90,52 @@ void *destroyLastBlockLoadInfo(SSttBlockLoadInfo *pLoadInfo) {
   taosMemoryFree(pLoadInfo);
   return NULL;
 }
-
+static void deleteSttBlockDataCache(const void *key, size_t keyLen, void *value, void *ud) {
+  SBlockData* pBlockData = value;
+  tBlockDataDestroy(pBlockData);
+}
 static SBlockData *loadLastBlock(SLDataIter *pIter, const char *idStr) {
+
+  // (pReader->pSet->fid, iStt, pReader->pSet->pHeadF->commitID) -> aSttBlk global cache
+
+  // (pIter->pReader->pSet->fid, pIter->iStt, pIter->pReader->pSet->pHeadF->commitID, pIter->pSttBlk->bInfo.offset) -> SBlockData
+  SSttBlockLoadInfo *pInfo = pIter->pBlockLoadInfo;
+  if (pIter->pSttBlk == NULL || pInfo->pSchema == NULL) {
+    pInfo->blockDataHandle = NULL;
+    return NULL;
+  }
+  struct {
+    int32_t fid;
+    int32_t iStt;
+    int64_t cid;
+    int64_t offset;
+  } key = {.fid = pIter->pReader->pSet->fid, .iStt = pIter->iStt, .cid = pIter->pReader->pSet->pHeadF->commitID, .offset = pIter->pSttBlk->bInfo.offset};
   int32_t code = 0;
 
-  SSttBlockLoadInfo *pInfo = pIter->pBlockLoadInfo;
+  LRUHandle* h = taosLRUCacheLookup(pIter->pReader->pTsdb->sttBlockCache, &key, sizeof(key));
+  if (!h) {
+    SSttBlockLoadInfo *pInfo = pIter->pBlockLoadInfo;
+
+    SBlockData* pBlockData = taosMemoryMalloc(sizeof(SBlockData));
+
+    TABLEID id = {0};
+    if (pIter->pSttBlk->suid != 0) {
+      id.suid = pIter->pSttBlk->suid;
+    } else {
+      id.uid = pIter->uid;
+    }
+
+    tBlockDataInit(pBlockData, &id, pInfo->pSchema, pInfo->colIds, pInfo->numOfCols);
+    tsdbReadSttBlock(pIter->pReader, pIter->iStt, pIter->pSttBlk, pBlockData);
+    int charge = 2 * 1024 * 1024; //TODO
+
+    taosLRUCacheInsert(pIter->pReader->pTsdb->sttBlockCache, &key, sizeof(key), pBlockData, charge, deleteSttBlockDataCache, &h, TAOS_LRU_PRIORITY_LOW, NULL);
+  }
+
+  SBlockData* pBlockData = taosLRUCacheValue(pIter->pReader->pTsdb->sttBlockCache, h);
+  pInfo->blockDataHandle = h;
+  return pBlockData;
+
   if (pInfo->blockIndex[0] == pIter->iSttBlk) {
     if (pInfo->currentLoadBlockIndex != 0) {
       tsdbDebug("current load index is set to 0, block index:%d, file index:%d, due to uid:%" PRIu64 ", load data, %s",
@@ -271,7 +312,7 @@ int32_t tLDataIterOpen(struct SLDataIter *pIter, SDataFReader *pReader, int32_t 
   if (!pBlockLoadInfo->sttBlockLoaded) {
     int64_t st = taosGetTimestampUs();
     pBlockLoadInfo->sttBlockLoaded = true;
-
+    // (pReader->pSet->fid, iStt, pReader->pSet->pHeadF->commitID, iStt) -> aSttBlk global cache
     code = tsdbReadSttBlk(pReader, iStt, pBlockLoadInfo->aSttBlk);
     if (code) {
       return code;
@@ -512,6 +553,7 @@ bool tLDataIterNextRow(SLDataIter *pIter, const char *idStr) {
     }
 
     if (skipBlock || pIter->iRow >= pBlockData->nRow || pIter->iRow < 0) {
+      taosLRUCacheRelease(pIter->pReader->pTsdb->sttBlockCache, pIter->pBlockLoadInfo->blockDataHandle, false);
       tLDataIterNextBlock(pIter, idStr);
       if (pIter->pSttBlk == NULL) {  // no more data
         goto _exit;

@@ -376,6 +376,8 @@ struct STsdb {
   SLRUCache       *biCache;
   TdThreadMutex    biMutex;
   SRocksCache      rCache;
+  SLRUCache*       sttBlockCache;
+  SLRUCache*       sttBlkCache;
 };
 
 struct TSDBKEY {
@@ -705,6 +707,7 @@ typedef struct SSttBlockLoadInfo {
   SArray    *aSttBlk;
   int32_t    blockIndex[2];  // to denote the loaded block in the corresponding position.
   int32_t    currentLoadBlockIndex;
+  LRUHandle *blockDataHandle;
   int32_t    loadBlocks;
   double     elapsedTime;
   STSchema  *pSchema;
