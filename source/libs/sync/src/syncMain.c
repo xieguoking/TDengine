@@ -2306,6 +2306,7 @@ void getConfig(SAlterVnodeReplicaReq *pReq, SSyncCfg *cfg){
   if(pReq->learnerSelfIndex != -1){
     cfg->myIndex = pReq->replica + pReq->learnerSelfIndex;
   }
+  cfg->changeVersion = pReq->changeVersion;
 }
 
 int32_t syncNodecheckChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry){
@@ -2518,25 +2519,27 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
     SSyncCfg *cfg = &scfg;
 
     sTrace("vgId:%d, check lastConfigIndex from %s, index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
-          "cfg->totalReplicaNum:%d, lastConfigIndex:%" PRId64, 
+          "cfg->totalReplicaNum:%d, lastConfigIndex:%" PRId64 ", cfg->changeVersion:%d, ths->raftCfg.cfg.changeVersion:%d", 
           ths->vgId, str, pEntry->index, pEntry->term, 
           ths->replicaNum, ths->peersNum, 
-          cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex);
+          cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex, cfg->changeVersion, ths->raftCfg.cfg.changeVersion);
 
-    if(pEntry->index <= ths->raftCfg.lastConfigIndex){
+    if(cfg->changeVersion <= ths->raftCfg.cfg.changeVersion){
       sInfo("vgId:%d, no config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
-          "cfg->totalReplicaNum:%d, lastConfigIndex:%" PRId64, 
+          "cfg->totalReplicaNum:%d, lastConfigIndex:%" PRId64", cfg->changeVersion:%d, ths->raftCfg.cfg.changeVersion:%d",
           ths->vgId, pEntry->index,
-          pEntry->term, ths->replicaNum, ths->peersNum, cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex);
+          pEntry->term, ths->replicaNum, ths->peersNum, 
+          cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex, cfg->changeVersion, ths->raftCfg.cfg.changeVersion);
       return;
     }
 
     sInfo("vgId:%d, syncNodeChageConfig_lastcommit from %s. index:%" PRId64 ", term:%" PRId64 
           ", replicaNum:%d, peersNum:%d, totalReplicaNum:%d, "
-          "cfg->totalReplicaNum:%d, ths->commitIndex:%" PRId64 ", log buffer: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 ")",
+          "cfg->totalReplicaNum:%d, ths->commitIndex:%" PRId64 ", cfg->changeVersion:%d, "
+          "log buffer: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 ")",
           ths->vgId, str, pEntry->index,
           pEntry->term, ths->replicaNum, ths->peersNum, ths->totalReplicaNum, 
-          cfg->totalReplicaNum, ths->commitIndex,
+          cfg->totalReplicaNum, ths->commitIndex, cfg->changeVersion,
           ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex, ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
 
     sDebug("before config change, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
@@ -2866,12 +2869,13 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
 
     ths->raftCfg.lastConfigIndex = pEntry->index;
     ths->raftCfg.cfg.lastIndex = pEntry->index;
+    ths->raftCfg.cfg.changeVersion = cfg->changeVersion;
     //TODO no need to set lastIndex?
 
     sInfo("vgId:%d, after config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
-          "lastConfigIndex=%" PRId64, 
+          "lastConfigIndex=%" PRId64 ", ths->raftCfg.changeVersion:%d", 
           ths->vgId, pEntry->index,
-          pEntry->term, ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex);
+          pEntry->term, ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex, ths->raftCfg.cfg.changeVersion);
 
     sDebug("afer config change, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
       ths->myNodeInfo.clusterId, ths->myNodeInfo.nodeId, ths->myNodeInfo.nodeFqdn, 

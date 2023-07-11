@@ -1405,6 +1405,7 @@ typedef struct {
   int8_t   learnerSelfIndex;
   int8_t   learnerReplica;
   SReplica learnerReplicas[TSDB_MAX_LEARNER_REPLICA];
+  int32_t  changeVersion;
 } SAlterVnodeReplicaReq, SAlterVnodeTypeReq, SCheckLearnCatchupReq, SAlterRaftTypeReq;
 //TODO
 

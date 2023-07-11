@@ -372,6 +372,7 @@ typedef struct {
   SVnodeGid vnodeGid[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
   void*     pTsma;
   int32_t   numOfCachedTables;
+  int32_t   syncConfigChangeVersion;
 } SVgObj;
 
 typedef struct {

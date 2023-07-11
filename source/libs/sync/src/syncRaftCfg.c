@@ -44,6 +44,7 @@ static int32_t syncEncodeSyncCfg(const void *pObj, SJson *pJson) {
   SSyncCfg *pCfg = (SSyncCfg *)pObj;
   if (tjsonAddDoubleToObject(pJson, "replicaNum", pCfg->replicaNum) < 0) return -1;
   if (tjsonAddDoubleToObject(pJson, "myIndex", pCfg->myIndex) < 0) return -1;
+  if (tjsonAddDoubleToObject(pJson, "changeVersion", pCfg->changeVersion) < 0) return -1;
 
   SJson *nodeInfo = tjsonCreateArray();
   if (nodeInfo == NULL) return -1;
@@ -135,6 +136,8 @@ static int32_t syncDecodeSyncCfg(const SJson *pJson, void *pObj) {
   tjsonGetInt32ValueFromDouble(pJson, "replicaNum", pCfg->replicaNum, code);
   if (code < 0) return -1;
   tjsonGetInt32ValueFromDouble(pJson, "myIndex", pCfg->myIndex, code);
+  if (code < 0) return -1;
+  tjsonGetInt32ValueFromDouble(pJson, "changeVersion", pCfg->changeVersion, code);
   if (code < 0) return -1;
 
   SJson *nodeInfo = tjsonGetObjectItem(pJson, "nodeInfo");

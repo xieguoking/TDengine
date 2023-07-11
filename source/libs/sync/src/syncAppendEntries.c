@@ -186,10 +186,11 @@ _SEND_RESPONSE:
       syncNodeChageConfig_lastcommit(ths, pEntry, "OnAppendEntries");
     }
     else{
-      sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from OnAppendEntry, ths->commitIndex:%" PRId64 ", pEntry->index:%" PRId64,
-           ths->vgId, ths->commitIndex, pEntry->index);
+      sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from OnAppendEntry, "
+            "ths->commitIndex:%" PRId64 ", pEntry->index:%" PRId64 ", restoreFinish:%d",
+           ths->vgId, ths->commitIndex, pEntry->index, ths->restoreFinish);
     }
-    //TODO here
+    //TODO here is proper position?
   }
   pEntry = NULL;
   //TODO set null

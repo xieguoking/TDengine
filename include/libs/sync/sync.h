@@ -109,6 +109,7 @@ typedef struct SSyncCfg {
   SNodeInfo nodeInfo[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
   SyncIndex lastIndex;
   SyncIndex newConfigIndex;
+  int32_t   changeVersion;
 } SSyncCfg;
 
 typedef struct SFsmCbMeta {

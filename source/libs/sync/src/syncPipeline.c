@@ -697,6 +697,11 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
     if (pNextEntry != NULL && /*pNode->state != TAOS_SYNC_STATE_LEARNER*/ pNode->restoreFinish) {
       syncNodeChageConfig_lastcommit(pNode, pNextEntry, "Log Buffer Commit");
     }
+    else{
+      //sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from LogBufferCommit. index:%" PRId64 ", term:%" PRId64
+      //       ", role:%d, current term:%" PRId64 ", restoreFinish:%d",
+      //       vgId, pEntry->index, pEntry->term, role, currentTerm, pNode->restoreFinish);
+    }
     //TODO state != TAOS_SYNC_STATE_LEARNER, pNode->restoreFinish, skip replay 
 
     if (syncFsmExecute(pNode, pFsm, role, currentTerm, pEntry, 0) != 0) {
@@ -729,6 +734,18 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
   ret = 0;
 _out:
   // mark as restored if needed
+  if(pEntry != NULL){
+    sInfo("vgId:%d, check restore. restoreFinish:%d, pBuf->commitIndex:%" PRId64 ", pNode->commitIndex:%" PRId64 ", " 
+        "currentTerm:%" PRId64 ", pEntry->term:%"PRId64,
+          pNode->vgId, pNode->restoreFinish, pBuf->commitIndex, pNode->commitIndex, currentTerm, pEntry->term);
+  }
+  else{
+    sInfo("vgId:%d, check restore. restoreFinish%d, pBuf->commitIndex:%" PRId64 ", pNode->commitIndex:%" PRId64 ", " 
+        "currentTerm:%" PRId64 ,
+          pNode->vgId, pNode->restoreFinish, pBuf->commitIndex, pNode->commitIndex, currentTerm);
+  }
+  
+
   if (!pNode->restoreFinish && pBuf->commitIndex >= pNode->commitIndex && pEntry != NULL &&
       currentTerm <= pEntry->term) {
     pNode->pFsm->FpRestoreFinishCb(pNode->pFsm, pBuf->commitIndex);

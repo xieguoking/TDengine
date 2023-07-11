@@ -4638,6 +4638,7 @@ int32_t tSerializeSAlterVnodeReplicaReq(void *buf, int32_t bufLen, SAlterVnodeRe
     SReplica *pReplica = &pReq->learnerReplicas[i];
     if (tEncodeSReplica(&encoder, pReplica) < 0) return -1;
   }
+  if (tEncodeI32(&encoder, pReq->changeVersion) < 0) return -1;
   tEndEncode(&encoder);
 
   int32_t tlen = encoder.pos;
@@ -4668,6 +4669,9 @@ int32_t tDeserializeSAlterVnodeReplicaReq(void *buf, int32_t bufLen, SAlterVnode
       SReplica *pReplica = &pReq->learnerReplicas[i];
       if (tDecodeSReplica(&decoder, pReplica) < 0) return -1;
     }
+  }
+  if (!tDecodeIsEnd(&decoder)){
+    if (tDecodeI32(&decoder, &pReq->changeVersion) < 0) return -1;
   }
   
   tEndDecode(&decoder);

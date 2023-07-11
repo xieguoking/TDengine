@@ -104,6 +104,8 @@ SSdbRaw *mndVgroupActionEncode(SVgObj *pVgroup) {
     SVnodeGid *pVgid = &pVgroup->vnodeGid[i];
     SDB_SET_INT32(pRaw, dataPos, pVgid->dnodeId, _OVER)
   }
+  SDB_SET_INT32(pRaw, dataPos, pVgroup->syncConfigChangeVersion, _OVER)
+  //TODO 加版本号
   SDB_SET_RESERVE(pRaw, dataPos, VGROUP_RESERVE_SIZE, _OVER)
   SDB_SET_DATALEN(pRaw, dataPos, _OVER)
 
@@ -157,6 +159,8 @@ SSdbRow *mndVgroupActionDecode(SSdbRaw *pRaw) {
       pVgid->syncState = TAOS_SYNC_STATE_LEADER;
     }
   }
+  SDB_GET_INT32(pRaw, dataPos, &pVgroup->syncConfigChangeVersion, _OVER)
+  //TODO 加版本号
   SDB_GET_RESERVE(pRaw, dataPos, VGROUP_RESERVE_SIZE, _OVER)
 
   terrno = 0;
@@ -393,6 +397,7 @@ static void *mndBuildAlterVnodeReplicaReq(SMnode *pMnode, SDbObj *pDb, SVgObj *p
       .learnerReplica = 0,
       .selfIndex = -1,
       .learnerSelfIndex = -1,
+      .changeVersion = pVgroup->syncConfigChangeVersion,
   };
 
   for (int32_t v = 0; v < pVgroup->replica; ++v) {
@@ -2264,6 +2269,9 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
 
   mndTransSetSerial(pTrans);
 
+  mInfo("trans:%d, vgid:%d alter vnode, syncConfigChangeVersion:%d", 
+        pTrans->id, pVgroup->vgId, pVgroup->syncConfigChangeVersion);
+
   if (newVgroup.replica == 1 && pNewDb->cfg.replications == 3) {
     mInfo("db:%s, vgId:%d, will add 2 vnodes, vn:0 dnode:%d", pVgroup->dbName, pVgroup->vgId,
           pVgroup->vnodeGid[0].dnodeId);
@@ -2277,10 +2285,12 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     newVgroup.vnodeGid[0].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_LEARNER;
     newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_LEARNER;
+    newVgroup.syncConfigChangeVersion++;
     if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
     //if (mndAddAlterVnodeReplicaAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
     if (mndAddCreateVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &newVgroup.vnodeGid[1]) != 0) return -1;
     if (mndAddCreateVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &newVgroup.vnodeGid[2]) != 0) return -1;
+   
 
     //check learner
     newVgroup.vnodeGid[0].nodeRole = TAOS_SYNC_ROLE_VOTER;
@@ -2298,6 +2308,7 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     newVgroup.vnodeGid[0].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_LEARNER;
+    newVgroup.syncConfigChangeVersion++;
     if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
       return -1;
 
@@ -2306,10 +2317,20 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     newVgroup.vnodeGid[0].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_VOTER;
+    newVgroup.syncConfigChangeVersion++;
+    //TODO 每一步保存一次
     if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
       return -1;
 
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
+
+    SSdbRaw *pVgRaw = mndVgroupActionEncode(&newVgroup);
+    if (pVgRaw == NULL) return -1;
+    if (mndTransAppendRedolog(pTrans, pVgRaw) != 0) {
+      sdbFreeRaw(pVgRaw);
+      return -1;
+    }
+    (void)sdbSetRawStatus(pVgRaw, SDB_STATUS_READY);
   } else if (newVgroup.replica == 3 && pNewDb->cfg.replications == 1) {
     mInfo("db:%s, vgId:%d, will remove 2 vnodes, vn:0 dnode:%d vn:1 dnode:%d vn:2 dnode:%d", pVgroup->dbName,
           pVgroup->vgId, pVgroup->vnodeGid[0].dnodeId, pVgroup->vnodeGid[1].dnodeId, pVgroup->vnodeGid[2].dnodeId);
@@ -2319,6 +2340,7 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     //TODO mndRemoveVnodeFromVgroup1
     //if (mndAddAlterVnodeTypeAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
 
+    newVgroup.syncConfigChangeVersion++;
     if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
 
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
@@ -2339,13 +2361,14 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     if (mndRemoveVnodeFromVgroup1(pMnode, pTrans, &newVgroup, pArray, &del2) != 0) return -1;
     //if (mndAddAlterVnodeTypeAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
     
+    newVgroup.syncConfigChangeVersion++;
     if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
 
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
 
     if (mndAddDropVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &del2, true) != 0) return -1;
 
-    pVgRaw = mndVgroupActionEncode(pVgroup);
+    pVgRaw = mndVgroupActionEncode(&newVgroup);
     if (pVgRaw == NULL) return -1;
     if (mndTransAppendRedolog(pTrans, pVgRaw) != 0) {
       sdbFreeRaw(pVgRaw);
