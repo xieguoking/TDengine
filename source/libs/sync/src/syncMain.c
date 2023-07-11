@@ -2372,21 +2372,25 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
 
   ths->pMatchIndex = syncIndexMgrCreate(ths);
 
-  syncIndexMgrCopyIndexExclude(ths->pMatchIndex, oldIndex, oldReplicasId);
+  syncIndexMgrCopyIfExist(ths->pMatchIndex, oldIndex, oldReplicasId);
 
   syncIndexMgrDestroy(oldIndex);
+
 
   //rebuild NextIndex, remove deleted one
   SSyncIndexMgr *oldNextIndex = ths->pNextIndex;
 
   ths->pNextIndex = syncIndexMgrCreate(ths);
 
-  syncIndexMgrCopyIndexExclude(ths->pNextIndex, oldNextIndex, oldReplicasId);
+  syncIndexMgrCopyIfExist(ths->pNextIndex, oldNextIndex, oldReplicasId);
 
   syncIndexMgrDestroy(oldNextIndex);
 
   //syncIndexMgrUpdate(ths->pNextIndex, ths);
   //syncIndexMgrUpdate(ths->pMatchIndex, ths); //TODO 强行修改
+
+
+  //rebuild pVotesGranted, pVotesRespond
   voteGrantedUpdate(ths->pVotesGranted, ths);
   votesRespondUpdate(ths->pVotesRespond, ths);
 
@@ -2402,169 +2406,21 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
   SSyncLogReplMgr *pOldLogReplMgrs[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
 
   for(int i = 0; i < oldtotalReplicaNum; i++){
-    //memcpy(&oldLogReplMgrs[i], &ths->logReplMgrs[i], sizeof(SSyncLogReplMgr));
     oldLogReplMgrs[i] = *(ths->logReplMgrs[i]);
     pOldLogReplMgrs[i] = ths->logReplMgrs[i];
   }
-
-  for(int i = 0; i < ths->totalReplicaNum; ++i){
-    ths->logReplMgrs[i] = syncLogReplCreate();
-
-    for(int j = 0; j < oldtotalReplicaNum; j++){
-      if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])) {
-        //memcpy(&ths->logReplMgrs[i], &oldLogReplMgrs[j], sizeof(SSyncLogReplMgr));
-        *(ths->logReplMgrs[i]) = oldLogReplMgrs[j];
-      }
-    }       
-  } 
-
-  for(int i = 0; i < oldtotalReplicaNum; i++){
-    syncLogReplDestroy(pOldLogReplMgrs[i]);
-  }
-
-  for(int i = 0; i < ths->totalReplicaNum; ++i){
-    sDebug("vgId:%d, new logReplMgrs i:%d, peerId:%d, restoreed:%d, [%" PRId64 " %" PRId64 ", %" PRId64 ")" , ths->vgId, i,
-          ths->logReplMgrs[i]->peerId, ths->logReplMgrs[i]->restored, ths->logReplMgrs[i]->startIndex, 
-          ths->logReplMgrs[i]->matchIndex, ths->logReplMgrs[i]->endIndex);
-  }
-
-
-  //rebuild sender
-  for(int i = 0; i < oldtotalReplicaNum; ++i){
-    sDebug("vgId:%d, old sender i:%d, replicaIndex:%d, lastSendTime:%" PRId64, 
-            ths->vgId, i, ths->senders[i]->replicaIndex, ths->senders[i]->lastSendTime)
-  }
-
-  SSyncSnapshotSender oldSender[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
-  SSyncSnapshotSender *pOldSender[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
-  for(int i = 0; i < oldtotalReplicaNum; i++){
-    oldSender[i] = *(ths->senders[i]);
-    pOldSender[i] = ths->senders[i];
-  }
-
-  for(int i = 0; i < ths->totalReplicaNum; i++){
-    ths->senders[i] = snapshotSenderCreate(ths, i);
-    //TODO 这里不对
-
-    for(int j = 0; j < oldtotalReplicaNum; j++){
-      if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])){
-        *(ths->senders[i]) = oldSender[j];
-      }
-    }    
-  }
-  //TODO 直接copy这样状态复制是否可以？
-  //TODO 是不是不需要
-
-  for(int i = 0; i < oldtotalReplicaNum; i++){
-    snapshotSenderDestroy(pOldSender[i]);
-  }
-
-  for(int i = 0; i < ths->totalReplicaNum; i++){
-    sDebug("vgId:%d, new sender i:%d, replicaIndex:%d, lastSendTime:%" PRId64, 
-            ths->vgId, i, ths->senders[i]->replicaIndex, ths->senders[i]->lastSendTime)
-  }
-
-
-  //rebuild synctimer
-  SSyncTimer oldSyncTier[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
-  for(int i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; i++){
-    syncHbTimerStop(ths, &ths->peerHeartbeatTimerArr[i]);
-  }
-
-  for(int i = 0; i < ths->totalReplicaNum; i++){
-    for(int j = 0; j < oldtotalReplicaNum; j++){
-      if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])){
-        syncHbTimerInit(ths, &ths->peerHeartbeatTimerArr[i], ths->replicasId[i]);
-        syncHbTimerStart(ths, &ths->peerHeartbeatTimerArr[i]);
-      }
-    }
-  }
-  //TODO 是否会出现不按顺序的删除
-  //TODO 状态没有保留，是否需要保留
-
-
-  //rebuild peerStates
-  SPeerState oldState[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
-  for(int i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; i++){
-    oldState[i] = ths->peerStates[i];
-  }
-
-  for(int i = 0; i < ths->totalReplicaNum; i++){
-    for(int j = 0; j < oldtotalReplicaNum; j++){
-      if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])){
-        ths->peerStates[i] = oldState[j];
-      }
-    }
-  }
-}
-
-void syncNodeRebuildFromOld1(SSyncNode* ths, int32_t oldtotalReplicaNum){
-  //rebuild replicasId, remove deleted one
-  SRaftId oldReplicasId[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
-  memcpy(oldReplicasId, ths->replicasId, sizeof(oldReplicasId));
-
-  ths->replicaNum = ths->raftCfg.cfg.replicaNum;
-  ths->totalReplicaNum = ths->raftCfg.cfg.totalReplicaNum;
-  for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
-    syncUtilNodeInfo2RaftId(&ths->raftCfg.cfg.nodeInfo[i], ths->vgId, &ths->replicasId[i]);
-  }
-
-
-  //rebuild MatchIndex, remove deleted one
-  SSyncIndexMgr *oldIndex = ths->pMatchIndex;
-
-  ths->pMatchIndex = syncIndexMgrCreate(ths);
-
-  syncIndexMgrCopyIndexExclude(ths->pMatchIndex, oldIndex, oldReplicasId);
-
-  syncIndexMgrDestroy(oldIndex);
-
-  //rebuild NextIndex, remove deleted one
-  SSyncIndexMgr *oldNextIndex = ths->pNextIndex;
-
-  ths->pNextIndex = syncIndexMgrCreate(ths);
-
-  syncIndexMgrCopyIndexExclude(ths->pNextIndex, oldNextIndex, oldReplicasId);
-
-  syncIndexMgrDestroy(oldNextIndex);
-
-  //syncIndexMgrUpdate(ths->pNextIndex, ths);
-  //syncIndexMgrUpdate(ths->pMatchIndex, ths); //TODO 强行修改
-  voteGrantedUpdate(ths->pVotesGranted, ths);
-  votesRespondUpdate(ths->pVotesRespond, ths);
-
-
-  //rebuild logReplMgr
-  for(int i = 0; i < oldtotalReplicaNum; ++i){
-    sDebug("vgId:%d, old logReplMgrs i:%d, peerId:%d, restoreed:%d, [%" PRId64 " %" PRId64 ", %" PRId64 ")", ths->vgId, i,
-          ths->logReplMgrs[i]->peerId, ths->logReplMgrs[i]->restored, ths->logReplMgrs[i]->startIndex, 
-          ths->logReplMgrs[i]->matchIndex, ths->logReplMgrs[i]->endIndex);
-  }
-
-  SSyncLogReplMgr oldLogReplMgrs[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
-  SSyncLogReplMgr *pOldLogReplMgrs[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
-
-  for(int i = 0; i < oldtotalReplicaNum; i++){
-    //memcpy(&oldLogReplMgrs[i], &ths->logReplMgrs[i], sizeof(SSyncLogReplMgr));
-    oldLogReplMgrs[i] = *(ths->logReplMgrs[i]);
-    pOldLogReplMgrs[i] = ths->logReplMgrs[i];
-  }
-
-  //syncNodeLogReplInit(ths);
 
   for(int i = 0; i < ths->totalReplicaNum; ++i){
     ths->logReplMgrs[i] = syncLogReplCreate();
     //TODO 会返回NULL
-    //TODO why 3-1, peerid是有值的？
-    ths->logReplMgrs[i]->peerId = i;
-    //TODO peerId是什么意思
 
     for(int j = 0; j < oldtotalReplicaNum; j++){
       if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])) {
-        //memcpy(&ths->logReplMgrs[i], &oldLogReplMgrs[j], sizeof(SSyncLogReplMgr));
         *(ths->logReplMgrs[i]) = oldLogReplMgrs[j];
       }
-    }       
+    }
+
+    ths->logReplMgrs[i]->peerId = i;       
   } 
 
   for(int i = 0; i < oldtotalReplicaNum; i++){
@@ -2925,8 +2781,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
             && ths->myNodeInfo.nodePort == cfg->nodeInfo[j].nodePort)){
             ths->peersNodeInfo[i].nodeRole = TAOS_SYNC_ROLE_LEARNER;
             ths->peersNodeInfo[i].clusterId = cfg->nodeInfo[j].clusterId;
-            strncpy(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn, 128);
-            //TODO len
+            tstrncpy(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn, TSDB_FQDN_LEN);
             ths->peersNodeInfo[i].nodeId = cfg->nodeInfo[j].nodeId;
             ths->peersNodeInfo[i].nodePort = cfg->nodeInfo[j].nodePort;
 
@@ -2953,8 +2808,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
           }
           ths->raftCfg.cfg.nodeInfo[i].nodeRole = cfg->nodeInfo[j].nodeRole;
           ths->raftCfg.cfg.nodeInfo[i].clusterId = cfg->nodeInfo[j].clusterId;
-          strncpy(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn, 128);
-          //TODO len
+          tstrncpy(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn, TSDB_FQDN_LEN);
           ths->raftCfg.cfg.nodeInfo[i].nodeId = cfg->nodeInfo[j].nodeId;
           ths->raftCfg.cfg.nodeInfo[i].nodePort = cfg->nodeInfo[j].nodePort;
           i++;
@@ -2999,7 +2853,7 @@ void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char
         }
         */
 
-        syncNodeRebuildFromOld1(ths, oldtotalReplicaNum);
+        syncNodeRebuildFromOld(ths, oldtotalReplicaNum);
       }
     }
 

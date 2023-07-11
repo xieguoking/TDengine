@@ -70,7 +70,7 @@ void syncIndexMgrSetIndex(SSyncIndexMgr *pIndexMgr, const SRaftId *pRaftId, Sync
          DID(pRaftId), CID(pRaftId));
 }
 
-void syncIndexMgrCopyIndexExclude(SSyncIndexMgr * pNewIndex, SSyncIndexMgr * pOldIndex, SRaftId *oldReplicasId){
+void syncIndexMgrCopyIfExist(SSyncIndexMgr * pNewIndex, SSyncIndexMgr * pOldIndex, SRaftId *oldReplicasId){
   for(int j = 0; j < pOldIndex->totalReplicaNum; ++j){
     sDebug("old Index j:%d, index:%"PRId64, j, pOldIndex->index[j]);
   }
