@@ -114,8 +114,9 @@ int32_t syncWriteCfgFile(SSyncNode *pNode) {
   if (taosRenameFile(file, realfile) != 0) goto _OVER;
 
   code = 0;
-  sInfo("vgId:%d, succeed to write sync cfg file:%s, len:%d, lastConfigIndex:%" PRId64, pNode->vgId, 
-                                            realfile, len, pNode->raftCfg.lastConfigIndex);
+  sInfo("vgId:%d, succeed to write sync cfg file:%s, len:%d, lastConfigIndex:%" PRId64 ", "
+        "changeVersion:%d", pNode->vgId, 
+        realfile, len, pNode->raftCfg.lastConfigIndex, pNode->raftCfg.cfg.changeVersion);
 
 _OVER:
   if (pJson != NULL) tjsonDelete(pJson);
