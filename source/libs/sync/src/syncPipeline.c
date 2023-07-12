@@ -694,7 +694,7 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
     }
 
     pNextEntry = syncLogBufferGetOneEntry(pBuf, pNode, index + 1, &inBuf);
-    if (pNextEntry != NULL && /*pNode->state != TAOS_SYNC_STATE_LEARNER*/ pNode->restoreFinish) {
+    if (pNextEntry != NULL /*&& pNode->state != TAOS_SYNC_STATE_LEARNER pNode->restoreFinish*/) {
       syncNodeChageConfig_lastcommit(pNode, pNextEntry, "Log Buffer Commit");
     }
     else{

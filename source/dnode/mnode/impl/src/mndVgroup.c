@@ -212,7 +212,7 @@ static int32_t mndVgroupActionUpdate(SSdb *pSdb, SVgObj *pOld, SVgObj *pNew) {
   pNew->pointsWritten = pOld->pointsWritten;
   pNew->compact = pOld->compact;
   memcpy(pOld->vnodeGid, pNew->vnodeGid, (TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA) * sizeof(SVnodeGid));
-  pNew->syncConfigChangeVersion = pOld->syncConfigChangeVersion;
+  pOld->syncConfigChangeVersion = pNew->syncConfigChangeVersion;
   return 0;
 }
 
