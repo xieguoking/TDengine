@@ -545,7 +545,7 @@ int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTe
                           int32_t applyCode) {
   if (pNode->replicaNum == 1 && 
       pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_LEARNER &&
-      pNode->restoreFinish && pNode->vgId != 1 && pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE) {
+      pNode->restoreFinish && pNode->vgId != 1 /*&& pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE*/) {
     //TODO
     sInfo("vgId:%d, not to execute, index:%" PRId64 ", term:%" PRId64 ", type:%s code:0x%x, replicaNum:%d,"
           "role:%d, restoreFinish:%d",

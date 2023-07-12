@@ -651,12 +651,20 @@ int32_t syncNodePropose(SSyncNode* pSyncNode, SRpcMsg* pMsg, bool isWeak, int64_
   if (syncNodeIsOptimizedOneReplica(pSyncNode, pMsg)) {
     SyncIndex retIndex;
     int32_t   code = syncNodeOnClientRequest(pSyncNode, pMsg, &retIndex);
-    if (code == 0) {
+    if (code >= 0) {
       pMsg->info.conn.applyIndex = retIndex;
       pMsg->info.conn.applyTerm = raftStoreGetTerm(pSyncNode);
-      sTrace("vgId:%d, propose optimized msg, index:%" PRId64 " type:%s", pSyncNode->vgId, retIndex,
-             TMSG_INFO(pMsg->msgType));
-      return 1;
+
+      if(code == 0){
+        sTrace("vgId:%d, propose optimized msg, index:%" PRId64 " type:%s", pSyncNode->vgId, retIndex,
+              TMSG_INFO(pMsg->msgType));
+        return 1;
+      }
+      else{
+        sTrace("vgId:%d, propose optimized msg, return to normal, index:%" PRId64 " type:%s", pSyncNode->vgId, retIndex,
+              TMSG_INFO(pMsg->msgType));
+        return 0;
+      }
     } else {
       terrno = TSDB_CODE_SYN_INTERNAL_ERROR;
       sError("vgId:%d, failed to propose optimized msg, index:%" PRId64 " type:%s", pSyncNode->vgId, retIndex,
@@ -3068,7 +3076,7 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
 
   // multi replica
   if (ths->replicaNum > 1) {
-    return 0;
+    return 1;
   }
 
 /*
