@@ -561,6 +561,7 @@ static int32_t initFilesetIterator(SFilesetIter* pIter, SArray* aDFileSet, STsdb
 
     int32_t numOfStt = pReader->pTsdb->pVnode->config.sttTrigger;
     pLReader->pInfo = tCreateLastBlockLoadInfo(pReader->pSchema, &pInfo->colId[1], pInfo->numOfCols - 1, numOfStt);
+    setLastBlockLoadInfoCache(pLReader->pInfo, pReader->pTsdb->sttBlockCache);
     if (pLReader->pInfo == NULL) {
       tsdbDebug("init fileset iterator failed, code:%s %s", tstrerror(terrno), pReader->idStr);
       return terrno;

@@ -707,7 +707,8 @@ typedef struct SSttBlockLoadInfo {
   SArray    *aSttBlk;
   int32_t    blockIndex[2];  // to denote the loaded block in the corresponding position.
   int32_t    currentLoadBlockIndex;
-  LRUHandle *blockDataHandle;
+  SLRUCache* pBlockDataCache;
+  LRUHandle *blockDataHandle[2];
   int32_t    loadBlocks;
   double     elapsedTime;
   STSchema  *pSchema;
@@ -800,6 +801,8 @@ bool    tMergeTreeIgnoreEarlierTs(SMergeTree *pMTree);
 void    tMergeTreeClose(SMergeTree *pMTree);
 
 SSttBlockLoadInfo *tCreateLastBlockLoadInfo(STSchema *pSchema, int16_t *colList, int32_t numOfCols, int32_t numOfStt);
+void               setLastBlockLoadInfoCache(SSttBlockLoadInfo* pLoadInfo, SLRUCache* pBlockDataCache);
+void               releaseLastBlockLoadInfoCacheHandle(SSttBlockLoadInfo *pLoadInfo);
 void               resetLastBlockLoadInfo(SSttBlockLoadInfo *pLoadInfo);
 void               getLastBlockLoadInfo(SSttBlockLoadInfo *pLoadInfo, int64_t *blocks, double *el);
 void              *destroyLastBlockLoadInfo(SSttBlockLoadInfo *pLoadInfo);

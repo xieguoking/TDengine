@@ -1214,13 +1214,20 @@ int32_t tsdbOpenCache(STsdb *pTsdb) {
   taosLRUCacheSetStrictCapacity(pTsdb->sttBlockCache, false); 
 
   pTsdb->sttBlkCache = taosLRUCacheInit(4 * 1024 * 1024, -1, 0.0);
+  taosLRUCacheSetStrictCapacity(pTsdb->sttBlkCache, false); 
+
 _err:
   pTsdb->lruCache = pCache;
   return code;
 }
 
 void tsdbCloseCache(STsdb *pTsdb) {
+  taosLRUCacheEraseUnrefEntries(pTsdb->sttBlockCache);
   taosLRUCacheCleanup(pTsdb->sttBlockCache);
+
+  taosLRUCacheEraseUnrefEntries(pTsdb->sttBlkCache);
+  taosLRUCacheCleanup(pTsdb->sttBlkCache);  
+
   SLRUCache *pCache = pTsdb->lruCache;
   if (pCache) {
     taosLRUCacheEraseUnrefEntries(pCache);
