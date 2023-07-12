@@ -25,8 +25,6 @@
 #include "syncVoteMgr.h"
 #include "syncIndexMgr.h"
 
-void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str);
-//TODO remove this
 
 // TLA+ Spec
 // HandleAppendEntriesRequest(i, j, m) ==
@@ -183,7 +181,7 @@ _SEND_RESPONSE:
   //syncNodeChageConfig(ths, pEntry);
   if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
     if(ths->commitIndex == pEntry->index -1){
-      syncNodeChageConfig_lastcommit(ths, pEntry, "OnAppendEntries");
+      syncNodeChageConfig(ths, pEntry, "OnAppendEntries");
     }
     else{
       sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from OnAppendEntry, "
