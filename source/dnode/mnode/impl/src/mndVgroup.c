@@ -25,7 +25,7 @@
 #include "tmisce.h"
 #include "mndStb.h"
 
-#define VGROUP_VER_NUMBER   1
+#define VGROUP_VER_NUMBER   2
 #define VGROUP_RESERVE_SIZE 64
 
 static int32_t  mndVgroupActionInsert(SSdb *pSdb, SVgObj *pVgroup);
@@ -129,7 +129,7 @@ SSdbRow *mndVgroupActionDecode(SSdbRaw *pRaw) {
   int8_t sver = 0;
   if (sdbGetRawSoftVer(pRaw, &sver) != 0) goto _OVER;
 
-  if (sver != VGROUP_VER_NUMBER) {
+  if (sver < 1 || sver > VGROUP_VER_NUMBER) {
     terrno = TSDB_CODE_SDB_INVALID_DATA_VER;
     goto _OVER;
   }
@@ -158,8 +158,10 @@ SSdbRow *mndVgroupActionDecode(SSdbRaw *pRaw) {
       pVgid->syncState = TAOS_SYNC_STATE_LEADER;
     }
   }
-  SDB_GET_INT32(pRaw, dataPos, &pVgroup->syncConfChangeVer, _OVER)
-  //TODO 加版本号
+  if(sver > 1){
+    SDB_GET_INT32(pRaw, dataPos, &pVgroup->syncConfChangeVer, _OVER)
+  }
+  
   SDB_GET_RESERVE(pRaw, dataPos, VGROUP_RESERVE_SIZE, _OVER)
 
   terrno = 0;
