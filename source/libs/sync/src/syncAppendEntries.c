@@ -25,6 +25,8 @@
 #include "syncVoteMgr.h"
 #include "syncIndexMgr.h"
 
+//void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str);
+//TODO remove this
 
 // TLA+ Spec
 // HandleAppendEntriesRequest(i, j, m) ==
@@ -180,13 +182,21 @@ _SEND_RESPONSE:
 
   //syncNodeChageConfig(ths, pEntry);
   if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
-    if(ths->commitIndex == pEntry->index -1){
-      syncNodeChageConfig(ths, pEntry, "OnAppendEntries");
+    if(ths->pLogBuf->commitIndex == pEntry->index -1){
+      sInfo("vgId:%d, to change config at OnAppn. "
+            "current entry, index:%" PRId64 ", term:%" PRId64", "
+            "node, restore:%d, "
+            "cond, pre entry index:%" PRId64 ", commitIndex:%" PRId64 ", buf commit index:%" PRId64,
+            ths->vgId, 
+            pEntry->index, pEntry->term, 
+            ths->restoreFinish,
+            pEntry->index -1, ths->commitIndex, ths->pLogBuf->commitIndex);
+      syncNodeChageConfig(ths, pEntry, "OnAppn");
     }
     else{
       sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from OnAppendEntry, "
-            "ths->commitIndex:%" PRId64 ", pEntry->index:%" PRId64 ", restoreFinish:%d",
-           ths->vgId, ths->commitIndex, pEntry->index, ths->restoreFinish);
+            "ths->commitIndex:%" PRId64 ", pEntry->index:%" PRId64 ", restoreFinish:%d, ths->pLogBuf->commitIndex:%" PRId64,
+           ths->vgId, ths->commitIndex, pEntry->index, ths->restoreFinish, ths->pLogBuf->commitIndex);
     }
     //TODO here is proper position?
   }

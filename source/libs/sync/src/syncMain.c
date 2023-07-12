@@ -2280,7 +2280,7 @@ int32_t syncCacheEntry(SSyncLogStore* pLogStore, SSyncRaftEntry* pEntry, LRUHand
 void syncBuildConfigFromReq(SAlterVnodeReplicaReq *pReq, SSyncCfg *cfg){//TODO SAlterVnodeReplicaReq name is proper?
   cfg->replicaNum = 0;
   cfg->totalReplicaNum = 0;
-  
+
   for (int i = 0; i < pReq->replica; ++i) {
     SNodeInfo *pNode = &cfg->nodeInfo[i];
     pNode->nodeId = pReq->replicas[i].id;
@@ -2501,6 +2501,30 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
   }
 }
 
+void syncNodeLogConfigInfo(SSyncNode* ths, SSyncCfg *cfg, char *str){
+  sInfo("vgId:%d, %s. SyncNode, replicaNum:%d, peersNum:%d, lastConfigIndex:%" PRId64 ", changeVersion:%d", 
+        ths->vgId, str, 
+        ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex, ths->raftCfg.cfg.changeVersion);
+
+  sInfo("vgId:%d, %s, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
+    ths->vgId, str, ths->myNodeInfo.clusterId, ths->myNodeInfo.nodeId, ths->myNodeInfo.nodeFqdn, 
+    ths->myNodeInfo.nodePort, ths->myNodeInfo.nodeRole);
+
+  for (int32_t i = 0; i < ths->peersNum; ++i){
+    sInfo("vgId:%d, %s, peersNodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
+    ths->vgId, str, i, ths->peersNodeInfo[i].clusterId, 
+    ths->peersNodeInfo[i].nodeId, ths->peersNodeInfo[i].nodeFqdn, 
+    ths->peersNodeInfo[i].nodePort, ths->peersNodeInfo[i].nodeRole);
+  }
+
+  for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i){
+    sInfo("vgId:%d, %s, nodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
+    ths->vgId, str, i, ths->raftCfg.cfg.nodeInfo[i].clusterId, 
+    ths->raftCfg.cfg.nodeInfo[i].nodeId, ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, 
+    ths->raftCfg.cfg.nodeInfo[i].nodePort, ths->raftCfg.cfg.nodeInfo[i].nodeRole);
+  }
+}
+
 void syncNodeChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
   if(pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE){
     return;
@@ -2515,49 +2539,48 @@ void syncNodeChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
     return;
   }
 
-  SSyncCfg *cfg = taosMemoryMalloc(sizeof(SSyncCfg)); //TODO fail handle
+  SSyncCfg *cfg = taosMemoryMalloc(sizeof(SSyncCfg));
+  if(cfg == NULL){
+    terrno = TSDB_CODE_OUT_OF_MEMORY;
+    return;
+  }
   syncBuildConfigFromReq(&req, cfg);   
 
-  sTrace("vgId:%d, check lastConfigIndex from %s, index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
-        "cfg->totalReplicaNum:%d, lastConfigIndex:%" PRId64 ", cfg->changeVersion:%d, ths->raftCfg.cfg.changeVersion:%d", 
-        ths->vgId, str, pEntry->index, pEntry->term, 
-        ths->replicaNum, ths->peersNum, 
-        cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex, cfg->changeVersion, ths->raftCfg.cfg.changeVersion);
-
   if(cfg->changeVersion <= ths->raftCfg.cfg.changeVersion){
-    sInfo("vgId:%d, no config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
-        "cfg->totalReplicaNum:%d, lastConfigIndex:%" PRId64", cfg->changeVersion:%d, ths->raftCfg.cfg.changeVersion:%d",
-        ths->vgId, pEntry->index,
-        pEntry->term, ths->replicaNum, ths->peersNum, 
-        cfg->totalReplicaNum, ths->raftCfg.lastConfigIndex, cfg->changeVersion, ths->raftCfg.cfg.changeVersion);
+    sInfo("vgId:%d, skip conf change entry since lower version. "
+          "this entry, index:%" PRId64 ", term:%" PRId64 ", totalReplicaNum:%d, changeVersion:%d; "
+          "current node, replicaNum:%d, peersNum:%d, lastConfigIndex:%" PRId64", changeVersion:%d",
+        ths->vgId, 
+        pEntry->index, pEntry->term, cfg->totalReplicaNum, cfg->changeVersion, 
+        ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex, ths->raftCfg.cfg.changeVersion);
     return;
   }
 
-  sInfo("vgId:%d, syncNodeChageConfig_lastcommit from %s. index:%" PRId64 ", term:%" PRId64 
-        ", replicaNum:%d, peersNum:%d, totalReplicaNum:%d, "
-        "cfg->totalReplicaNum:%d, ths->commitIndex:%" PRId64 ", cfg->changeVersion:%d, "
-        "log buffer: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 ")",
-        ths->vgId, str, pEntry->index,
-        pEntry->term, ths->replicaNum, ths->peersNum, ths->totalReplicaNum, 
-        cfg->totalReplicaNum, ths->commitIndex, cfg->changeVersion,
-        ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex, ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
-
-  sDebug("before config change, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-    ths->myNodeInfo.clusterId, ths->myNodeInfo.nodeId, ths->myNodeInfo.nodeFqdn, 
-    ths->myNodeInfo.nodePort, ths->myNodeInfo.nodeRole);
-
-  for (int32_t i = 0; i < ths->peersNum; ++i){
-    sDebug("before config change, peersNodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-    i, ths->peersNodeInfo[i].clusterId, ths->peersNodeInfo[i].nodeId, ths->peersNodeInfo[i].nodeFqdn, 
-    ths->peersNodeInfo[i].nodePort, ths->peersNodeInfo[i].nodeRole);
+  if(strcmp(str, "Commit") == 0){
+    sInfo("vgId:%d, change config from %s. "
+          "this, i:%" PRId64 ", t:%" PRId64 ", trNum:%d, vers:%d; "
+          "node, rNum:%d, pNum:%d, trNum:%d, "
+          "buffer: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 "), "
+          "cond:(next i:%" PRId64 "==cc)",
+          ths->vgId, str, pEntry->index, pEntry->term, cfg->totalReplicaNum, cfg->changeVersion, 
+          ths->replicaNum, ths->peersNum, ths->totalReplicaNum, 
+          ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex, ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex,
+          pEntry->index + 1);
   }
-  for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i){
-    sDebug("before config change, cfg.nodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-    i, ths->raftCfg.cfg.nodeInfo[i].clusterId, ths->raftCfg.cfg.nodeInfo[i].nodeId, 
-    ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, 
-    ths->raftCfg.cfg.nodeInfo[i].nodePort, ths->raftCfg.cfg.nodeInfo[i].nodeRole);
+  else{
+     sInfo("vgId:%d, change config from %s. "
+          "this, i:%" PRId64 ", t:%" PRId64 ", trNum:%d, vers:%d; "
+          "node, rNum:%d, pNum:%d, trNum:%d, "
+          "buffer: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 "), "
+          "cond:(pre i:%" PRId64 "==ci:%" PRId64 ", bci:%" PRId64 ")",
+          ths->vgId, str, pEntry->index, pEntry->term, cfg->totalReplicaNum, cfg->changeVersion, 
+          ths->replicaNum, ths->peersNum, ths->totalReplicaNum, 
+          ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex, ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex,
+          pEntry->index -1, ths->commitIndex, ths->pLogBuf->commitIndex);   
   }
 
+  syncNodeLogConfigInfo(ths, cfg, "before config change");
+  
   if(cfg->totalReplicaNum == 1 || cfg->totalReplicaNum == 2){//remove replica
     
     bool incfg = false;
@@ -2872,26 +2895,7 @@ void syncNodeChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
   ths->raftCfg.cfg.changeVersion = cfg->changeVersion;
   //TODO no need to set lastIndex?
 
-  sInfo("vgId:%d, after config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
-        "lastConfigIndex=%" PRId64 ", ths->raftCfg.changeVersion:%d", 
-        ths->vgId, pEntry->index,
-        pEntry->term, ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex, ths->raftCfg.cfg.changeVersion);
-
-  sDebug("afer config change, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-    ths->myNodeInfo.clusterId, ths->myNodeInfo.nodeId, ths->myNodeInfo.nodeFqdn, 
-    ths->myNodeInfo.nodePort, ths->myNodeInfo.nodeRole);
-
-  for (int32_t i = 0; i < ths->peersNum; ++i){
-    sDebug("afer config change, peersNodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-    i, ths->peersNodeInfo[i].clusterId, ths->peersNodeInfo[i].nodeId, ths->peersNodeInfo[i].nodeFqdn, 
-    ths->peersNodeInfo[i].nodePort, ths->peersNodeInfo[i].nodeRole);
-  }
-  for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i){
-    sDebug("afer config change, cfg.nodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-    i, ths->raftCfg.cfg.nodeInfo[i].clusterId, ths->raftCfg.cfg.nodeInfo[i].nodeId, 
-    ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, 
-    ths->raftCfg.cfg.nodeInfo[i].nodePort, ths->raftCfg.cfg.nodeInfo[i].nodeRole);
-  }
+  syncNodeLogConfigInfo(ths, cfg, "after config change");
 
   syncWriteCfgFile(ths);
   //TODO handle fail
@@ -3020,8 +3024,16 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
 
   //syncNodeChageConfig_2cfg(ths, pEntry);
   if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
-    if(ths->commitIndex == pEntry->index -1){
-      syncNodeChageConfig(ths, pEntry, "node append");
+    if(ths->pLogBuf->commitIndex == pEntry->index -1){
+      sInfo("vgId:%d, to change config at Append. "
+            "current entry, index:%" PRId64 ", term:%" PRId64", "
+            "node, restore:%d, "
+            "cond, pre entry index:%" PRId64 ", commitIndex:%" PRId64 ", buf commit index:%" PRId64,
+            ths->vgId, 
+            pEntry->index, pEntry->term, 
+            ths->restoreFinish,
+            pEntry->index -1, ths->commitIndex, ths->pLogBuf->commitIndex);
+      syncNodeChageConfig(ths, pEntry, "Append");
     }
     else{
       sTrace("vgId:%d, delay syncNodeChageConfig_lastcommit from Node Append. index:%" PRId64 ", term:%" PRId64 ", ths->commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64

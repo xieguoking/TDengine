@@ -651,6 +651,8 @@ int32_t syncLogBufferValidate(SSyncLogBuffer* pBuf) {
   return 0;
 }
 
+//void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str);
+//TODO remove this
 
 int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t commitIndex) {
   taosThreadMutexLock(&pBuf->mutex);
@@ -692,8 +694,16 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
     }
 
     pNextEntry = syncLogBufferGetOneEntry(pBuf, pNode, index + 1, &inBuf);
-    if (pNextEntry != NULL /*&& pNode->state != TAOS_SYNC_STATE_LEARNER pNode->restoreFinish*/) {
-      syncNodeChageConfig(pNode, pNextEntry, "Log Buffer Commit");
+    if (pNextEntry != NULL /*&& pNode->state != TAOS_SYNC_STATE_LEARNER pNode->restoreFinish*/ && pNextEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE) {
+      sInfo("vgId:%d, to change config at Commit. "
+            "current entry, index:%" PRId64 ", term:%" PRId64", "
+            "node, role:%d, current term:%" PRId64 ", restore:%d, "
+            "cond, next entry index:%" PRId64 ", msgType:%d",
+            vgId, 
+            pEntry->index, pEntry->term, 
+            role, currentTerm, pNode->restoreFinish,
+            pNextEntry->index, pNextEntry->originalRpcType);
+      syncNodeChageConfig(pNode, pNextEntry, "Commit");
     }
     else{
       //sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from LogBufferCommit. index:%" PRId64 ", term:%" PRId64
