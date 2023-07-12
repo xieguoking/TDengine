@@ -484,16 +484,39 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
     sTrace("vgId:%d, log buffer proceed. start index:%" PRId64 ", match index:%" PRId64 ", end index:%" PRId64,
            pNode->vgId, pBuf->startIndex, pBuf->matchIndex, pBuf->endIndex);
 
-    // replicate on demand
-    (void)syncNodeReplicateWithoutLock(pNode);
-
     // persist
-    if (syncLogStorePersist(pLogStore, pNode, pEntry) < 0) {
+    if (syncLogStorePersist(pLogStore, pNode, pEntry) < 0) { //TODO move to here is proper?
       sError("vgId:%d, failed to persist sync log entry from buffer since %s. index:%" PRId64, pNode->vgId, terrstr(),
              pEntry->index);
       goto _out;
     }
-    ASSERT(pEntry->index == pBuf->matchIndex);
+    ASSERT(pEntry->index == pBuf->matchIndex); //TODO move to here is proper?
+  
+    //syncNodeChageConfig_2cfg(ths, pEntry);
+    if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
+      if(pNode->pLogBuf->commitIndex == pEntry->index -1){
+        sInfo("vgId:%d, to change config at Append. "
+              "current entry, index:%" PRId64 ", term:%" PRId64", "
+              "node, restore:%d, "
+              "cond, pre entry index:%" PRId64 ", commitIndex:%" PRId64 ", buf commit index:%" PRId64,
+              pNode->vgId, 
+              pEntry->index, pEntry->term, 
+              pNode->restoreFinish,
+              pEntry->index -1, pNode->commitIndex, pNode->pLogBuf->commitIndex);
+        syncNodeChageConfig(pNode, pEntry, "Append");
+      }
+      else{
+        sTrace("vgId:%d, delay syncNodeChageConfig_lastcommit from Node Append. index:%" PRId64 ", term:%" PRId64 ", ths->commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64
+          ", %" PRId64 ")",
+          pNode->vgId, pEntry->index, pEntry->term, pNode->commitIndex, pNode->pLogBuf->startIndex, pNode->pLogBuf->commitIndex,
+          pNode->pLogBuf->matchIndex, pNode->pLogBuf->endIndex);
+      }
+      //TODO here
+      //TODO ths->commitIndex, ths->pLogBuf->commitIndex
+    }
+
+    // replicate on demand
+    (void)syncNodeReplicateWithoutLock(pNode);
 
     // update my match index
     matchIndex = pBuf->matchIndex;

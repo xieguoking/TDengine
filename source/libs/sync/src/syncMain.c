@@ -2533,7 +2533,7 @@ void syncNodeLogConfigInfo(SSyncNode* ths, SSyncCfg *cfg, char *str){
   }
 }
 
-void syncNodeChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
+void syncNodeChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){//TODO 少了n
   if(pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE){
     return;
   }
@@ -3028,31 +3028,7 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
   }
  
   // proceed match index, with replicating on needed
-  SyncIndex matchIndex = syncLogBufferProceed(ths->pLogBuf, ths, NULL);
-
-  //syncNodeChageConfig_2cfg(ths, pEntry);
-  if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
-    if(ths->pLogBuf->commitIndex == pEntry->index -1){
-      sInfo("vgId:%d, to change config at Append. "
-            "current entry, index:%" PRId64 ", term:%" PRId64", "
-            "node, restore:%d, "
-            "cond, pre entry index:%" PRId64 ", commitIndex:%" PRId64 ", buf commit index:%" PRId64,
-            ths->vgId, 
-            pEntry->index, pEntry->term, 
-            ths->restoreFinish,
-            pEntry->index -1, ths->commitIndex, ths->pLogBuf->commitIndex);
-      syncNodeChageConfig(ths, pEntry, "Append");
-    }
-    else{
-      sTrace("vgId:%d, delay syncNodeChageConfig_lastcommit from Node Append. index:%" PRId64 ", term:%" PRId64 ", ths->commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64
-         ", %" PRId64 ")",
-         ths->vgId, pEntry->index, pEntry->term, ths->commitIndex, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
-         ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
-    }
-    //TODO here
-    //TODO ths->commitIndex, ths->pLogBuf->commitIndex
-  }
-  
+  SyncIndex matchIndex = syncLogBufferProceed(ths->pLogBuf, ths, NULL);  
 
   sTrace("vgId:%d, append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
          ", %" PRId64 ")",
