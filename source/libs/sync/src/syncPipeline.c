@@ -564,10 +564,11 @@ void getConfig1(SAlterVnodeReplicaReq *pReq, SSyncCfg *cfg){
 }
 
 int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTerm term, SSyncRaftEntry* pEntry,
-                          int32_t applyCode) {
+                          int32_t applyCode, bool flag /*TODO cdm*/) {
   if (pNode->replicaNum == 1 && 
       pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_LEARNER &&
-      pNode->restoreFinish && pNode->vgId != 1 /*&& pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE*/) {
+      pNode->restoreFinish && pNode->vgId != 1 /*&& pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE*/
+      && flag == false) {
     //TODO
     sInfo("vgId:%d, not to execute, index:%" PRId64 ", term:%" PRId64 ", type:%s code:0x%x, replicaNum:%d,"
           "role:%d, restoreFinish:%d",
@@ -715,26 +716,7 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
             pEntry->term, TMSG_INFO(pEntry->originalRpcType));
     }
 
-    pNextEntry = syncLogBufferGetOneEntry(pBuf, pNode, index + 1, &inBuf);
-    if (pNextEntry != NULL /*&& pNode->state != TAOS_SYNC_STATE_LEARNER pNode->restoreFinish*/ && pNextEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE) {
-      sInfo("vgId:%d, to change config at Commit. "
-            "current entry, index:%" PRId64 ", term:%" PRId64", "
-            "node, role:%d, current term:%" PRId64 ", restore:%d, "
-            "cond, next entry index:%" PRId64 ", msgType:%d",
-            vgId, 
-            pEntry->index, pEntry->term, 
-            role, currentTerm, pNode->restoreFinish,
-            pNextEntry->index, pNextEntry->originalRpcType);
-      syncNodeChangeConfig(pNode, pNextEntry, "Commit");
-    }
-    else{
-      //sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from LogBufferCommit. index:%" PRId64 ", term:%" PRId64
-      //       ", role:%d, current term:%" PRId64 ", restoreFinish:%d",
-      //       vgId, pEntry->index, pEntry->term, role, currentTerm, pNode->restoreFinish);
-    }
-    //TODO state != TAOS_SYNC_STATE_LEARNER, pNode->restoreFinish, skip replay 
-
-    if (syncFsmExecute(pNode, pFsm, role, currentTerm, pEntry, 0) != 0) {
+    if (syncFsmExecute(pNode, pFsm, role, currentTerm, pEntry, 0, false) != 0) {
       sError("vgId:%d, failed to execute sync log entry. index:%" PRId64 ", term:%" PRId64
              ", role:%d, current term:%" PRId64,
              vgId, pEntry->index, pEntry->term, role, currentTerm);
@@ -749,6 +731,48 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
       syncEntryDestroy(pEntry);
       pEntry = NULL;
     }
+
+    pNextEntry = syncLogBufferGetOneEntry(pBuf, pNode, index + 1, &inBuf);
+    if (pNextEntry != NULL /*&& pNode->state != TAOS_SYNC_STATE_LEARNER pNode->restoreFinish*/ && pNextEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE) {
+      sInfo("vgId:%d, to change config at Commit. "
+            "current entry, index:%" PRId64 ", term:%" PRId64", "
+            "node, role:%d, current term:%" PRId64 ", restore:%d, "
+            "cond, next entry index:%" PRId64 ", msgType:%d",
+            vgId, 
+            pEntry->index, pEntry->term, 
+            role, currentTerm, pNode->restoreFinish,
+            pNextEntry->index, pNextEntry->originalRpcType);
+      syncNodeChangeConfig(pNode, pNextEntry, "Commit");
+
+      index++;
+
+      if(index <= upperIndex) {
+        //TODO cdm
+      }
+
+      if (syncFsmExecute(pNode, pFsm, role, currentTerm, pNextEntry, 0, true) != 0) {
+        sError("vgId:%d, failed to execute sync log entry. index:%" PRId64 ", term:%" PRId64
+              ", role:%d, current term:%" PRId64,
+              vgId, pNextEntry->index, pNextEntry->term, role, currentTerm);
+        goto _out;
+      }
+      pBuf->commitIndex = index;
+
+      sTrace("vgId:%d, committed index:%" PRId64 ", term:%" PRId64 ", role:%d, current term:%" PRId64 "", pNode->vgId,
+            pNextEntry->index, pNextEntry->term, role, currentTerm);
+
+      if (!inBuf) {
+        syncEntryDestroy(pNextEntry);
+        pNextEntry = NULL;
+      }
+    }
+    else{
+      //sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from LogBufferCommit. index:%" PRId64 ", term:%" PRId64
+      //       ", role:%d, current term:%" PRId64 ", restoreFinish:%d",
+      //       vgId, pEntry->index, pEntry->term, role, currentTerm, pNode->restoreFinish);
+    }
+    //TODO state != TAOS_SYNC_STATE_LEARNER, pNode->restoreFinish, skip replay 
+
   }
 
   // recycle
