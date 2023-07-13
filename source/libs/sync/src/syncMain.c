@@ -2528,20 +2528,10 @@ void syncNodeChangeToVoter(SSyncNode* ths){
   //TODO cdm 为什么第一有一个，第二次有三个
 
   //pVotesGranted, pVotesRespond
-  ths->pVotesGranted = voteGrantedCreate(ths);
-  if (ths->pVotesGranted == NULL) {
-    sError("vgId:%d, failed to create VotesGranted", ths->vgId);
-    //goto _error;]
-    //TODO _error
-  }
-  ths->pVotesRespond = votesRespondCreate(ths);
-  if (ths->pVotesRespond == NULL) {
-    sError("vgId:%d, failed to create VotesRespond", ths->vgId);
-    //goto _error;
-    //TODO _error
-  }
-  //TODO  cdm change to update
+  voteGrantedUpdate(ths->pVotesGranted, ths);
+  votesRespondUpdate(ths->pVotesRespond, ths);
 
+  //logRepMgrs
   //no need to change logRepMgrs when 1->3
 }
 
