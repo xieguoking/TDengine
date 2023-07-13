@@ -2483,18 +2483,13 @@ int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum
 
 
   //7.rebuild synctimer
-  SSyncTimer oldSyncTier[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
-  for(int i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; i++){
-    syncHbTimerStop(ths, &ths->peerHeartbeatTimerArr[i]);
-  }
-  //TODO cdm 按数组大小循环，不对吧
+  syncNodeStopHeartbeatTimer(ths);
 
-  for(int i = 0; i < ths->totalReplicaNum; i++){
+  for (int32_t i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; ++i) {
     syncHbTimerInit(ths, &ths->peerHeartbeatTimerArr[i], ths->replicasId[i]);
-    syncHbTimerStart(ths, &ths->peerHeartbeatTimerArr[i]);
-    //TODO 排除mynode
   }
-  //TODO 状态没有保留，是否需要保留
+
+  syncNodeStartHeartbeatTimer(ths);
 
 
   //8.rebuild peerStates
@@ -2510,6 +2505,8 @@ int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum
       }
     }
   }
+
+  return 0;
 }
 
 void syncNodeLogConfigInfo(SSyncNode* ths, SSyncCfg *cfg, char *str){
