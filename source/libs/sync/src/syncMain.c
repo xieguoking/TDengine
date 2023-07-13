@@ -2509,6 +2509,42 @@ int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum
   return 0;
 }
 
+void syncNodeChangeToVoter(SSyncNode* ths){
+  //replicasId, only need to change replicaNum when 1->3
+  ths->replicaNum = ths->raftCfg.cfg.replicaNum;
+  sDebug("vgId:%d, totalReplicaNum:%d", ths->vgId, ths->totalReplicaNum);
+  for (int32_t i = 0; i < ths->totalReplicaNum; ++i){
+    sDebug("vgId:%d, i:%d, replicaId.addr:%" PRIx64, ths->vgId, i, ths->replicasId[i].addr);
+  }
+
+  //pMatchIndex, pNextIndex, only need to change replicaNum when 1->3
+  ths->pMatchIndex->replicaNum = ths->raftCfg.cfg.replicaNum;
+  ths->pNextIndex->replicaNum = ths->raftCfg.cfg.replicaNum;
+
+  sDebug("vgId:%d, pMatchIndex->totalReplicaNum:%d", ths->vgId, ths->pMatchIndex->totalReplicaNum);
+  for (int32_t i = 0; i < ths->pMatchIndex->totalReplicaNum; ++i){
+    sDebug("vgId:%d, i:%d, match.index:%" PRId64, ths->vgId, i, ths->pMatchIndex->index[i]);
+  }
+  //TODO cdm 为什么第一有一个，第二次有三个
+
+  //pVotesGranted, pVotesRespond
+  ths->pVotesGranted = voteGrantedCreate(ths);
+  if (ths->pVotesGranted == NULL) {
+    sError("vgId:%d, failed to create VotesGranted", ths->vgId);
+    //goto _error;]
+    //TODO _error
+  }
+  ths->pVotesRespond = votesRespondCreate(ths);
+  if (ths->pVotesRespond == NULL) {
+    sError("vgId:%d, failed to create VotesRespond", ths->vgId);
+    //goto _error;
+    //TODO _error
+  }
+  //TODO  cdm change to update
+
+  //no need to change logRepMgrs when 1->3
+}
+
 void syncNodeLogConfigInfo(SSyncNode* ths, SSyncCfg *cfg, char *str){
   sInfo("vgId:%d, %s. SyncNode, replicaNum:%d, peersNum:%d, lastConfigIndex:%" PRId64 ", changeVersion:%d", 
         ths->vgId, str, 
@@ -2576,6 +2612,34 @@ int32_t syncNodeRebuildPeerAndCfg(SSyncNode* ths, SSyncCfg *cfg){
   ths->raftCfg.cfg.totalReplicaNum = i;
 
   return 0;
+}
+
+void syncNodeChangePeerAndCfgToVoter(SSyncNode* ths, SSyncCfg *cfg){
+  //change peersNodeInfo
+  for (int32_t i = 0; i < ths->peersNum; ++i) {
+    for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
+      if(strcmp(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
+        && ths->peersNodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
+        if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
+          ths->peersNodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
+        }
+      }
+    }
+  }
+
+  //change cfg nodeInfo
+  ths->raftCfg.cfg.replicaNum = 0;
+  for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
+    for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
+      if(strcmp(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
+        && ths->raftCfg.cfg.nodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
+        if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
+          ths->raftCfg.cfg.nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
+          ths->raftCfg.cfg.replicaNum++;
+        }
+      }
+    }
+  }
 }
 
 void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
@@ -2702,11 +2766,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
   }
   else{//add replica, or change replica type
     if(ths->totalReplicaNum == 3){ //change replica type
-      sInfo("vgId:%d, begin change replica type", ths->vgId);
-      //ths->replicaNum = 0;
-      //ths->pMatchIndex->replicaNum = 0;
-      //ths->pNextIndex->replicaNum = 0;
-      
+      sInfo("vgId:%d, begin change replica type", ths->vgId);  
 
       //change myNodeInfo
       for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
@@ -2714,73 +2774,13 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
           && ths->myNodeInfo.nodePort == cfg->nodeInfo[j].nodePort){
           if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
             ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_VOTER;
-            //ths->replicaNum++;
-            //ths->pMatchIndex->replicaNum++;
-            //ths->pNextIndex->replicaNum++;
           }
         }
       }
 
-      //change peersNodeInfo
-      for (int32_t i = 0; i < ths->peersNum; ++i) {
-        for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
-          if(strcmp(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
-            && ths->peersNodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
-            if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
-              ths->peersNodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
-              //ths->replicaNum++;
-              //ths->pMatchIndex->replicaNum++;
-              //ths->pNextIndex->replicaNum++;
-            }
-          }
-        }
-      }
+      syncNodeChangePeerAndCfgToVoter(ths, cfg);
 
-      //change cfg nodeInfo
-      ths->raftCfg.cfg.replicaNum = 0;
-      for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
-        for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
-          if(strcmp(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
-            && ths->raftCfg.cfg.nodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
-            if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
-              ths->raftCfg.cfg.nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
-              ths->raftCfg.cfg.replicaNum++;
-            }
-          }
-        }
-      }
-
-      ths->replicaNum = ths->raftCfg.cfg.replicaNum;
-
-      sDebug("vgId:%d, totalReplicaNum:%d", ths->vgId, ths->totalReplicaNum);
-      for (int32_t i = 0; i < ths->totalReplicaNum; ++i){
-        sDebug("vgId:%d, i:%d, replicaId.addr:%" PRIx64, ths->vgId, i, ths->replicasId[i].addr);
-      }
-
-      ths->pMatchIndex->replicaNum = ths->raftCfg.cfg.replicaNum;
-      ths->pNextIndex->replicaNum = ths->raftCfg.cfg.replicaNum;
-
-      sDebug("vgId:%d, pMatchIndex->totalReplicaNum:%d", ths->vgId, ths->pMatchIndex->totalReplicaNum);
-      for (int32_t i = 0; i < ths->pMatchIndex->totalReplicaNum; ++i){
-        sDebug("vgId:%d, i:%d, match.index:%" PRId64, ths->vgId, i, ths->pMatchIndex->index[i]);
-      }
-      //TODO 为什么第一有一个，第二次有三个
-
-      ths->pVotesGranted = voteGrantedCreate(ths);
-      if (ths->pVotesGranted == NULL) {
-        sError("vgId:%d, failed to create VotesGranted", ths->vgId);
-        //goto _error;]
-        //TODO _error
-      }
-      //TODO change to update
-      ths->pVotesRespond = votesRespondCreate(ths);
-      if (ths->pVotesRespond == NULL) {
-        sError("vgId:%d, failed to create VotesRespond", ths->vgId);
-        //goto _error;
-        //TODO _error
-      }
-
-      //no need to change logRepMgrs when 1->3
+      syncNodeChangeToVoter(ths);
 
       if(ths->state ==TAOS_SYNC_STATE_LEARNER){
         if(ths->myNodeInfo.nodeRole == TAOS_SYNC_ROLE_VOTER ){
