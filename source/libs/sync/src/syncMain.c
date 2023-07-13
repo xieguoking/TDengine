@@ -2533,7 +2533,7 @@ void syncNodeLogConfigInfo(SSyncNode* ths, SSyncCfg *cfg, char *str){
   }
 }
 
-void syncNodeChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){//TODO 少了n
+void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
   if(pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE){
     return;
   }

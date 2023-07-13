@@ -180,7 +180,6 @@ _SEND_RESPONSE:
   // ack, i.e. send response
   (void)syncNodeSendMsgById(&pReply->destId, ths, &rpcRsp);
 
-  //syncNodeChageConfig(ths, pEntry);
   if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
     if(ths->pLogBuf->commitIndex == pEntry->index -1){
       sInfo("vgId:%d, to change config at OnAppn. "
@@ -191,7 +190,7 @@ _SEND_RESPONSE:
             pEntry->index, pEntry->term, 
             ths->restoreFinish,
             pEntry->index -1, ths->commitIndex, ths->pLogBuf->commitIndex);
-      syncNodeChageConfig(ths, pEntry, "OnAppn");
+      syncNodeChangeConfig(ths, pEntry, "OnAppn");
     }
     else{
       sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from OnAppendEntry, "

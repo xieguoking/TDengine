@@ -492,7 +492,6 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
     }
     ASSERT(pEntry->index == pBuf->matchIndex); //TODO move to here is proper?
   
-    //syncNodeChageConfig_2cfg(ths, pEntry);
     if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
       if(pNode->pLogBuf->commitIndex == pEntry->index -1){
         sInfo("vgId:%d, to change config at Append. "
@@ -503,7 +502,7 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
               pEntry->index, pEntry->term, 
               pNode->restoreFinish,
               pEntry->index -1, pNode->commitIndex, pNode->pLogBuf->commitIndex);
-        syncNodeChageConfig(pNode, pEntry, "Append");
+        syncNodeChangeConfig(pNode, pEntry, "Append");
       }
       else{
         sTrace("vgId:%d, delay syncNodeChageConfig_lastcommit from Node Append. index:%" PRId64 ", term:%" PRId64 ", ths->commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64
@@ -726,7 +725,7 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
             pEntry->index, pEntry->term, 
             role, currentTerm, pNode->restoreFinish,
             pNextEntry->index, pNextEntry->originalRpcType);
-      syncNodeChageConfig(pNode, pNextEntry, "Commit");
+      syncNodeChangeConfig(pNode, pNextEntry, "Commit");
     }
     else{
       //sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from LogBufferCommit. index:%" PRId64 ", term:%" PRId64

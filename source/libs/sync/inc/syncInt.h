@@ -239,7 +239,7 @@ int32_t    syncNodeRestore(SSyncNode* pSyncNode);
 void       syncHbTimerDataFree(SSyncHbTimerData* pData);
 
 // config
-void syncNodeChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str);
+void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str);
 
 // on message ---------------------
 int32_t syncNodeOnTimeout(SSyncNode* ths, const SRpcMsg* pMsg);
