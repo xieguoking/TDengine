@@ -2802,7 +2802,7 @@ int32_t startGroupTableMergeScan(SOperatorInfo* pOperator) {
     kWay = i;
   }
   kWay = 128;
-  pInfo->bufPageSize = 1048576 * 8;
+  pInfo->bufPageSize = 1048576 * 16;
   pInfo->sortBufSize = pInfo->bufPageSize * (kWay + 1);
   int32_t numOfBufPage = pInfo->sortBufSize / pInfo->bufPageSize;
   pInfo->pSortHandle = tsortCreateSortHandle(pInfo->pSortInfo, SORT_MULTISOURCE_MERGE, pInfo->bufPageSize, numOfBufPage,
@@ -2834,7 +2834,6 @@ int32_t startGroupTableMergeScan(SOperatorInfo* pOperator) {
     ps->onlyRef = true;
     tsortAddSource(pInfo->pSortHandle, ps);
   }
-
   int32_t code = tsortOpen(pInfo->pSortHandle);
 
   if (code != TSDB_CODE_SUCCESS) {

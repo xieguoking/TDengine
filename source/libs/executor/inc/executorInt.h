@@ -235,7 +235,7 @@ typedef struct STableMergeScanInfo {
   SArray*         queryConds;  // array of queryTableDataCond
   STableScanBase  base;
   int32_t         bufPageSize;
-  uint32_t        sortBufSize;  // max buffer size for in-memory sort
+  int64_t        sortBufSize;  // max buffer size for in-memory sort
   SArray*         pSortInfo;
   SSortHandle*    pSortHandle;
   SSDataBlock*    pSortInputBlock;

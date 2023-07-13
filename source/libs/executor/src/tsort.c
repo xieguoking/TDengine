@@ -263,7 +263,7 @@ static int32_t doAddToBuf(SSDataBlock* pDataBlock, SSortHandle* pHandle) {
       return terrno;
     }
 
-    int32_t code = createDiskbasedBuf(&pHandle->pBuf, pHandle->pageSize, pHandle->numOfPages * pHandle->pageSize,
+    int32_t code = createDiskbasedBuf(&pHandle->pBuf, pHandle->pageSize, ((int64_t)pHandle->numOfPages) * pHandle->pageSize,
                                       "sortExternalBuf", tsTempDir);
     dBufSetPrintInfo(pHandle->pBuf);
     if (code != TSDB_CODE_SUCCESS) {
@@ -329,7 +329,7 @@ static int32_t sortComparInit(SMsortComparParam* pParam, SArray* pSources, int32
       return code;
     }
 
-    code = createDiskbasedBuf(&pHandle->pBuf, pHandle->pageSize, pHandle->numOfPages * pHandle->pageSize,
+    code = createDiskbasedBuf(&pHandle->pBuf, pHandle->pageSize, ((int64_t)pHandle->numOfPages) * pHandle->pageSize,
                               "sortComparInit", tsTempDir);
     dBufSetPrintInfo(pHandle->pBuf);
     if (code != TSDB_CODE_SUCCESS) {
