@@ -2364,8 +2364,11 @@ int32_t syncNodecheckChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry){//TODO 
   return 0;
 }
 
-void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
-  //rebuild replicasId, remove deleted one
+int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum){
+  //TODO cdm 直接copy这样状态复制是否可以？
+  //TODO cdm 是否会出现不按顺序的删除
+
+  //1.rebuild replicasId, remove deleted one
   SRaftId oldReplicasId[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
   memcpy(oldReplicasId, ths->replicasId, sizeof(oldReplicasId));
 
@@ -2376,7 +2379,7 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
   }
 
 
-  //rebuild MatchIndex, remove deleted one
+  //2.rebuild MatchIndex, remove deleted one
   SSyncIndexMgr *oldIndex = ths->pMatchIndex;
 
   ths->pMatchIndex = syncIndexMgrCreate(ths);
@@ -2386,7 +2389,7 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
   syncIndexMgrDestroy(oldIndex);
 
 
-  //rebuild NextIndex, remove deleted one
+  //3.rebuild NextIndex, remove deleted one
   SSyncIndexMgr *oldNextIndex = ths->pNextIndex;
 
   ths->pNextIndex = syncIndexMgrCreate(ths);
@@ -2395,16 +2398,13 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
 
   syncIndexMgrDestroy(oldNextIndex);
 
-  //syncIndexMgrUpdate(ths->pNextIndex, ths);
-  //syncIndexMgrUpdate(ths->pMatchIndex, ths); //TODO 强行修改
 
-
-  //rebuild pVotesGranted, pVotesRespond
+  //4.rebuild pVotesGranted, pVotesRespond, no need to keep old vote state, only rebuild
   voteGrantedUpdate(ths->pVotesGranted, ths);
   votesRespondUpdate(ths->pVotesRespond, ths);
 
 
-  //rebuild logReplMgr
+  //5.rebuild logReplMgr
   for(int i = 0; i < oldtotalReplicaNum; ++i){
     sDebug("vgId:%d, old logReplMgrs i:%d, peerId:%d, restoreed:%d, [%" PRId64 " %" PRId64 ", %" PRId64 ")", ths->vgId, i,
           ths->logReplMgrs[i]->peerId, ths->logReplMgrs[i]->restored, ths->logReplMgrs[i]->startIndex, 
@@ -2421,11 +2421,14 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
 
   for(int i = 0; i < ths->totalReplicaNum; ++i){
     ths->logReplMgrs[i] = syncLogReplCreate();
-    //TODO 会返回NULL
+    if(ths->logReplMgrs[i] == NULL){
+      return -1;
+    }
 
     for(int j = 0; j < oldtotalReplicaNum; j++){
       if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])) {
         *(ths->logReplMgrs[i]) = oldLogReplMgrs[j];
+        //TODO cdm 按结构体复制，是否合理
       }
     }
 
@@ -2443,7 +2446,8 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
   }
 
 
-  //rebuild sender
+  //6.rebuild sender
+  //TODO cdm 是不是不需要, sender是用的时候再初始化的吗
   for(int i = 0; i < oldtotalReplicaNum; ++i){
     sDebug("vgId:%d, old sender i:%d, replicaIndex:%d, lastSendTime:%" PRId64, 
             ths->vgId, i, ths->senders[i]->replicaIndex, ths->senders[i]->lastSendTime)
@@ -2458,16 +2462,15 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
 
   for(int i = 0; i < ths->totalReplicaNum; i++){
     ths->senders[i] = snapshotSenderCreate(ths, i);
-    //TODO 这里不对
+    //TODO cdm 这里不对，看不出哪不对了
 
     for(int j = 0; j < oldtotalReplicaNum; j++){
       if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])){
         *(ths->senders[i]) = oldSender[j];
+        //TODO cdm 按结构体复制，是否合理
       }
     }    
   }
-  //TODO 直接copy这样状态复制是否可以？
-  //TODO 是不是不需要
 
   for(int i = 0; i < oldtotalReplicaNum; i++){
     snapshotSenderDestroy(pOldSender[i]);
@@ -2479,22 +2482,22 @@ void syncNodeRebuildFromOld(SSyncNode* ths, int32_t oldtotalReplicaNum){
   }
 
 
-  //rebuild synctimer
+  //7.rebuild synctimer
   SSyncTimer oldSyncTier[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
   for(int i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; i++){
     syncHbTimerStop(ths, &ths->peerHeartbeatTimerArr[i]);
   }
+  //TODO cdm 按数组大小循环，不对吧
 
   for(int i = 0; i < ths->totalReplicaNum; i++){
     syncHbTimerInit(ths, &ths->peerHeartbeatTimerArr[i], ths->replicasId[i]);
     syncHbTimerStart(ths, &ths->peerHeartbeatTimerArr[i]);
     //TODO 排除mynode
   }
-  //TODO 是否会出现不按顺序的删除
   //TODO 状态没有保留，是否需要保留
 
 
-  //rebuild peerStates
+  //8.rebuild peerStates
   SPeerState oldState[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA] = {0};
   for(int i = 0; i < TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA; i++){
     oldState[i] = ths->peerStates[i];
@@ -2652,7 +2655,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
         ths->raftCfg.cfg.totalReplicaNum++;
       }
 
-      syncNodeRebuildFromOld(ths, oldtotalReplicaNum);
+      syncNodeRebuildAndCopyIfExist(ths, oldtotalReplicaNum); //TODo cdm return -1
     }
     else{//remove myself
       ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_LEARNER;
@@ -2845,7 +2848,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
       }
       ths->raftCfg.cfg.totalReplicaNum = i;
 
-      syncNodeRebuildFromOld(ths, oldtotalReplicaNum);
+      syncNodeRebuildAndCopyIfExist(ths, oldtotalReplicaNum); //TODO cdm return -1
     }
   }
 
