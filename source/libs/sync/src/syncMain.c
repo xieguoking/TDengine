@@ -2634,13 +2634,9 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
 
       ths->replicaNum = 0;
       ths->raftCfg.cfg.replicaNum = 0;
-      //ths->pMatchIndex->replicaNum = 0; //TODO 强行修改
-      //ths->pNextIndex->replicaNum = 0;
 
       ths->totalReplicaNum = 0;
       ths->raftCfg.cfg.totalReplicaNum = 0;
-      //ths->pMatchIndex->totalReplicaNum = 0;
-      //ths->pNextIndex->totalReplicaNum = 0;
 
       for(int32_t j = 0, i = 0; j < cfg->totalReplicaNum; ++j, i++){
         ths->raftCfg.cfg.nodeInfo[i].nodeRole = cfg->nodeInfo[j].nodeRole;
@@ -2651,14 +2647,9 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
 
         //ths->replicaNum++;
         ths->raftCfg.cfg.replicaNum++;
-        //ths->pMatchIndex->replicaNum++; //TODO 强行修改
-        //ths->pNextIndex->replicaNum++;
-
 
         //ths->totalReplicaNum++;
         ths->raftCfg.cfg.totalReplicaNum++;
-        //ths->pMatchIndex->totalReplicaNum++;
-        //ths->pNextIndex->totalReplicaNum++;
       }
 
       syncNodeRebuildFromOld(ths, oldtotalReplicaNum);
@@ -2853,44 +2844,6 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
         i++;
       }
       ths->raftCfg.cfg.totalReplicaNum = i;
-
-      /*
-      //replicasId
-      SRaftId oldReplicasId[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
-      memcpy(oldReplicasId, ths->replicasId, sizeof(oldReplicasId));
-
-      for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
-        syncUtilNodeInfo2RaftId(&ths->raftCfg.cfg.nodeInfo[i], ths->vgId, &ths->replicasId[i]);
-      }
-
-      //MatchIndex
-      SSyncIndexMgr *oldIndex = ths->pMatchIndex;
-
-      ths->pMatchIndex = syncIndexMgrCreate(ths);
-
-      syncIndexMgrCopyIndexExclude(ths->pMatchIndex, oldIndex, oldReplicasId);
-
-      syncIndexMgrDestroy(oldIndex);
-
-      //rebuild NextIndex, remove deleted one
-      SSyncIndexMgr *oldNextIndex = ths->pNextIndex;
-
-      ths->pNextIndex = syncIndexMgrCreate(ths);
-
-      syncIndexMgrCopyIndexExclude(ths->pNextIndex, oldNextIndex, oldReplicasId);
-
-      syncIndexMgrDestroy(oldNextIndex);
-
-      //pVotesGranted, pVotesRespond
-      voteGrantedUpdate(ths->pVotesGranted, ths);
-      votesRespondUpdate(ths->pVotesRespond, ths);
-
-      //rebuild logReplMgr
-      for(int i = 0; i < ths->totalReplicaNum; ++i){
-        if(syncUtilSameId(&ths->replicasId[i], ths->myNodeInfo.))
-        ths->logReplMgrs[i] = syncLogReplCreate();
-      }
-      */
 
       syncNodeRebuildFromOld(ths, oldtotalReplicaNum);
     }
