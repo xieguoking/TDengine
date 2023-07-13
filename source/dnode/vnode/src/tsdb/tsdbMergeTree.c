@@ -136,6 +136,7 @@ static void deleteSttBlockDataCache(const void *key, size_t keyLen, void *value,
 }
 
 static SBlockData *loadLastBlock(SLDataIter *pIter, const char *idStr) {
+
   int32_t               code = 0;
 
   SSttBlockLoadInfo *pInfo = pIter->pBlockLoadInfo;

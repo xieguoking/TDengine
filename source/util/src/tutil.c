@@ -16,6 +16,17 @@
 #define _DEFAULT_SOURCE
 #include "tutil.h"
 #include "tlog.h"
+int64_t tlogMemUsage(const char* format, ...) {
+  char result[1024];
+  va_list args;
+  va_start(args, format);
+  vsnprintf(result, sizeof(result), format, args);
+  va_end(args);
+  int64_t usedKB = 0;
+  taosGetProcMemory(&usedKB);
+  uInfo("zsl: %s mem %.2f", result, usedKB/(1024.0));
+  return usedKB;
+}
 
 void *tmemmem(const char *haystack, int32_t hlen, const char *needle, int32_t nlen) {
   const char *limit;

@@ -599,7 +599,7 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
   int32_t numOfRows = blockDataGetCapacityInRow(pHandle->pDataBlock, pHandle->pageSize,
                                                 blockDataGetSerialMetaSize(taosArrayGetSize(pHandle->pDataBlock->pDataBlock)));
   blockDataEnsureCapacity(pHandle->pDataBlock, numOfRows);
-
+  
   // the initial pass + sortPass + final mergePass
   pHandle->loops = sortPass + 2;
 
@@ -614,6 +614,7 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
 
     // Only *numOfInputSources* can be loaded into buffer to perform the external sort.
     for (int32_t i = 0; i < sortGroup; ++i) {
+      tlogMemUsage("begin pass: %d, group: %d", t, i);
       pHandle->sourceId += 1;
 
       int32_t end = (i + 1) * numOfInputSources - 1;
@@ -636,6 +637,7 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
         return code;
       }
 
+      tlogMemUsage("pass: %d, group: %d created merge tree", t, i);
       SArray* pPageIdList = taosArrayInit(4, sizeof(int32_t));
       while (1) {
         if (tsortIsClosed(pHandle)) {
@@ -680,6 +682,7 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
         taosArrayDestroy(pResList);
         return code;
       }
+      tlogMemUsage("end pass: %d, group: %d", t, i);
     }
 
     tsortClearOrderdSource(pHandle->pOrderedSource, NULL, NULL);
