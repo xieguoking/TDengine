@@ -2751,7 +2751,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
     grant->quorum = syncUtilQuorum(ths->replicaNum);
     //TODO为什么3-1要改
 
-    ths->restoreFinish = false;
+    ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
     //TODO 3-1的时候，config的apply比alterconfirm晚
   }
   else{//add replica, or change replica type
@@ -2979,6 +2979,9 @@ bool syncNodeHeartbeatReplyTimeout(SSyncNode* pSyncNode) {
   int32_t toCount = 0;
   int64_t tsNow = taosGetTimestampMs();
   for (int32_t i = 0; i < pSyncNode->peersNum; ++i) {
+    if(pSyncNode->peersNodeInfo[i].nodeRole == TAOS_SYNC_ROLE_LEARNER){
+      continue;
+    }
     int64_t recvTime = syncIndexMgrGetRecvTime(pSyncNode->pMatchIndex, &(pSyncNode->peersId[i]));
     if (recvTime == 0 || recvTime == -1) {
       continue;
