@@ -518,8 +518,11 @@ SSyncState syncGetState(int64_t rid) {
     double progress = 0;
     if(pSyncNode->pLogBuf->totalIndex > 0 && pSyncNode->pLogBuf->commitIndex > 0){
       progress = (double)pSyncNode->pLogBuf->commitIndex/(double)pSyncNode->pLogBuf->totalIndex;
+      state.progress = (int32_t)(progress * 100);
     }
-    state.progress = (int32_t)(progress * 100);
+    else{
+      state.progress = -1;
+    }
     sDebug("vgId:%d, learner progress state, commitIndex:%" PRId64 " totalIndex:%" PRId64 ", "
             "progress:%lf, progress:%d", 
           pSyncNode->vgId,
