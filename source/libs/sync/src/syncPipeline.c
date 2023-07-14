@@ -626,7 +626,7 @@ int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTe
       pNode->raftCfg.cfg.nodeInfo[i].nodePort, pNode->raftCfg.cfg.nodeInfo[i].nodeRole);
     }
 
-    pNode->restoreFinish = false;
+    //pNode->restoreFinish = false;
     //TODO
 
     /*

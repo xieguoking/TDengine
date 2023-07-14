@@ -2378,6 +2378,103 @@ int32_t syncNodecheckChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry){//TODO 
   return 0;
 }
 
+void syncNodeLogConfigInfo(SSyncNode* ths, SSyncCfg *cfg, char *str){
+  sInfo("vgId:%d, %s. SyncNode, replicaNum:%d, peersNum:%d, lastConfigIndex:%" PRId64 ", changeVersion:%d", 
+        ths->vgId, str, 
+        ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex, ths->raftCfg.cfg.changeVersion);
+
+  sInfo("vgId:%d, %s, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
+    ths->vgId, str, ths->myNodeInfo.clusterId, ths->myNodeInfo.nodeId, ths->myNodeInfo.nodeFqdn, 
+    ths->myNodeInfo.nodePort, ths->myNodeInfo.nodeRole);
+
+  for (int32_t i = 0; i < ths->peersNum; ++i){
+    sInfo("vgId:%d, %s, peersNodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
+    ths->vgId, str, i, ths->peersNodeInfo[i].clusterId, 
+    ths->peersNodeInfo[i].nodeId, ths->peersNodeInfo[i].nodeFqdn, 
+    ths->peersNodeInfo[i].nodePort, ths->peersNodeInfo[i].nodeRole);
+  }
+
+  for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i){
+    sInfo("vgId:%d, %s, nodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
+    ths->vgId, str, i, ths->raftCfg.cfg.nodeInfo[i].clusterId, 
+    ths->raftCfg.cfg.nodeInfo[i].nodeId, ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, 
+    ths->raftCfg.cfg.nodeInfo[i].nodePort, ths->raftCfg.cfg.nodeInfo[i].nodeRole);
+  }
+}
+
+int32_t syncNodeRebuildPeerAndCfg(SSyncNode* ths, SSyncCfg *cfg){
+  int32_t i = 0;
+
+  //change peersNodeInfo
+  i = 0;
+  for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
+    if(!(strcmp(ths->myNodeInfo.nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 //TODO cdm better?
+      && ths->myNodeInfo.nodePort == cfg->nodeInfo[j].nodePort)){
+      ths->peersNodeInfo[i].nodeRole = cfg->nodeInfo[j].nodeRole;
+      ths->peersNodeInfo[i].clusterId = cfg->nodeInfo[j].clusterId;
+      tstrncpy(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn, TSDB_FQDN_LEN);
+      ths->peersNodeInfo[i].nodeId = cfg->nodeInfo[j].nodeId;
+      ths->peersNodeInfo[i].nodePort = cfg->nodeInfo[j].nodePort;
+
+      syncUtilNodeInfo2EpSet(&ths->peersNodeInfo[i], &ths->peersEpset[i]);
+
+      if (!syncUtilNodeInfo2RaftId(&ths->peersNodeInfo[i], ths->vgId, &ths->peersId[i])) {
+        sError("vgId:%d, failed to determine raft member id, peer:%d", ths->vgId, i);
+        return -1;
+      }
+
+      i++;
+    }
+  }
+  ths->peersNum = i;
+
+  //change cfg nodeInfo
+  ths->raftCfg.cfg.replicaNum = 0;
+  i = 0;
+  for(int32_t j = 0; j < cfg->totalReplicaNum; ++j) {
+    if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
+      ths->raftCfg.cfg.replicaNum++;
+    }
+    ths->raftCfg.cfg.nodeInfo[i].nodeRole = cfg->nodeInfo[j].nodeRole;
+    ths->raftCfg.cfg.nodeInfo[i].clusterId = cfg->nodeInfo[j].clusterId;
+    tstrncpy(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn, TSDB_FQDN_LEN);
+    ths->raftCfg.cfg.nodeInfo[i].nodeId = cfg->nodeInfo[j].nodeId;
+    ths->raftCfg.cfg.nodeInfo[i].nodePort = cfg->nodeInfo[j].nodePort;
+    i++;
+  }
+  ths->raftCfg.cfg.totalReplicaNum = i;
+
+  return 0;
+}
+
+void syncNodeChangePeerAndCfgToVoter(SSyncNode* ths, SSyncCfg *cfg){
+  //change peersNodeInfo
+  for (int32_t i = 0; i < ths->peersNum; ++i) {
+    for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
+      if(strcmp(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
+        && ths->peersNodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
+        if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
+          ths->peersNodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
+        }
+      }
+    }
+  }
+
+  //change cfg nodeInfo
+  ths->raftCfg.cfg.replicaNum = 0;
+  for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
+    for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
+      if(strcmp(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
+        && ths->raftCfg.cfg.nodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
+        if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
+          ths->raftCfg.cfg.nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
+          ths->raftCfg.cfg.replicaNum++;
+        }
+      }
+    }
+  }
+}
+
 int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum){
   //TODO cdm 直接copy这样状态复制是否可以？
   //TODO cdm 是否会出现不按顺序的删除
@@ -2549,100 +2646,14 @@ void syncNodeChangeToVoter(SSyncNode* ths){
   //no need to change logRepMgrs when 1->3
 }
 
-void syncNodeLogConfigInfo(SSyncNode* ths, SSyncCfg *cfg, char *str){
-  sInfo("vgId:%d, %s. SyncNode, replicaNum:%d, peersNum:%d, lastConfigIndex:%" PRId64 ", changeVersion:%d", 
-        ths->vgId, str, 
-        ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex, ths->raftCfg.cfg.changeVersion);
-
-  sInfo("vgId:%d, %s, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-    ths->vgId, str, ths->myNodeInfo.clusterId, ths->myNodeInfo.nodeId, ths->myNodeInfo.nodeFqdn, 
-    ths->myNodeInfo.nodePort, ths->myNodeInfo.nodeRole);
-
-  for (int32_t i = 0; i < ths->peersNum; ++i){
-    sInfo("vgId:%d, %s, peersNodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-    ths->vgId, str, i, ths->peersNodeInfo[i].clusterId, 
-    ths->peersNodeInfo[i].nodeId, ths->peersNodeInfo[i].nodeFqdn, 
-    ths->peersNodeInfo[i].nodePort, ths->peersNodeInfo[i].nodeRole);
-  }
-
-  for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i){
-    sInfo("vgId:%d, %s, nodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-    ths->vgId, str, i, ths->raftCfg.cfg.nodeInfo[i].clusterId, 
-    ths->raftCfg.cfg.nodeInfo[i].nodeId, ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, 
-    ths->raftCfg.cfg.nodeInfo[i].nodePort, ths->raftCfg.cfg.nodeInfo[i].nodeRole);
-  }
-}
-
-int32_t syncNodeRebuildPeerAndCfg(SSyncNode* ths, SSyncCfg *cfg){
-  int32_t i = 0;
-
-  //change peersNodeInfo
-  i = 0;
-  for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
-    if(!(strcmp(ths->myNodeInfo.nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 //TODO cdm better?
-      && ths->myNodeInfo.nodePort == cfg->nodeInfo[j].nodePort)){
-      ths->peersNodeInfo[i].nodeRole = cfg->nodeInfo[j].nodeRole;
-      ths->peersNodeInfo[i].clusterId = cfg->nodeInfo[j].clusterId;
-      tstrncpy(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn, TSDB_FQDN_LEN);
-      ths->peersNodeInfo[i].nodeId = cfg->nodeInfo[j].nodeId;
-      ths->peersNodeInfo[i].nodePort = cfg->nodeInfo[j].nodePort;
-
-      syncUtilNodeInfo2EpSet(&ths->peersNodeInfo[i], &ths->peersEpset[i]);
-
-      if (!syncUtilNodeInfo2RaftId(&ths->peersNodeInfo[i], ths->vgId, &ths->peersId[i])) {
-        sError("vgId:%d, failed to determine raft member id, peer:%d", ths->vgId, i);
-        return -1;
-      }
-
-      i++;
-    }
-  }
-  ths->peersNum = i;
-
-  //change cfg nodeInfo
-  ths->raftCfg.cfg.replicaNum = 0;
-  i = 0;
-  for(int32_t j = 0; j < cfg->totalReplicaNum; ++j) {
-    if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
-      ths->raftCfg.cfg.replicaNum++;
-    }
-    ths->raftCfg.cfg.nodeInfo[i].nodeRole = cfg->nodeInfo[j].nodeRole;
-    ths->raftCfg.cfg.nodeInfo[i].clusterId = cfg->nodeInfo[j].clusterId;
-    tstrncpy(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn, TSDB_FQDN_LEN);
-    ths->raftCfg.cfg.nodeInfo[i].nodeId = cfg->nodeInfo[j].nodeId;
-    ths->raftCfg.cfg.nodeInfo[i].nodePort = cfg->nodeInfo[j].nodePort;
-    i++;
-  }
-  ths->raftCfg.cfg.totalReplicaNum = i;
-
-  return 0;
-}
-
-void syncNodeChangePeerAndCfgToVoter(SSyncNode* ths, SSyncCfg *cfg){
-  //change peersNodeInfo
+void syncNodeResetPeerAndCfg(SSyncNode* ths){
+  SNodeInfo node = {0};
   for (int32_t i = 0; i < ths->peersNum; ++i) {
-    for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
-      if(strcmp(ths->peersNodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
-        && ths->peersNodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
-        if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
-          ths->peersNodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
-        }
-      }
-    }
+    memcpy(&ths->peersNodeInfo[i], &node, sizeof(SNodeInfo));
   }
 
-  //change cfg nodeInfo
-  ths->raftCfg.cfg.replicaNum = 0;
   for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
-    for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
-      if(strcmp(ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
-        && ths->raftCfg.cfg.nodeInfo[i].nodePort == cfg->nodeInfo[j].nodePort){
-        if(cfg->nodeInfo[j].nodeRole == TAOS_SYNC_ROLE_VOTER){
-          ths->raftCfg.cfg.nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
-          ths->raftCfg.cfg.replicaNum++;
-        }
-      }
-    }
+    memcpy(&ths->raftCfg.cfg.nodeInfo[i], &node, sizeof(SNodeInfo));
   }
 }
 
@@ -2702,6 +2713,9 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
 
   syncNodeLogConfigInfo(ths, cfg, "before config change");
   
+  //int32_t oldReplicaNum = ths->replicaNum; //TODO cdm
+  int32_t oldTotalReplicaNum = ths->totalReplicaNum;
+
   if(cfg->totalReplicaNum == 1 || cfg->totalReplicaNum == 2){//remove replica
     
     bool incfg = false;
@@ -2714,59 +2728,49 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
     }
 
     if(incfg){//remove other
-      //int32_t oldReplicaNum = ths->replicaNum; //TODO
-      int32_t oldtotalReplicaNum = ths->totalReplicaNum;
+      syncNodeResetPeerAndCfg(ths);//TODO cdm 需要清空吗？
 
-      SNodeInfo node = {0};
-      for (int32_t i = 0; i < ths->peersNum; ++i) {
-        memcpy(&ths->peersNodeInfo[i], &node, sizeof(SNodeInfo));
-      }
-
-      for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i) {
-        memcpy(&ths->raftCfg.cfg.nodeInfo[i], &node, sizeof(SNodeInfo));
-      }
-      //TODO cdm 需要清空吗？
+      //no need to change myNodeInfo
 
       syncNodeRebuildPeerAndCfg(ths, cfg); //TODO cdm return -1
 
-      syncNodeRebuildAndCopyIfExist(ths, oldtotalReplicaNum); //TODO cdm return -1
+      syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum); //TODO cdm return -1
     }
     else{//remove myself
+      //no need to do anything actually, to change the following to reduce distruptive server chance
+
+      syncNodeResetPeerAndCfg(ths);//TODO cdm 需要清空吗？
+
+      //change myNodeInfo
       ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_LEARNER;
 
-      SNodeInfo node = {0};
-      for (int32_t i = 0; i < ths->peersNum; ++i) {
-        memcpy(&ths->peersNodeInfo[i], &node, sizeof(SNodeInfo));
-      }
-
+      //change peer and cfg
       ths->peersNum = 0;
-
-      for(int32_t j = 0, i = 0; j < ths->totalReplicaNum; ++j, i++){
-        memcpy(&ths->raftCfg.cfg.nodeInfo[i], &node, sizeof(SNodeInfo));
-      }
-
       memcpy(&ths->raftCfg.cfg.nodeInfo[0], &ths->myNodeInfo, sizeof(SNodeInfo));
-
-      ths->replicaNum = 0;
       ths->raftCfg.cfg.replicaNum = 0;
+      ths->raftCfg.cfg.totalReplicaNum = 1;
+
+      //change other
+      /*
+      ths->replicaNum = 0;
+      ths->totalReplicaNum = 1;
+      
       ths->pMatchIndex->replicaNum = 0; //TODO 强行修改
       ths->pNextIndex->replicaNum = 0;
 
-      ths->totalReplicaNum = 1;
-      ths->raftCfg.cfg.totalReplicaNum = 1;
-
       ths->pNextIndex->totalReplicaNum = 1;
       ths->pNextIndex->totalReplicaNum = 1;
+      */
 
+      syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum);
+
+      //change state
       ths->state = TAOS_SYNC_STATE_LEARNER;
     }
 
-    SVotesGranted *grant = ths->pVotesGranted;
-    grant->quorum = syncUtilQuorum(ths->replicaNum);
+    //SVotesGranted *grant = ths->pVotesGranted;
+    //grant->quorum = syncUtilQuorum(ths->replicaNum);
     //TODO为什么3-1要改
-
-    ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
-    //TODO 3-1的时候，config的apply比alterconfirm晚
   }
   else{//add replica, or change replica type
     if(ths->totalReplicaNum == 3){ //change replica type
@@ -2781,11 +2785,14 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
           }
         }
       }
-
+      
+      //change peer and cfg
       syncNodeChangePeerAndCfgToVoter(ths, cfg);
 
+      //change other
       syncNodeChangeToVoter(ths);
 
+      //change state
       if(ths->state ==TAOS_SYNC_STATE_LEARNER){
         if(ths->myNodeInfo.nodeRole == TAOS_SYNC_ROLE_VOTER ){
           ths->state = TAOS_SYNC_STATE_FOLLOWER;
@@ -2795,15 +2802,20 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
     else{//add replica
       sInfo("vgId:%d, begin add replica", ths->vgId);
 
-      int32_t oldtotalReplicaNum = ths->totalReplicaNum;
-
       //no need to change myNodeInfo
 
+      //change peer and cfg
       syncNodeRebuildPeerAndCfg(ths, cfg); //TODO cdm return -1
 
-      syncNodeRebuildAndCopyIfExist(ths, oldtotalReplicaNum); //TODO cdm return -1
+      //change other
+      syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum); //TODO cdm return -1
+
+      //no need to change state
     }
   }
+
+  ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
+  //TODO cdm 3-1的时候，config的apply比alterconfirm晚
 
   ths->quorum = syncUtilQuorum(ths->replicaNum);
 
