@@ -349,6 +349,7 @@ typedef struct {
   bool       syncRestore;
   bool       syncCanRead;
   ESyncRole  nodeRole;
+  int32_t    learnerProgress;
 } SVnodeGid;
 
 typedef struct {

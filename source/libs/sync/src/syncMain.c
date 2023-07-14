@@ -515,6 +515,11 @@ SSyncState syncGetState(int64_t rid) {
     } else {
       state.canRead = state.restored;
     }
+    double progress = 0;
+    if(pSyncNode->pLogBuf->totalIndex > 0 && pSyncNode->pLogBuf->commitIndex > 0){
+      progress = pSyncNode->pLogBuf->commitIndex/pSyncNode->pLogBuf->totalIndex;
+    }
+    state.progress = (int32_t)(progress * 100);
     syncNodeRelease(pSyncNode);
   }
 
@@ -607,6 +612,8 @@ int32_t syncIsCatchUp(int64_t rid) {
                                   pSyncNode->pLogBuf->matchIndex);
     isCatchUp = 1;
   }
+
+  
   
   syncNodeRelease(pSyncNode);
   return isCatchUp;
@@ -655,9 +662,9 @@ int32_t syncNodePropose(SSyncNode* pSyncNode, SRpcMsg* pMsg, bool isWeak, int64_
       pMsg->info.conn.applyIndex = retIndex;
       pMsg->info.conn.applyTerm = raftStoreGetTerm(pSyncNode);
 
-      if(code == 0){
+      if(pSyncNode->replicaNum == 1){
         sTrace("vgId:%d, propose optimized msg, index:%" PRId64 " type:%s", pSyncNode->vgId, retIndex,
-              TMSG_INFO(pMsg->msgType));
+            TMSG_INFO(pMsg->msgType));
         return 1;
       }
       else{
@@ -2947,7 +2954,7 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
 
   // multi replica
   if (ths->replicaNum > 1) {
-    return 1;
+    return 0;
   }
 
 /*

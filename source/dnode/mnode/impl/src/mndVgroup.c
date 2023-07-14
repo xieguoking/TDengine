@@ -857,7 +857,14 @@ static int32_t mndRetrieveVgroups(SRpcMsg *pReq, SShowObj *pShow, SSDataBlock *p
             } else {
             }
           }
-          snprintf(role, sizeof(role), "%s%s", syncStr(pVgroup->vnodeGid[i].syncState), star);
+          
+          if (pVgroup->vnodeGid[i].syncState == TAOS_SYNC_STATE_LEARNER) {
+            snprintf(role, sizeof(role), "%s%d", syncStr(pVgroup->vnodeGid[i].syncState), pVgroup->vnodeGid[i].syncRestore);
+          }
+          else{
+            snprintf(role, sizeof(role), "%s%s", syncStr(pVgroup->vnodeGid[i].syncState), star);
+          }
+          
         } else {
         }
         STR_WITH_MAXSIZE_TO_VARSTR(buf1, role, pShow->pMeta->pSchemas[cols].bytes);

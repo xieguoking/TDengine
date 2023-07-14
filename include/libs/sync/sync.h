@@ -248,6 +248,7 @@ typedef struct SSyncState {
   ESyncState state;
   bool       restored;
   bool       canRead;
+  int32_t    progress;
 } SSyncState;
 
 int32_t syncInit();

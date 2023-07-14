@@ -1192,6 +1192,7 @@ typedef struct {
   int64_t numOfBatchInsertReqs;
   int64_t numOfBatchInsertSuccessReqs;
   int32_t numOfCachedTables;
+  int32_t learnerProgress; // use one reservered
 } SVnodeLoad;
 
 typedef struct {
@@ -1231,6 +1232,7 @@ typedef struct {
   SClusterCfg clusterCfg;
   SArray*     pVloads;  // array of SVnodeLoad
   int32_t     statusSeq;
+  SArray*     pLearnerProgress;  // array of int32_t, learner progress
 } SStatusReq;
 
 int32_t tSerializeSStatusReq(void* buf, int32_t bufLen, SStatusReq* pReq);
