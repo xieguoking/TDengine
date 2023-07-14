@@ -2679,14 +2679,14 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
 
   if(strcmp(str, "Commit") == 0){
     sInfo("vgId:%d, change config from %s. "
-          "this, i:%" PRId64 ", t:%" PRId64 ", trNum:%d, vers:%d; "
+          "this, i:%" PRId64 ", trNum:%d, vers:%d; "
           "node, rNum:%d, pNum:%d, trNum:%d, "
           "buffer: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 "), "
-          "cond:(next i:%" PRId64 "==cc)",
-          ths->vgId, str, pEntry->index, pEntry->term, cfg->totalReplicaNum, cfg->changeVersion, 
+          "cond:(next i:%" PRId64 ", t:%" PRId64 " ==%s)",
+          ths->vgId, str, pEntry->index - 1, cfg->totalReplicaNum, cfg->changeVersion, 
           ths->replicaNum, ths->peersNum, ths->totalReplicaNum, 
           ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex, ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex,
-          pEntry->index + 1);
+          pEntry->index, pEntry->term, TMSG_INFO(pEntry->originalRpcType));
   }
   else{
      sInfo("vgId:%d, change config from %s. "

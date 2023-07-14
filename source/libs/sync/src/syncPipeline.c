@@ -734,11 +734,11 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
       sInfo("vgId:%d, to change config at Commit. "
             "current entry, index:%" PRId64 ", term:%" PRId64", "
             "node, role:%d, current term:%" PRId64 ", restore:%d, "
-            "cond, next entry index:%" PRId64 ", msgType:%d",
+            "cond, next entry index:%" PRId64 ", msgType:%s",
             vgId, 
             pEntry->index, pEntry->term, 
             role, currentTerm, pNode->restoreFinish,
-            pNextEntry->index, pNextEntry->originalRpcType);
+            pNextEntry->index, TMSG_INFO(pNextEntry->originalRpcType));
       syncNodeChangeConfig(pNode, pNextEntry, "Commit");
 
       index++;
