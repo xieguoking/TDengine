@@ -727,12 +727,9 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
     sTrace("vgId:%d, committed index:%" PRId64 ", term:%" PRId64 ", role:%d, current term:%" PRId64 "", pNode->vgId,
            pEntry->index, pEntry->term, role, currentTerm);
 
-    if (!inBuf) {
-      syncEntryDestroy(pEntry);
-      pEntry = NULL;
-    }
 
-    pNextEntry = syncLogBufferGetOneEntry(pBuf, pNode, index + 1, &inBuf);
+    bool nextInBuf = false;
+    pNextEntry = syncLogBufferGetOneEntry(pBuf, pNode, index + 1, &nextInBuf);
     if (pNextEntry != NULL /*&& pNode->state != TAOS_SYNC_STATE_LEARNER pNode->restoreFinish*/ && pNextEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE) {
       sInfo("vgId:%d, to change config at Commit. "
             "current entry, index:%" PRId64 ", term:%" PRId64", "
@@ -760,8 +757,8 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
 
       sTrace("vgId:%d, committed index:%" PRId64 ", term:%" PRId64 ", role:%d, current term:%" PRId64 "", pNode->vgId,
             pNextEntry->index, pNextEntry->term, role, currentTerm);
-
-      if (!inBuf) {
+    
+      if (!nextInBuf) {
         syncEntryDestroy(pNextEntry);
         pNextEntry = NULL;
       }
@@ -774,6 +771,11 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
     //TODO state != TAOS_SYNC_STATE_LEARNER, pNode->restoreFinish, skip replay 
 
   }
+
+  if (!inBuf) {
+    syncEntryDestroy(pEntry);
+    pEntry = NULL;
+  }  
 
   // recycle
   SyncIndex until = pBuf->commitIndex - TSDB_SYNC_LOG_BUFFER_RETENTION;
