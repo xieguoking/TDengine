@@ -859,7 +859,7 @@ static int32_t mndRetrieveVgroups(SRpcMsg *pReq, SShowObj *pShow, SSDataBlock *p
           }
           
           if (pVgroup->vnodeGid[i].syncState == TAOS_SYNC_STATE_LEARNER) {
-            snprintf(role, sizeof(role), "%s%d", syncStr(pVgroup->vnodeGid[i].syncState), pVgroup->vnodeGid[i].syncRestore);
+            snprintf(role, sizeof(role), "%s%d", syncStr(pVgroup->vnodeGid[i].syncState), pVgroup->vnodeGid[i].learnerProgress);
           }
           else{
             snprintf(role, sizeof(role), "%s%s", syncStr(pVgroup->vnodeGid[i].syncState), star);
