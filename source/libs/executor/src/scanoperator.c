@@ -2767,6 +2767,31 @@ int32_t dumpQueryTableCond(const SQueryTableDataCond* src, SQueryTableDataCond* 
   return 0;
 }
 
+int32_t mergeScanGetNumOfInputRuns(int rowSize) {
+  int32_t kWay = (TSDB_MAX_BYTES_PER_ROW * 4) / rowSize;
+  if (kWay >= 128) {
+    kWay = 128;
+  } else if (kWay <= 2) {
+    kWay = 2;
+  } else {
+    int i = 2; 
+    while (i * 2 <= kWay) i = i * 2;
+    kWay = i;
+  }
+  return kWay;
+}
+
+int32_t mergeScanSortPageSize(size_t rowSize, uint32_t numOfCols) {
+  int32_t kWay = mergeScanGetNumOfInputRuns(rowSize);
+
+  uint32_t pgSize = rowSize * 4 + blockDataGetSerialMetaSize(numOfCols);
+  if (pgSize < DEFAULT_PAGESIZE) {
+    return DEFAULT_PAGESIZE;
+  }
+
+  return pgSize * kWay;
+}
+
 int32_t startGroupTableMergeScan(SOperatorInfo* pOperator) {
   STableMergeScanInfo* pInfo = pOperator->info;
   SExecTaskInfo*       pTaskInfo = pOperator->pTaskInfo;
@@ -2790,24 +2815,14 @@ int32_t startGroupTableMergeScan(SOperatorInfo* pOperator) {
 
   // todo the total available buffer should be determined by total capacity of buffer of this task.
   // the additional one is reserved for merge result
-  // pInfo->sortBufSize = pInfo->bufPageSize * (tableEndIdx - tableStartIdx + 1 + 1);
-  int32_t kWay = (TSDB_MAX_BYTES_PER_ROW * 2) / (pInfo->pResBlock->info.rowSize);
-  if (kWay >= 128) {
-    kWay = 128;
-  } else if (kWay <= 2) {
-    kWay = 2;
-  } else {
-    int i = 2; 
-    while (i * 2 <= kWay) i = i * 2;
-    kWay = i;
-  }
-  kWay = 128;
-  pInfo->bufPageSize = 1048576 * 8;
-  pInfo->sortBufSize = pInfo->bufPageSize * (kWay + 1);
-  int32_t numOfBufPage = pInfo->sortBufSize / pInfo->bufPageSize;
+  int32_t kWay = mergeScanGetNumOfInputRuns(pInfo->pResBlock->info.rowSize);
+  
+  int32_t numOfBufPage = 1024;
+
+  pInfo->sortBufSize = pInfo->bufPageSize * numOfBufPage;
   pInfo->pSortHandle = tsortCreateSortHandle(pInfo->pSortInfo, SORT_MULTISOURCE_MERGE, pInfo->bufPageSize, numOfBufPage,
                                              pInfo->pSortInputBlock, pTaskInfo->id.str, 0, 0, 0);
-
+  tsortSetNumOfInputRuns(pInfo->pSortHandle, kWay);
   tsortSetFetchRawDataFp(pInfo->pSortHandle, getTableDataBlockImpl, NULL, NULL);
 
   // one table has one data block
@@ -3084,7 +3099,7 @@ SOperatorInfo* createTableMergeScanOperatorInfo(STableScanPhysiNode* pTableScanN
 
   int32_t  rowSize = pInfo->pResBlock->info.rowSize;
   uint32_t nCols = taosArrayGetSize(pInfo->pResBlock->pDataBlock);
-  pInfo->bufPageSize = getProperSortPageSize(rowSize, nCols);
+  pInfo->bufPageSize = mergeScanSortPageSize(rowSize, nCols);
 
   setOperatorInfo(pOperator, "TableMergeScanOperator", QUERY_NODE_PHYSICAL_PLAN_TABLE_MERGE_SCAN, false, OP_NOT_OPENED,
                   pInfo, pTaskInfo);

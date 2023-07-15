@@ -34,6 +34,7 @@ struct SSortHandle {
   int32_t        type;
   int32_t        pageSize;
   int32_t        numOfPages;
+  int32_t        numOfInputRuns;
   SDiskbasedBuf* pBuf;
   SArray*        pSortInfo;
   SArray*        pOrderedSource;
@@ -126,6 +127,7 @@ SSortHandle* tsortCreateSortHandle(SArray* pSortInfo, int32_t type, int32_t page
   pSortHandle->type = type;
   pSortHandle->pageSize = pageSize;
   pSortHandle->numOfPages = numOfPages;
+  pSortHandle->numOfInputRuns = numOfPages;
   pSortHandle->pSortInfo = pSortInfo;
   pSortHandle->loops = 0;
 
@@ -151,6 +153,10 @@ SSortHandle* tsortCreateSortHandle(SArray* pSortInfo, int32_t type, int32_t page
   }
 
   return pSortHandle;
+}
+
+void tsortSetNumOfInputRuns(SSortHandle* pSortHandle, int32_t numOfInputRuns) {
+  pSortHandle->numOfInputRuns = numOfInputRuns;
 }
 
 static int32_t sortComparCleanup(SMsortComparParam* cmpParam) {
@@ -419,6 +425,7 @@ static int32_t adjustMergeTreeForNextTuple(SSortSource* pSource, SMultiwayMergeT
         pSource->src.rowIndex = -1;
         pSource->pageIndex = -1;
         pSource->src.pBlock = blockDataDestroy(pSource->src.pBlock);
+        tlogMemUsage("%d source completed", (*numOfCompleted));
       } else {
         int32_t* pPgId = taosArrayGet(pSource->pageIdList, pSource->pageIndex);
 
@@ -582,7 +589,7 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
   }
 
   // Calculate the I/O counts to complete the data sort.
-  double sortPass = floorl(log2(numOfSources) / log2(pHandle->numOfPages));
+  double sortPass = floorl(log2(numOfSources) / log2(pHandle->numOfInputRuns));
 
   pHandle->totalElapsed = taosGetTimestampUs() - pHandle->startTs;
 
@@ -593,7 +600,7 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
            pHandle->idStr, (int32_t)(sortPass + 1), s, pHandle->sortElapsed, pHandle->totalElapsed);
   } else {
     qDebug("%s ordered source:%" PRIzu ", available buf:%d, no need internal sort", pHandle->idStr, numOfSources,
-           pHandle->numOfPages);
+           pHandle->numOfInputRuns);
   }
 
   int32_t numOfRows = blockDataGetCapacityInRow(pHandle->pDataBlock, pHandle->pageSize,
@@ -609,7 +616,7 @@ static int32_t doInternalMergeSort(SSortHandle* pHandle) {
 
     SArray* pResList = taosArrayInit(4, POINTER_BYTES);
 
-    int32_t numOfInputSources = pHandle->numOfPages;
+    int32_t numOfInputSources = pHandle->numOfInputRuns;
     int32_t sortGroup = (numOfSorted + numOfInputSources - 1) / numOfInputSources;
 
     // Only *numOfInputSources* can be loaded into buffer to perform the external sort.
@@ -741,6 +748,7 @@ static int32_t createInitialSources(SSortHandle* pHandle) {
 
         // todo, number of pages are set according to the total available sort buffer
         pHandle->numOfPages = 1024;
+        pHandle->numOfInputRuns = 1024;
         sortBufSize = pHandle->numOfPages * pHandle->pageSize;
         pHandle->pDataBlock = createOneDataBlock(pBlock, false);
       }

@@ -108,6 +108,8 @@ int32_t tsortSetFetchRawDataFp(SSortHandle* pHandle, _sort_fetch_block_fn_t fetc
  */
 int32_t tsortSetComparFp(SSortHandle* pHandle, _sort_merge_compar_fn_t fp);
 
+void tsortSetNumOfInputRuns(SSortHandle* pSortHandle, int32_t numOfInputRuns);
+
 /**
  *
  */

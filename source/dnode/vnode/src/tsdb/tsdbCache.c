@@ -1213,7 +1213,7 @@ int32_t tsdbOpenCache(STsdb *pTsdb) {
   pTsdb->sttBlockCache = taosLRUCacheInit(1 * 1024 * 1024, -1, 0.0);
   taosLRUCacheSetStrictCapacity(pTsdb->sttBlockCache, false); 
 
-  pTsdb->sttBlkCache = taosLRUCacheInit(4 * 1024 * 1024, -1, 0.0);
+  pTsdb->sttBlkCache = taosLRUCacheInit(8 * 1024 * 1024, -1, 0.0);
   taosLRUCacheSetStrictCapacity(pTsdb->sttBlkCache, false); 
 
 _err:
