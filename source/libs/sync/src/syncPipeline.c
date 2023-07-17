@@ -539,11 +539,11 @@ _out:
 }
 
 int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTerm term, SSyncRaftEntry* pEntry,
-                          int32_t applyCode, bool flag /*TODO cdm*/) {
+                          int32_t applyCode, bool force /*TODO cdm*/) {
   if (pNode->replicaNum == 1 && 
       pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_LEARNER &&
       pNode->restoreFinish && pNode->vgId != 1 /*&& pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE*/
-      && flag == false) {
+      && force == false) {
     //TODO cdm
     sInfo("vgId:%d, not to execute, index:%" PRId64 ", term:%" PRId64 ", type:%s code:0x%x, replicaNum:%d,"
           "role:%d, restoreFinish:%d",
@@ -667,6 +667,7 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
 
       //for 2->1, need to apply config change entry in sync thead
       if(pNode->replicaNum == 1){
+        //TODO cdm 之前没加pNode->replicaNum == 1, 相当于在1-2, 2-3, 3-2提前apply了,为什么没问题
         if (syncFsmExecute(pNode, pFsm, role, currentTerm, pNextEntry, 0, true) != 0) {
           sError("vgId:%d, failed to execute sync log entry. index:%" PRId64 ", term:%" PRId64
               ", role:%d, current term:%" PRId64,
@@ -676,7 +677,6 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
 
         index++;
         pBuf->commitIndex = index;
-        //TODO cdm 之前没加pNode->replicaNum == 1, 相当于在1-2, 2-3, 3-2提前apply了,为什么没问题
 
         sTrace("vgId:%d, committed index:%" PRId64 ", term:%" PRId64 ", role:%d, current term:%" PRId64 "", pNode->vgId,
               pNextEntry->index, pNextEntry->term, role, currentTerm);
