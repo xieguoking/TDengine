@@ -2813,6 +2813,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
 
   ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
   //TODO cdm 3-1的时候，config的apply比alterconfirm晚
+  //TODO cdm 为什么要设置restoreFinish
 
   ths->quorum = syncUtilQuorum(ths->replicaNum);
 
@@ -3178,19 +3179,21 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
       (*pRetIndex) = index;
     }
 
-    int32_t code = syncNodeCheckChangeConfig(ths, pEntry);
-    
-    SRpcMsg rsp = {.code = pMsg->code, .info = pMsg->info};
-    (void)syncRespMgrGetAndDel(ths->pSyncRespMgr, pEntry->seqNum, &rsp.info);
-    if (rsp.info.handle != NULL) {
-      tmsgSendRsp(&rsp);
-    } else {
-      //if (rsp.pCont) {
-      //  rpcFreeCont(rsp.pCont);
-      //}
+    if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
+      int32_t code = syncNodeCheckChangeConfig(ths, pEntry);
+      
+      SRpcMsg rsp = {.code = pMsg->code, .info = pMsg->info};
+      (void)syncRespMgrGetAndDel(ths->pSyncRespMgr, pEntry->seqNum, &rsp.info);
+      if (rsp.info.handle != NULL) {
+        tmsgSendRsp(&rsp);
+      } else {
+        //if (rsp.pCont) {
+        //  rpcFreeCont(rsp.pCont);
+        //}
+      }
+      //TODO cdm rsp.pCount 和 有个 respmgr
+      if(code != 0) return code;
     }
-    //TODO cdm rsp.pCount 和 有个 respmgr
-    if(code != 0) return code;
 
     code = syncNodeAppend(ths, pEntry);
     return code;
