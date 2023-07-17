@@ -604,6 +604,7 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
   SSyncRaftEntry* pEntry = NULL;
   bool            inBuf = false;
   SSyncRaftEntry* pNextEntry = NULL;
+  bool            nextInBuf = false;
 
   if (commitIndex <= pBuf->commitIndex) {
     sDebug("vgId:%d, stale commit index. current:%" PRId64 ", notified:%" PRId64 "", vgId, pBuf->commitIndex,
@@ -640,10 +641,8 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
     sTrace("vgId:%d, committed index:%" PRId64 ", term:%" PRId64 ", role:%d, current term:%" PRId64 "", pNode->vgId,
            pEntry->index, pEntry->term, role, currentTerm);
 
-
-    bool nextInBuf = false;
     pNextEntry = syncLogBufferGetOneEntry(pBuf, pNode, index + 1, &nextInBuf);
-    if (pNextEntry != NULL /*&& pNode->state != TAOS_SYNC_STATE_LEARNER pNode->restoreFinish*/ && pNextEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE) {
+    if (pNextEntry != NULL && pNextEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE) {
       sInfo("vgId:%d, to change config at Commit. "
             "current entry, index:%" PRId64 ", term:%" PRId64", "
             "node, role:%d, current term:%" PRId64 ", restore:%d, "
@@ -652,37 +651,33 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
             pEntry->index, pEntry->term, 
             role, currentTerm, pNode->restoreFinish,
             pNextEntry->index, TMSG_INFO(pNextEntry->originalRpcType));
+
       syncNodeChangeConfig(pNode, pNextEntry, "Commit");
 
-      index++;
-
-      if(index <= upperIndex) {
-        //TODO cdm
-      }
-
-      if (syncFsmExecute(pNode, pFsm, role, currentTerm, pNextEntry, 0, true) != 0) {
-        sError("vgId:%d, failed to execute sync log entry. index:%" PRId64 ", term:%" PRId64
+      //for 1->2, need to commit config change entry in write thead
+      //TODO cdm 但是这样就提前commit了，为什么可以commit
+      //TODO cdm 如果upperIndex这时还没有上来，是不是还会有crash
+      if(pNode->replicaNum > 1 && index + 1 <= upperIndex){
+        if (syncFsmExecute(pNode, pFsm, role, currentTerm, pNextEntry, 0, true) != 0) {
+          sError("vgId:%d, failed to execute sync log entry. index:%" PRId64 ", term:%" PRId64
               ", role:%d, current term:%" PRId64,
               vgId, pNextEntry->index, pNextEntry->term, role, currentTerm);
-        goto _out;
-      }
-      pBuf->commitIndex = index;
+          goto _out;
+        }
 
-      sTrace("vgId:%d, committed index:%" PRId64 ", term:%" PRId64 ", role:%d, current term:%" PRId64 "", pNode->vgId,
-            pNextEntry->index, pNextEntry->term, role, currentTerm);
-    
+        index++;
+        pBuf->commitIndex = index;
+        //TODO cdm wrong here if return in syncFsmExecute, 改之前运行没问题，相当于在2-1提前commit了
+
+        sTrace("vgId:%d, committed index:%" PRId64 ", term:%" PRId64 ", role:%d, current term:%" PRId64 "", pNode->vgId,
+              pNextEntry->index, pNextEntry->term, role, currentTerm);
+      }
+      
       if (!nextInBuf) {
         syncEntryDestroy(pNextEntry);
         pNextEntry = NULL;
       }
-    }
-    else{
-      //sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from LogBufferCommit. index:%" PRId64 ", term:%" PRId64
-      //       ", role:%d, current term:%" PRId64 ", restoreFinish:%d",
-      //       vgId, pEntry->index, pEntry->term, role, currentTerm, pNode->restoreFinish);
-    }
-    //TODO state != TAOS_SYNC_STATE_LEARNER, pNode->restoreFinish, skip replay 
-
+    } 
   }
 
   if (!inBuf) {
