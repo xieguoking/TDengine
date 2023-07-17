@@ -64,7 +64,7 @@ int32_t mndInitVgroup(SMnode *pMnode) {
   mndSetMsgHandle(pMnode, TDMT_SYNC_FORCE_FOLLOWER_RSP, mndTransProcessRsp);
   mndSetMsgHandle(pMnode, TDMT_DND_ALTER_VNODE_TYPE_RSP, mndTransProcessRsp);
   mndSetMsgHandle(pMnode, TDMT_DND_CHECK_VNODE_LEARNER_CATCHUP_RSP, mndTransProcessRsp);
-  mndSetMsgHandle(pMnode, TDMT_DND_ALTER_RAFT_TYPE_RSP, mndTransProcessRsp);
+  //mndSetMsgHandle(pMnode, TDMT_DND_ALTER_RAFT_TYPE_RSP, mndTransProcessRsp);
   mndSetMsgHandle(pMnode, TDMT_SYNC_CONFIG_CHANGE_RSP, mndTransProcessRsp);
 
   mndSetMsgHandle(pMnode, TDMT_MND_REDISTRIBUTE_VGROUP, mndProcessRedistributeVgroupMsg);
@@ -1425,6 +1425,7 @@ int32_t mndAddAlterVnodeTypeAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, 
   return 0;
 }
 
+/*
 int32_t mndAddAlterRaftTypeAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, SVgObj *pVgroup, int32_t dnodeId) {
   SDnodeObj *pDnode = mndAcquireDnode(pMnode, dnodeId);
   if (pDnode == NULL) return -1;
@@ -1451,6 +1452,7 @@ int32_t mndAddAlterRaftTypeAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, S
 
   return 0;
 }
+*/
 
 int32_t mndAddCheckLearnerCatchupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, SVgObj *pVgroup, int32_t dnodeId) {
   SDnodeObj *pDnode = mndAcquireDnode(pMnode, dnodeId);

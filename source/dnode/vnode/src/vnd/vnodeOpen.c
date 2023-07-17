@@ -58,6 +58,7 @@ int32_t vnodeCreate(const char *path, SVnodeCfg *pCfg, STfs *pTfs) {
   return 0;
 }
 
+/*
 int32_t vnodeAlterReplica1(SVnode *pVnode, SAlterVnodeReplicaReq *pReq){
   SSyncCfg cfg = {0};
 
@@ -106,6 +107,7 @@ int32_t vnodeAlterReplica1(SVnode *pVnode, SAlterVnodeReplicaReq *pReq){
 
   return 0;
 }
+*/
 
 int32_t vnodeAlterReplica(const char *path, SAlterVnodeReplicaReq *pReq, STfs *pTfs) {
   SVnodeInfo info = {0};
