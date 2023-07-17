@@ -654,10 +654,19 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
 
       syncNodeChangeConfig(pNode, pNextEntry, "Commit");
 
-      //for 1->2, need to commit config change entry in write thead
+      
       //TODO cdm 但是这样就提前commit了，为什么可以commit
-      //TODO cdm 如果upperIndex这时还没有上来，是不是还会有crash
-      if(pNode->replicaNum > 1 && index + 1 <= upperIndex){
+      //TODO cdm 如果upperIndex这时还没有上来，是不是还会有crash，index + 1 <= upperIndex
+      if(index + 1 > upperIndex){
+        sInfo("vgId:%d, exeed upperIndex. index + 1:%" PRId64 ", term:%" PRId64
+              ", role:%d, current term:%" PRId64 ", upperIndex:%" PRId64 ", commitIndex:%" PRId64
+              "matchIndex:%" PRId64,
+              vgId, pNextEntry->index, pNextEntry->term, role, currentTerm, upperIndex,
+              commitIndex, pBuf->matchIndex);
+      }
+
+      //for 2->1, need to apply config change entry in sync thead
+      if(pNode->replicaNum == 1){
         if (syncFsmExecute(pNode, pFsm, role, currentTerm, pNextEntry, 0, true) != 0) {
           sError("vgId:%d, failed to execute sync log entry. index:%" PRId64 ", term:%" PRId64
               ", role:%d, current term:%" PRId64,
@@ -667,7 +676,7 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
 
         index++;
         pBuf->commitIndex = index;
-        //TODO cdm wrong here if return in syncFsmExecute, 改之前运行没问题，相当于在2-1提前commit了
+        //TODO cdm 之前没加pNode->replicaNum == 1, 相当于在1-2, 2-3, 3-2提前apply了,为什么没问题
 
         sTrace("vgId:%d, committed index:%" PRId64 ", term:%" PRId64 ", role:%d, current term:%" PRId64 "", pNode->vgId,
               pNextEntry->index, pNextEntry->term, role, currentTerm);
