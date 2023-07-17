@@ -1748,7 +1748,7 @@ static int32_t vnodeProcessCompactVnodeReq(SVnode *pVnode, int64_t ver, void *pR
 static int32_t vnodeProcessConfigChangeReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp) {
   syncCheckMember(pVnode->sync);
 
-  pRsp->msgType = TDMT_SYNC_CONFIG_CHANGE;
+  pRsp->msgType = TDMT_SYNC_CONFIG_CHANGE_RSP;
   pRsp->code = TSDB_CODE_SUCCESS;
   pRsp->pCont = NULL;
   pRsp->contLen = 0;

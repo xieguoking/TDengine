@@ -342,6 +342,7 @@ void vnodeApplyWriteMsg(SQueueInfo *pInfo, STaosQall *qall, int32_t numOfMsgs) {
     if (rsp.info.handle != NULL) {
       tmsgSendRsp(&rsp);
     } else {
+      vGTrace("vgId:%d, msg:%p fail to tmsgSendRsp in vnodeApplyWriteMsg, code:0x%x index:%" PRId64, vgId, pMsg, rsp.code, pMsg->info.conn.applyIndex);
       if (rsp.pCont) {
         rpcFreeCont(rsp.pCont);
       }
@@ -424,9 +425,9 @@ static int32_t vnodeSyncApplyMsg(const SSyncFSM *pFsm, SRpcMsg *pMsg, const SFsm
 
   const STraceId *trace = &pMsg->info.traceId;
   vGTrace("vgId:%d, commit-cb is excuted, fsm:%p, index:%" PRId64 ", term:%" PRIu64 ", msg-index:%" PRId64
-          ", weak:%d, code:%d, state:%d %s, type:%s code:0x%x",
+          ", weak:%d, code:%d, state:%d %s, type:%s code:0x%x, handle:%p",
           pVnode->config.vgId, pFsm, pMeta->index, pMeta->term, pMsg->info.conn.applyIndex, pMeta->isWeak, pMeta->code,
-          pMeta->state, syncStr(pMeta->state), TMSG_INFO(pMsg->msgType), pMsg->code);
+          pMeta->state, syncStr(pMeta->state), TMSG_INFO(pMsg->msgType), pMsg->code, pMsg->info.handle);
 
   return tmsgPutToQueue(&pVnode->msgCb, APPLY_QUEUE, pMsg);
 }

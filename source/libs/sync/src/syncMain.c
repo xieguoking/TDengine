@@ -660,12 +660,13 @@ int32_t syncNodePropose(SSyncNode* pSyncNode, SRpcMsg* pMsg, bool isWeak, int64_
   }
 
   // optimized one replica
-  if (syncNodeIsOptimizedOneReplica(pSyncNode, pMsg)) {
+  if (syncNodeIsOptimizedOneReplica(pSyncNode, pMsg)) {  
     SyncIndex retIndex;
     int32_t   code = syncNodeOnClientRequest(pSyncNode, pMsg, &retIndex);
     if (code >= 0) {
       pMsg->info.conn.applyIndex = retIndex;
       pMsg->info.conn.applyTerm = raftStoreGetTerm(pSyncNode);
+
 
       //after raft member change, need to handle 1->2 switching point
       //at this point, need to switch entry handling thread 
@@ -675,8 +676,9 @@ int32_t syncNodePropose(SSyncNode* pSyncNode, SRpcMsg* pMsg, bool isWeak, int64_
         return 1;
       }
       else{
-        sTrace("vgId:%d, propose optimized msg, return to normal, index:%" PRId64 " type:%s", pSyncNode->vgId, retIndex,
-              TMSG_INFO(pMsg->msgType));
+        sTrace("vgId:%d, propose optimized msg, return to normal, index:%" PRId64 " type:%s, "
+                "handle:%p", pSyncNode->vgId, retIndex, 
+              TMSG_INFO(pMsg->msgType), pMsg->info.handle);
         return 0;
       }
     } else {
@@ -2331,54 +2333,47 @@ void syncBuildConfigFromReq(SAlterVnodeReplicaReq *pReq, SSyncCfg *cfg){//TODO S
 }
 
 int32_t syncNodeCheckChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry){
-  if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
-    SMsgHead *head = (SMsgHead *)pEntry->data;
-    void *pReq = POINTER_SHIFT(head, sizeof(SMsgHead));
-
-    SAlterVnodeTypeReq req = {0};
-    if (tDeserializeSAlterVnodeReplicaReq(pReq, head->contLen, &req) != 0) {
-      terrno = TSDB_CODE_INVALID_MSG;
-      return -1;
-    }
-
-    SSyncCfg scfg = {0};
-    syncBuildConfigFromReq(&req, &scfg);
-
-    SSyncCfg *cfg = &scfg;
-
-    if(cfg->totalReplicaNum == 1 || cfg->totalReplicaNum == 2){
-      if(ths->state == TAOS_SYNC_STATE_LEADER){
-        
-        bool incfg = false;
-        for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
-          if(strcmp(ths->myNodeInfo.nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
-              && ths->myNodeInfo.nodePort == cfg->nodeInfo[j].nodePort){
-            incfg = true;
-            break;
-          }
-        }
-
-        SyncTerm        currentTerm = raftStoreGetTerm(ths);
-
-        if(!incfg){
-          if(ths->state == TAOS_SYNC_STATE_LEADER){
-            syncNodeStepDown(ths, currentTerm);
-            return -1;
-          }
-          
-        }
-
-      }
-    }
+  if(pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE){
+    return -1;
   }
 
+  SMsgHead *head = (SMsgHead *)pEntry->data;
+  void *pReq = POINTER_SHIFT(head, sizeof(SMsgHead));
+
+  SAlterVnodeTypeReq req = {0};
+  if (tDeserializeSAlterVnodeReplicaReq(pReq, head->contLen, &req) != 0) {
+    terrno = TSDB_CODE_INVALID_MSG;
+    return -1;
+  }
+
+  SSyncCfg cfg = {0};
+  syncBuildConfigFromReq(&req, &cfg);
+
+  if(cfg.totalReplicaNum >= 1 && ths->state == TAOS_SYNC_STATE_LEADER){
+    bool incfg = false;
+    for(int32_t j = 0; j < cfg.totalReplicaNum; ++j){
+      if(strcmp(ths->myNodeInfo.nodeFqdn, cfg.nodeInfo[j].nodeFqdn) == 0 
+          && ths->myNodeInfo.nodePort == cfg.nodeInfo[j].nodePort){
+        incfg = true;
+        break;
+      }
+    }
+
+    if(!incfg){
+      SyncTerm currentTerm = raftStoreGetTerm(ths);
+      syncNodeStepDown(ths, currentTerm);
+      return 1;
+    }
+  }
   return 0;
 }
 
 void syncNodeLogConfigInfo(SSyncNode* ths, SSyncCfg *cfg, char *str){
-  sInfo("vgId:%d, %s. SyncNode, replicaNum:%d, peersNum:%d, lastConfigIndex:%" PRId64 ", changeVersion:%d", 
+  sInfo("vgId:%d, %s. SyncNode, replicaNum:%d, peersNum:%d, lastConfigIndex:%" PRId64 ", changeVersion:%d, "
+        "restoreFinish:%d", 
         ths->vgId, str, 
-        ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex, ths->raftCfg.cfg.changeVersion);
+        ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex, ths->raftCfg.cfg.changeVersion,
+        ths->restoreFinish);
 
   sInfo("vgId:%d, %s, myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
     ths->vgId, str, ths->myNodeInfo.clusterId, ths->myNodeInfo.nodeId, ths->myNodeInfo.nodeFqdn, 
@@ -2768,6 +2763,10 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
     //SVotesGranted *grant = ths->pVotesGranted;
     //grant->quorum = syncUtilQuorum(ths->replicaNum);
     //TODO为什么3-1要改
+
+    ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
+    //TODO cdm 3-1的时候，config的apply比alterconfirm晚
+    //TODO cdm 为什么要设置restoreFinish
   }
   else{//add replica, or change replica type
     if(ths->totalReplicaNum == 3){ //change replica type
@@ -2795,6 +2794,10 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
           ths->state = TAOS_SYNC_STATE_FOLLOWER;
         }
       }
+
+      ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
+      //TODO cdm 3-1的时候，config的apply比alterconfirm晚
+      //TODO cdm 为什么要设置restoreFinish
     }
     else{//add replica
       sInfo("vgId:%d, begin add replica", ths->vgId);
@@ -2808,12 +2811,13 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
       syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum); //TODO cdm return -1
 
       //no need to change state
+      if(ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_LEARNER){
+        ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
+        //TODO cdm 3-1的时候，config的apply比alterconfirm晚
+        //TODO cdm 为什么要设置restoreFinish
+      }
     }
   }
-
-  ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
-  //TODO cdm 3-1的时候，config的apply比alterconfirm晚
-  //TODO cdm 为什么要设置restoreFinish
 
   ths->quorum = syncUtilQuorum(ths->replicaNum);
 
@@ -3169,6 +3173,12 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
     pEntry = syncEntryBuildFromRpcMsg(pMsg, term, index);
   }
 
+  if(pMsg->msgType == TDMT_SYNC_CONFIG_CHANGE){
+    SRespStub stub = {.createTime = taosGetTimestampMs(), .rpcMsg = *pMsg};
+    uint64_t  seqNum = syncRespMgrAdd(ths->pSyncRespMgr, &stub);
+    pEntry->seqNum = seqNum;
+  }
+
   if (pEntry == NULL) {
     sError("vgId:%d, failed to process client request since %s.", ths->vgId, terrstr());
     return -1;
@@ -3181,18 +3191,25 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
 
     if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
       int32_t code = syncNodeCheckChangeConfig(ths, pEntry);
-      
-      SRpcMsg rsp = {.code = pMsg->code, .info = pMsg->info};
-      (void)syncRespMgrGetAndDel(ths->pSyncRespMgr, pEntry->seqNum, &rsp.info);
-      if (rsp.info.handle != NULL) {
-        tmsgSendRsp(&rsp);
-      } else {
-        //if (rsp.pCont) {
-        //  rpcFreeCont(rsp.pCont);
-        //}
+      if(code < 0){
+        sError("vgId:%d, failed to check change config since %s.", ths->vgId, terrstr());
+        return -1;
       }
-      //TODO cdm rsp.pCount 和 有个 respmgr
-      if(code != 0) return code;
+      
+      if(code > 0){
+        SRpcMsg rsp = {.code = pMsg->code, .info = pMsg->info};
+        (void)syncRespMgrGetAndDel(ths->pSyncRespMgr, pEntry->seqNum, &rsp.info);
+        if (rsp.info.handle != NULL) {
+          tmsgSendRsp(&rsp);
+        } else {
+          //if (rsp.pCont) {
+          //  rpcFreeCont(rsp.pCont);
+          //}
+        }
+        //TODO cdm rsp.pCount 和 有个 respmgr
+        if(code != 0) return code;
+        //return -1;
+      }
     }
 
     code = syncNodeAppend(ths, pEntry);
