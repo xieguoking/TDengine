@@ -485,33 +485,39 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
            pNode->vgId, pBuf->startIndex, pBuf->matchIndex, pBuf->endIndex);
 
     // persist
-    if (syncLogStorePersist(pLogStore, pNode, pEntry) < 0) { //TODO move to here is proper?
+    if (syncLogStorePersist(pLogStore, pNode, pEntry) < 0) { //TODO cdm persist first is proper?
       sError("vgId:%d, failed to persist sync log entry from buffer since %s. index:%" PRId64, pNode->vgId, terrstr(),
              pEntry->index);
       goto _out;
     }
-    ASSERT(pEntry->index == pBuf->matchIndex); //TODO move to here is proper?
+    ASSERT(pEntry->index == pBuf->matchIndex); //TODO cdm move to here is proper?
   
     if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
       if(pNode->pLogBuf->commitIndex == pEntry->index -1){
         sInfo("vgId:%d, to change config at Append. "
               "current entry, index:%" PRId64 ", term:%" PRId64", "
-              "node, restore:%d, "
-              "cond, pre entry index:%" PRId64 ", commitIndex:%" PRId64 ", buf commit index:%" PRId64,
+              "node, restore:%d, commitIndex:%" PRId64 ", "
+              "cond: (pre entry index:%" PRId64 "== buf commit index:%" PRId64 ")",
               pNode->vgId, 
               pEntry->index, pEntry->term, 
-              pNode->restoreFinish,
-              pEntry->index -1, pNode->commitIndex, pNode->pLogBuf->commitIndex);
+              pNode->restoreFinish, pNode->commitIndex,
+              pEntry->index - 1, pNode->pLogBuf->commitIndex);
         syncNodeChangeConfig(pNode, pEntry, "Append");
       }
       else{
-        sTrace("vgId:%d, delay syncNodeChageConfig_lastcommit from Node Append. index:%" PRId64 ", term:%" PRId64 ", ths->commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64
-          ", %" PRId64 ")",
-          pNode->vgId, pEntry->index, pEntry->term, pNode->commitIndex, pNode->pLogBuf->startIndex, pNode->pLogBuf->commitIndex,
-          pNode->pLogBuf->matchIndex, pNode->pLogBuf->endIndex);
+        sInfo("vgId:%d, delay change config from Node Append. "
+              "curent entry, index:%" PRId64 ", term:%" PRId64 ", "
+              "node, commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 "), "
+              "cond:( pre entry index:%" PRId64" != buf commit index:%" PRId64 ")",
+              pNode->vgId, 
+              pEntry->index, pEntry->term, 
+              pNode->commitIndex, pNode->pLogBuf->startIndex, pNode->pLogBuf->commitIndex,
+              pNode->pLogBuf->matchIndex, pNode->pLogBuf->endIndex, 
+              pEntry->index - 1, pNode->pLogBuf->commitIndex);
       }
-      //TODO here
-      //TODO ths->commitIndex, ths->pLogBuf->commitIndex
+      //TODO cdm here is proper?
+      //TODO cdm ths->commitIndex, ths->pLogBuf->commitIndex, what is difference
+      //TODO cdm syncLogBufferProceed is common function, why from append
     }
 
     // replicate on demand
