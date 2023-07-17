@@ -538,44 +538,13 @@ _out:
   return matchIndex;
 }
 
-void getConfig1(SAlterVnodeReplicaReq *pReq, SSyncCfg *cfg){
-
-  for (int i = 0; i < pReq->replica; ++i) {
-    SNodeInfo *pNode = &cfg->nodeInfo[i];
-    pNode->nodeId = pReq->replicas[i].id;
-    pNode->nodePort = pReq->replicas[i].port;
-    tstrncpy(pNode->nodeFqdn, pReq->replicas[i].fqdn, sizeof(pNode->nodeFqdn));
-    pNode->nodeRole = TAOS_SYNC_ROLE_VOTER;
-    (void)tmsgUpdateDnodeInfo(&pNode->nodeId, &pNode->clusterId, pNode->nodeFqdn, &pNode->nodePort);
-    sInfo("vgId:%d, replica:%d ep:%s:%u dnode:%d nodeRole:%d", pReq->vgId, i, pNode->nodeFqdn, pNode->nodePort, pNode->nodeId, pNode->nodeRole);
-    cfg->replicaNum++;
-  }
-  if(pReq->selfIndex != -1){
-    cfg->myIndex = pReq->selfIndex;
-  }
-  for (int i = cfg->replicaNum; i < pReq->replica + pReq->learnerReplica; ++i) {
-    SNodeInfo *pNode = &cfg->nodeInfo[i];
-    pNode->nodeId = pReq->learnerReplicas[cfg->totalReplicaNum].id;
-    pNode->nodePort = pReq->learnerReplicas[cfg->totalReplicaNum].port;
-    pNode->nodeRole = TAOS_SYNC_ROLE_LEARNER;
-    tstrncpy(pNode->nodeFqdn, pReq->learnerReplicas[cfg->totalReplicaNum].fqdn, sizeof(pNode->nodeFqdn));
-    (void)tmsgUpdateDnodeInfo(&pNode->nodeId, &pNode->clusterId, pNode->nodeFqdn, &pNode->nodePort);
-    sInfo("vgId:%d, replica:%d ep:%s:%u dnode:%d nodeRole:%d", pReq->vgId, i, pNode->nodeFqdn, pNode->nodePort, pNode->nodeId, pNode->nodeRole);
-    cfg->totalReplicaNum++;
-  }
-  cfg->totalReplicaNum += pReq->replica;
-  if(pReq->learnerSelfIndex != -1){
-    cfg->myIndex = pReq->replica + pReq->learnerSelfIndex;
-  }
-}
-
 int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTerm term, SSyncRaftEntry* pEntry,
                           int32_t applyCode, bool flag /*TODO cdm*/) {
   if (pNode->replicaNum == 1 && 
       pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_LEARNER &&
       pNode->restoreFinish && pNode->vgId != 1 /*&& pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE*/
       && flag == false) {
-    //TODO
+    //TODO cdm
     sInfo("vgId:%d, not to execute, index:%" PRId64 ", term:%" PRId64 ", type:%s code:0x%x, replicaNum:%d,"
           "role:%d, restoreFinish:%d",
            pNode->vgId, pEntry->index, pEntry->term, TMSG_INFO(pEntry->originalRpcType), applyCode,
@@ -592,65 +561,6 @@ int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTe
     sInfo("vgId:%d, fsm execute vnode commit. index:%" PRId64 ", term:%" PRId64 "", pNode->vgId, pEntry->index,
           pEntry->term);
   }
-
-  if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
-    
-    SMsgHead *head = (SMsgHead *)pEntry->data;
-
-    void *pReq = POINTER_SHIFT(head, sizeof(SMsgHead));
-
-    SAlterVnodeTypeReq req = {0};
-    if (tDeserializeSAlterVnodeReplicaReq(pReq, head->contLen, &req) != 0) {
-      terrno = TSDB_CODE_INVALID_MSG;
-      return -1;
-    }
-
-    SSyncCfg scfg = {0};
-
-    getConfig1(&req, &scfg);
-
-    SSyncCfg *cfg = &scfg;
-    
-    sInfo("vgId:%d, fsm execute config change. index:%" PRId64 ", term:%" PRId64 ", replicaNum:%d, peersNum:%d, "
-          "quorum:%d, cfg->totalReplicaNum:%d", 
-          pNode->vgId, pEntry->index,
-          pEntry->term, pNode->replicaNum, pNode->peersNum, pNode->quorum, cfg->totalReplicaNum);
-
-    sDebug("myNodeInfo, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-      pNode->myNodeInfo.clusterId, pNode->myNodeInfo.nodeId, pNode->myNodeInfo.nodeFqdn, 
-      pNode->myNodeInfo.nodePort, pNode->myNodeInfo.nodeRole);
-
-    for (int32_t i = 0; i < pNode->peersNum; ++i){
-      sDebug("peersNodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-      i, pNode->peersNodeInfo[i].clusterId, pNode->peersNodeInfo[i].nodeId, pNode->peersNodeInfo[i].nodeFqdn, 
-      pNode->peersNodeInfo[i].nodePort, pNode->peersNodeInfo[i].nodeRole);
-    }
-    for (int32_t i = 0; i < pNode->raftCfg.cfg.totalReplicaNum; ++i){
-      sDebug("cfg.nodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
-      i, pNode->raftCfg.cfg.nodeInfo[i].clusterId, pNode->raftCfg.cfg.nodeInfo[i].nodeId, 
-      pNode->raftCfg.cfg.nodeInfo[i].nodeFqdn, 
-      pNode->raftCfg.cfg.nodeInfo[i].nodePort, pNode->raftCfg.cfg.nodeInfo[i].nodeRole);
-    }
-
-    //pNode->restoreFinish = false;
-    //TODO
-
-    /*
-    if(pNode->myNodeInfo.nodeRole == TAOS_SYNC_ROLE_VOTER){
-      syncNodeStepDown(pNode, term);
-      //TODO good place
-      //term here
-    }
-    else
-    {
-      syncNodeBecomeLearner(pNode, "config change");
-    }
-    */
-  }
-
-  //TODO change config at append entry? or commit entry
-
-  
 
   SRpcMsg rpcMsg = {.code = applyCode};
   syncEntry2OriginalRpc(pEntry, &rpcMsg);
@@ -679,9 +589,6 @@ int32_t syncLogBufferValidate(SSyncLogBuffer* pBuf) {
   ASSERT(pBuf->entries[(pBuf->matchIndex + pBuf->size) % pBuf->size].pItem);
   return 0;
 }
-
-//void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str);
-//TODO remove this
 
 int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t commitIndex) {
   taosThreadMutexLock(&pBuf->mutex);
