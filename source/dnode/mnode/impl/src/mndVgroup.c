@@ -857,6 +857,8 @@ static int32_t mndRetrieveVgroups(SRpcMsg *pReq, SShowObj *pShow, SSDataBlock *p
             } else {
             }
           }
+
+          mInfo("db:%s, learner progress:%d", pDb->name, pVgroup->vnodeGid[i].learnerProgress);
           
           if (pVgroup->vnodeGid[i].syncState == TAOS_SYNC_STATE_LEARNER) {
             if(pVgroup->vnodeGid[i].learnerProgress < 0){
@@ -1161,7 +1163,7 @@ _OVER:
   return 0;
 }
 
-static int32_t mndRemoveVnodeFromVgroup1(SMnode *pMnode, STrans *pTrans, SVgObj *pVgroup, SArray *pArray,
+static int32_t mndRemoveVnodeFromVgroupWithoutSave(SMnode *pMnode, STrans *pTrans, SVgObj *pVgroup, SArray *pArray,
                                         SVnodeGid *pDelVgid) {
   taosArraySort(pArray, (__compar_fn_t)mndCompareDnodeVnodes);
   for (int32_t i = 0; i < taosArrayGetSize(pArray); ++i) {
@@ -1282,7 +1284,7 @@ int32_t mndAddAlterVnodeConfirmAction(SMnode *pMnode, STrans *pTrans, SDbObj *pD
   return 0;
 }
 
-int32_t mndAddAlterVnodeConfirmAction1(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, 
+int32_t mndAddChangeConfigAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, 
                                   SVgObj *pOldVgroup, SVgObj *pNewVgroup, int32_t dnodeId) {
   STransAction action = {0};
   action.epSet = mndGetVgroupEpset(pMnode, pNewVgroup);
@@ -2292,7 +2294,7 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
 
   mndTransSetSerial(pTrans);
 
-  mInfo("trans:%d, vgid:%d alter vnode, syncConfChangeVer:%d, version:%d, replica:%d", 
+  mInfo("trans:%d, vgid:%d alter vgroup, syncConfChangeVer:%d, version:%d, replica:%d", 
         pTrans->id, pVgroup->vgId, pVgroup->syncConfChangeVer, pVgroup->version, pVgroup->replica);
 
   if (newVgroup.replica == 1 && pNewDb->cfg.replications == 3) {
@@ -2309,7 +2311,7 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_LEARNER;
     newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_LEARNER;
     newVgroup.syncConfChangeVer++;
-    if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
+    if (mndAddChangeConfigAction(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
     //if (mndAddAlterVnodeReplicaAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
     if (mndAddCreateVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &newVgroup.vnodeGid[1]) != 0) return -1;
     if (mndAddCreateVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &newVgroup.vnodeGid[2]) != 0) return -1;
@@ -2332,7 +2334,7 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_LEARNER;
     newVgroup.syncConfChangeVer++;
-    if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
+    if (mndAddChangeConfigAction(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
       return -1;
 
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
@@ -2341,8 +2343,8 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.syncConfChangeVer++;
-    //TODO 每一步保存一次
-    if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
+    //TODO cdm 每一步保存一次
+    if (mndAddChangeConfigAction(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
       return -1;
 
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
@@ -2359,17 +2361,16 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
           pVgroup->vgId, pVgroup->vnodeGid[0].dnodeId, pVgroup->vnodeGid[1].dnodeId, pVgroup->vnodeGid[2].dnodeId);
     
     SVnodeGid del1 = {0};
-    if (mndRemoveVnodeFromVgroup1(pMnode, pTrans, &newVgroup, pArray, &del1) != 0) return -1;
-    //TODO mndRemoveVnodeFromVgroup1
+    if (mndRemoveVnodeFromVgroupWithoutSave(pMnode, pTrans, &newVgroup, pArray, &del1) != 0) return -1;
     //if (mndAddAlterVnodeTypeAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
 
     newVgroup.syncConfChangeVer++;
-    if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
+    if (mndAddChangeConfigAction(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
 
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
 
     if (mndAddDropVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &del1, true) != 0) return -1;
-    //TODO drop 在confirm之后
+    //TODO cdm drop 在confirm之后
 
     SSdbRaw *pVgRaw = mndVgroupActionEncode(&newVgroup);
     if (pVgRaw == NULL) return -1;
@@ -2378,14 +2379,14 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
       return -1;
     }
     (void)sdbSetRawStatus(pVgRaw, SDB_STATUS_READY);
-    //TODO 这部分挪到最后，有什么影响
+    //TODO cdm 这部分挪到最后，有什么影响
 
     SVnodeGid del2 = {0};
-    if (mndRemoveVnodeFromVgroup1(pMnode, pTrans, &newVgroup, pArray, &del2) != 0) return -1;
+    if (mndRemoveVnodeFromVgroupWithoutSave(pMnode, pTrans, &newVgroup, pArray, &del2) != 0) return -1;
     //if (mndAddAlterVnodeTypeAction(pMnode, pTrans, pNewDb, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
     
     newVgroup.syncConfChangeVer++;
-    if (mndAddAlterVnodeConfirmAction1(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
+    if (mndAddChangeConfigAction(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0) return -1;
 
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
 
