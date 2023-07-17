@@ -87,19 +87,12 @@ typedef enum {
   TAOS_SYNC_ROLE_ERROR = 2,
 } ESyncRole;
 
-typedef enum {
-  TAOS_SYNC_CONFIG_STATE_KEEP = 0,
-  TAOS_SYNC_CONFIG_STATE_ADD = 1,
-  TAOS_SYNC_CONFIG_STATE_REMOVE = 2,
-} EConfigState;
-
 typedef struct SNodeInfo {
   int64_t   clusterId;
   int32_t   nodeId;
   uint16_t  nodePort;
   char      nodeFqdn[TSDB_FQDN_LEN];
   ESyncRole nodeRole;
-  EConfigState  configState;
 } SNodeInfo;
 
 typedef struct SSyncCfg {
@@ -108,7 +101,6 @@ typedef struct SSyncCfg {
   int32_t   myIndex;
   SNodeInfo nodeInfo[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
   SyncIndex lastIndex;
-  SyncIndex newConfigIndex;
   int32_t   changeVersion;
 } SSyncCfg;
 

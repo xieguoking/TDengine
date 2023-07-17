@@ -60,34 +60,16 @@ bool syncNodeAgreedUpon(SSyncNode* pNode, SyncIndex index) {
   ASSERT(pNode->replicaNum == pMatches->replicaNum);
 
   //TODO cdm here should be ReplicaNum
-
-  int32_t replica = 0;
   for (int i = 0; i < pNode->totalReplicaNum; i++) {
     if(pNode->raftCfg.cfg.nodeInfo[i].nodeRole == TAOS_SYNC_ROLE_VOTER){
-      if(index < pNode->raftCfg.cfg.newConfigIndex){
-        if(pNode->raftCfg.cfg.nodeInfo[i].configState == TAOS_SYNC_CONFIG_STATE_ADD)
-          continue; 
-      }
-      else{
-        if(pNode->raftCfg.cfg.nodeInfo[i].configState == TAOS_SYNC_CONFIG_STATE_REMOVE)
-          continue; 
-      }
-      replica++;
       SyncIndex matchIndex = pMatches->index[i];
-      sInfo("vgId:%d, check agree. index:%" PRId64 ", index:%d, pMatches:%" PRId64, pNode->vgId, 
-           index, i, pMatches->index[i]);
       if (matchIndex >= index) {
         count++;
       }
     }
   }
 
-  int32_t quorum = syncUtilQuorum(replica);
-
-  sInfo("vgId:%d, check agreed. index:%" PRId64 ", quorum:%d, count:%d", pNode->vgId, 
-           index, quorum, count);
-
-  return count >= quorum;
+  return count >= pNode->quorum;
 }
 
 int64_t syncNodeUpdateCommitIndex(SSyncNode* ths, SyncIndex commitIndex) {
