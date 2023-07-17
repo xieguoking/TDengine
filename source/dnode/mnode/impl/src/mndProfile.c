@@ -282,6 +282,7 @@ _CONNECT:
   connectRsp.acctId = pUser->acctId;
   connectRsp.superUser = pUser->superUser;
   connectRsp.sysInfo = pUser->sysInfo;
+  connectRsp.enable = pUser->enable;
   connectRsp.clusterId = pMnode->clusterId;
   connectRsp.connId = pConn->id;
   connectRsp.connType = connReq.connType;

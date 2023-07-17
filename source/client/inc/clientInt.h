@@ -141,6 +141,7 @@ typedef struct STscObj {
   char          sVer[TSDB_VERSION_LEN];
   char          sDetailVer[128];
   int8_t        sysInfo;
+  int8_t        enable;
   int8_t        connType;
   int32_t       acctId;
   uint32_t      connId;

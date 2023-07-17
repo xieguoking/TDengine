@@ -104,6 +104,12 @@ static int32_t hbUpdateUserAuthInfo(SAppHbMgr *pAppHbMgr, SUserAuthBatchRsp *bat
         pTscObj->sysInfo = pRsp->sysInfo;
       }
 
+      if (pTscObj->enable != pRsp->enable) {
+        tscDebug("update enable of user %s from %" PRIi8 " to %" PRIi8 ", tscRid:%" PRIi64, pRsp->user, pTscObj->enable,
+                 pRsp->enable, pTscObj->id);
+        pTscObj->enable = pRsp->enable;
+      }
+
       if (pTscObj->passInfo.fp) {
         SPassInfo *passInfo = &pTscObj->passInfo;
         int32_t    oldVer = atomic_load_32(&passInfo->ver);

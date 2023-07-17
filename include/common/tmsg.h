@@ -632,6 +632,7 @@ typedef struct {
   int8_t   superUser;
   int8_t   sysInfo;
   int8_t   connType;
+  int8_t   enable;
   SEpSet   epSet;
   int32_t  svrTimestamp;
   int32_t  passVer;

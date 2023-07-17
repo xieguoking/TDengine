@@ -4117,7 +4117,8 @@ int32_t tSerializeSConnectRsp(void *buf, int32_t bufLen, SConnectRsp *pRsp) {
   if (tEncodeCStr(&encoder, pRsp->sVer) < 0) return -1;
   if (tEncodeCStr(&encoder, pRsp->sDetailVer) < 0) return -1;
   if (tEncodeI32(&encoder, pRsp->passVer) < 0) return -1;
-  if (tEncodeI32(&encoder, pRsp->authVer) < 0) return -1;
+  if (tEncodeI32(&encoder, pRsp->authVer) < 0) return -1; // since 3.0.7.0
+  if (tEncodeI8(&encoder, pRsp->enable) < 0) return -1; // since 3.1.0.0
   tEndEncode(&encoder);
 
   int32_t tlen = encoder.pos;
@@ -4152,6 +4153,12 @@ int32_t tDeserializeSConnectRsp(void *buf, int32_t bufLen, SConnectRsp *pRsp) {
     if (tDecodeI32(&decoder, &pRsp->authVer) < 0) return -1;
   } else {
     pRsp->authVer = 0;
+  }
+  // since 3.1.0.0
+  if (!tDecodeIsEnd(&decoder)) {
+    if (tDecodeI8(&decoder, &pRsp->enable) < 0) return -1;
+  } else {
+    pRsp->enable = 0;
   }
 
   tEndDecode(&decoder);
