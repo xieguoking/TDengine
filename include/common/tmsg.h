@@ -79,7 +79,7 @@ static inline bool vnodeIsMsgBlock(tmsg_t type) {
   return (type == TDMT_VND_CREATE_TABLE) || (type == TDMT_VND_ALTER_TABLE) || (type == TDMT_VND_DROP_TABLE) ||
          (type == TDMT_VND_UPDATE_TAG_VAL) || (type == TDMT_VND_ALTER_CONFIRM) || (type == TDMT_VND_COMMIT) ||
          (type == TDMT_SYNC_CONFIG_CHANGE);
-         //TODO 3-1的时候，config的apply比alterconfirm晚
+         //TODO cdm 3-1的时候，config的apply比alterconfirm晚
 }
 
 static inline bool syncUtilUserCommit(tmsg_t msgType) {
@@ -1232,7 +1232,6 @@ typedef struct {
   SClusterCfg clusterCfg;
   SArray*     pVloads;  // array of SVnodeLoad
   int32_t     statusSeq;
-  SArray*     pLearnerProgress;  // array of int32_t, learner progress
 } SStatusReq;
 
 int32_t tSerializeSStatusReq(void* buf, int32_t bufLen, SStatusReq* pReq);
@@ -1334,7 +1333,7 @@ typedef struct {
   int8_t   learnerSelfIndex;
   SReplica learnerReplicas[TSDB_MAX_LEARNER_REPLICA];
   int32_t  changeVersion;
-  //TODO name is proper
+  //TODO cdm name is proper
 } SCreateVnodeReq;
 
 int32_t tSerializeSCreateVnodeReq(void* buf, int32_t bufLen, SCreateVnodeReq* pReq);
@@ -1411,7 +1410,7 @@ typedef struct {
   SReplica learnerReplicas[TSDB_MAX_LEARNER_REPLICA];
   int32_t  changeVersion;
 } SAlterVnodeReplicaReq, SAlterVnodeTypeReq, SCheckLearnCatchupReq, SAlterRaftTypeReq;
-//TODO
+//TODO cdm SAlterRaftTypeReq is useful
 
 int32_t tSerializeSAlterVnodeReplicaReq(void* buf, int32_t bufLen, SAlterVnodeReplicaReq* pReq);
 int32_t tDeserializeSAlterVnodeReplicaReq(void* buf, int32_t bufLen, SAlterVnodeReplicaReq* pReq);

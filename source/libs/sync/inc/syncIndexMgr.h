@@ -30,7 +30,7 @@ typedef struct SSyncIndexMgr {
   int64_t    startTimeArr[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
   int64_t    recvTimeArr[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
   int32_t    replicaNum;
-  int32_t    totalReplicaNum; //TODO 这个是不是没有用，也不需要扩充到TSDB_MAX_LEARNER_REPLICA
+  int32_t    totalReplicaNum; //TODO cdm 这个是不是没有用，也不需要扩充到TSDB_MAX_LEARNER_REPLICA
   SSyncNode *pNode;
 } SSyncIndexMgr;
 

@@ -59,7 +59,7 @@ bool syncNodeAgreedUpon(SSyncNode* pNode, SyncIndex index) {
   SSyncIndexMgr* pMatches = pNode->pMatchIndex;
   ASSERT(pNode->replicaNum == pMatches->replicaNum);
 
-  //TODO here should be ReplicaNum
+  //TODO cdm here should be ReplicaNum
 
   int32_t replica = 0;
   for (int i = 0; i < pNode->totalReplicaNum; i++) {

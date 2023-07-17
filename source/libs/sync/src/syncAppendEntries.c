@@ -25,9 +25,6 @@
 #include "syncVoteMgr.h"
 #include "syncIndexMgr.h"
 
-//void syncNodeChageConfig_lastcommit(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str);
-//TODO remove this
-
 // TLA+ Spec
 // HandleAppendEntriesRequest(i, j, m) ==
 //    LET logOk == \/ m.mprevLogIndex = 0
@@ -147,7 +144,6 @@ int32_t syncNodeOnAppendEntries(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
     sError("vgId:%d, failed to get raft entry from append entries since %s", ths->vgId, terrstr());
     goto _IGNORE;
   }
-  //taosAssertDebug(pMsg->term == pEntry->term);
 
   if (pMsg->prevLogIndex + 1 != pEntry->index || pEntry->term < 0) {
     sError("vgId:%d, invalid previous log index in msg. index:%" PRId64 ",  term:%" PRId64 ", prevLogIndex:%" PRId64

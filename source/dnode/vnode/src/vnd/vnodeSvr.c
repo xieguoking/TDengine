@@ -317,7 +317,7 @@ int32_t vnodeProcessWriteMsg(SVnode *pVnode, SRpcMsg *pMsg, int64_t ver, SRpcMsg
     return -1;
   }
 
-  vInfo("vgId:%d, start to process write request %s, index:%" PRId64 ", applied:%" PRId64 
+  vDebug("vgId:%d, start to process write request %s, index:%" PRId64 ", applied:%" PRId64 
         ", state.applyTerm:%" PRId64 ", conn.applyTerm:%" PRId64, 
         TD_VID(pVnode), TMSG_INFO(pMsg->msgType), ver, pVnode->state.applied,
         pVnode->state.applyTerm, pMsg->info.conn.applyTerm);
@@ -463,7 +463,7 @@ int32_t vnodeProcessWriteMsg(SVnode *pVnode, SRpcMsg *pMsg, int64_t ver, SRpcMsg
     case TDMT_SYNC_CONFIG_CHANGE:
       vnodeProcessConfigChangeReq(pVnode, ver, pReq, len, pRsp);
       //needCommit = true;
-      //TODO needcommit
+      //TODO cdm needcommit
       break;
     default:
       vError("vgId:%d, unprocessed msg, %d", TD_VID(pVnode), pMsg->msgType);

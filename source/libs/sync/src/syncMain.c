@@ -1429,9 +1429,6 @@ int32_t syncNodeSendMsgById(const SRaftId* destRaftId, SSyncNode* pNode, SRpcMsg
   if (pNode->syncSendMSg != NULL && epSet != NULL) {
     syncUtilMsgHtoN(pMsg->pCont);
     pMsg->info.noResp = 1;
-    //taosMsleep(50);
-    //sTrace("vgId:%d, sync send msg delay 50ms, epset:%p dnode:%d addr:%" PRId64 " err:0x%x", pNode->vgId, epSet,
-    //       DID(destRaftId), destRaftId->addr, terrno);
     code = pNode->syncSendMSg(epSet, pMsg);
   }
 
@@ -1444,7 +1441,7 @@ int32_t syncNodeSendMsgById(const SRaftId* destRaftId, SSyncNode* pNode, SRpcMsg
   else{
     sTrace("vgId:%d, sync send msg, epset:%p dnode:%d addr:%" PRId64, pNode->vgId, epSet,
            DID(destRaftId), destRaftId->addr);
-    //TODO temp code
+    //TODO cdm temp code
   }
   
   return code;
@@ -3291,7 +3288,7 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
       //  rpcFreeCont(rsp.pCont);
       //}
     }
-    //TODO rsp.pCount 和 有个 respmgr
+    //TODO cdm rsp.pCount 和 有个 respmgr
     if(code != 0) return code;
 
     code = syncNodeAppend(ths, pEntry);
@@ -3344,7 +3341,7 @@ bool syncNodeIsOptimizedOneReplica(SSyncNode* ths, SRpcMsg* pMsg) {
 
 bool syncNodeInRaftGroup(SSyncNode* ths, SRaftId* pRaftId) {
   sTrace("vgId:%d, check in raft group, ths->totalReplicaNum:%d, pRaftId->addr:%" PRIx64, ths->vgId, ths->totalReplicaNum, pRaftId->addr);
-  //TODO here should be ReplicaNum
+  //TODO cdm here should be ReplicaNum
   for (int32_t i = 0; i < ths->totalReplicaNum; ++i) {
     sTrace("vgId:%d, check in raft group, replicasId addr:%" PRIx64, ths->vgId, (ths->replicasId)[i].addr);
     if (syncUtilSameId(&((ths->replicasId)[i]), pRaftId)) {
