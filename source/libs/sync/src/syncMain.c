@@ -667,7 +667,6 @@ int32_t syncNodePropose(SSyncNode* pSyncNode, SRpcMsg* pMsg, bool isWeak, int64_
       pMsg->info.conn.applyIndex = retIndex;
       pMsg->info.conn.applyTerm = raftStoreGetTerm(pSyncNode);
 
-
       //after raft member change, need to handle 1->2 switching point
       //at this point, need to switch entry handling thread 
       if(pSyncNode->replicaNum == 1){
@@ -2811,7 +2810,8 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
       syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum); //TODO cdm return -1
 
       //no need to change state
-      if(ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_LEARNER){
+
+      if(ths->myNodeInfo.nodeRole == TAOS_SYNC_ROLE_LEARNER){
         ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
         //TODO cdm 3-1的时候，config的apply比alterconfirm晚
         //TODO cdm 为什么要设置restoreFinish
@@ -3178,6 +3178,7 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
     uint64_t  seqNum = syncRespMgrAdd(ths->pSyncRespMgr, &stub);
     pEntry->seqNum = seqNum;
   }
+  //TODO cdm
 
   if (pEntry == NULL) {
     sError("vgId:%d, failed to process client request since %s.", ths->vgId, terrstr());
