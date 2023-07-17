@@ -3208,8 +3208,8 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
           //}
         }
         //TODO cdm rsp.pCount 和 有个 respmgr
-        if(code != 0) return code;
-        //return -1;
+        //if(code != 0) return code;
+        return -1;
       }
     }
 
