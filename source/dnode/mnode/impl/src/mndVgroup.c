@@ -64,7 +64,6 @@ int32_t mndInitVgroup(SMnode *pMnode) {
   mndSetMsgHandle(pMnode, TDMT_SYNC_FORCE_FOLLOWER_RSP, mndTransProcessRsp);
   mndSetMsgHandle(pMnode, TDMT_DND_ALTER_VNODE_TYPE_RSP, mndTransProcessRsp);
   mndSetMsgHandle(pMnode, TDMT_DND_CHECK_VNODE_LEARNER_CATCHUP_RSP, mndTransProcessRsp);
-  //mndSetMsgHandle(pMnode, TDMT_DND_ALTER_RAFT_TYPE_RSP, mndTransProcessRsp);
   mndSetMsgHandle(pMnode, TDMT_SYNC_CONFIG_CHANGE_RSP, mndTransProcessRsp);
 
   mndSetMsgHandle(pMnode, TDMT_MND_REDISTRIBUTE_VGROUP, mndProcessRedistributeVgroupMsg);
@@ -1311,6 +1310,7 @@ int32_t mndAddChangeConfigAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb,
   action.msgType = TDMT_SYNC_CONFIG_CHANGE;
   action.acceptableCode = TSDB_CODE_VND_ALREADY_IS_VOTER;
   action.retryCode = TSDB_CODE_VND_NOT_CATCH_UP;
+  //TODO cdm 考虑2个code应该是什么
 
   if (mndTransAppendRedoAction(pTrans, &action) != 0) {
     taosMemoryFree(pReq);
@@ -1444,6 +1444,7 @@ int32_t mndAddCheckLearnerCatchupAction(SMnode *pMnode, STrans *pTrans, SDbObj *
   action.msgType = TDMT_DND_CHECK_VNODE_LEARNER_CATCHUP;
   action.acceptableCode = TSDB_CODE_VND_ALREADY_IS_VOTER;
   action.retryCode = TSDB_CODE_VND_NOT_CATCH_UP;
+  //TODO cdm 考虑2个code应该是什么
 
   if (mndTransAppendRedoAction(pTrans, &action) != 0) {
     taosMemoryFree(pReq);
@@ -2367,7 +2368,7 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
       return -1;
     }
     (void)sdbSetRawStatus(pVgRaw, SDB_STATUS_READY);
-    //TODO 中途停下来会怎么样
+    //TODO cdm 中途停下来会怎么样
   } else {
     return -1;
   }

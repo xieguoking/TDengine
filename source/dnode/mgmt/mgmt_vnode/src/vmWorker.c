@@ -55,9 +55,6 @@ static void vmProcessMgmtQueue(SQueueInfo *pInfo, SRpcMsg *pMsg) {
     case TDMT_DND_CHECK_VNODE_LEARNER_CATCHUP:
       code = vmProcessCheckLearnCatchupReq(pMgmt, pMsg);
       break;
-    //case TDMT_DND_ALTER_RAFT_TYPE:
-    //  code = vmProcessAlterRaftTypeReq(pMgmt, pMsg);
-    //  break;
     default:
       terrno = TSDB_CODE_MSG_NOT_PROCESSED;
       dGError("msg:%p, not processed in vnode-mgmt queue", pMsg);

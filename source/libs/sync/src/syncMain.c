@@ -619,8 +619,6 @@ int32_t syncIsCatchUp(int64_t rid) {
                                   pSyncNode->pLogBuf->matchIndex);
     isCatchUp = 1;
   }
-
-  
   
   syncNodeRelease(pSyncNode);
   return isCatchUp;
@@ -669,6 +667,8 @@ int32_t syncNodePropose(SSyncNode* pSyncNode, SRpcMsg* pMsg, bool isWeak, int64_
       pMsg->info.conn.applyIndex = retIndex;
       pMsg->info.conn.applyTerm = raftStoreGetTerm(pSyncNode);
 
+      //after raft member change, need to handle 1->2 switching point
+      //at this point, need to switch entry handling thread 
       if(pSyncNode->replicaNum == 1){
         sTrace("vgId:%d, propose optimized msg, index:%" PRId64 " type:%s", pSyncNode->vgId, retIndex,
             TMSG_INFO(pMsg->msgType));
@@ -2327,10 +2327,10 @@ void syncBuildConfigFromReq(SAlterVnodeReplicaReq *pReq, SSyncCfg *cfg){//TODO S
   if(pReq->learnerSelfIndex != -1){
     cfg->myIndex = pReq->replica + pReq->learnerSelfIndex;
   }
-  cfg->changeVersion = pReq->changeVersion; //changeVersion name is proper?
+  cfg->changeVersion = pReq->changeVersion; //TODO cdm changeVersion name is proper?
 }
 
-int32_t syncNodecheckChageConfig(SSyncNode* ths, SSyncRaftEntry* pEntry){//TODO 小写
+int32_t syncNodeCheckChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry){
   if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
     SMsgHead *head = (SMsgHead *)pEntry->data;
     void *pReq = POINTER_SHIFT(head, sizeof(SMsgHead));
@@ -3178,7 +3178,7 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
       (*pRetIndex) = index;
     }
 
-    int32_t code = syncNodecheckChageConfig(ths, pEntry);
+    int32_t code = syncNodeCheckChangeConfig(ths, pEntry);
     
     SRpcMsg rsp = {.code = pMsg->code, .info = pMsg->info};
     (void)syncRespMgrGetAndDel(ths->pSyncRespMgr, pEntry->seqNum, &rsp.info);
