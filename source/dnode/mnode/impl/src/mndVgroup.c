@@ -1311,9 +1311,6 @@ int32_t mndAddChangeConfigAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb,
   action.pCont = pHead;
   action.contLen = totallen;
   action.msgType = TDMT_SYNC_CONFIG_CHANGE;
-  action.acceptableCode = TSDB_CODE_VND_ALREADY_IS_VOTER;
-  action.retryCode = TSDB_CODE_VND_NOT_CATCH_UP;
-  //TODO cdm
 
   if (mndTransAppendRedoAction(pTrans, &action) != 0) {
     taosMemoryFree(pReq);
