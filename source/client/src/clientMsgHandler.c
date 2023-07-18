@@ -99,6 +99,12 @@ int32_t processConnectRsp(void* param, SDataBuf* pMsg, int32_t code) {
     goto End;
   }
 
+  if (!connectRsp.enable) {
+    setErrno(pRequest, TSDB_CODE_MND_USER_DISABLED);
+    tsem_post(&pRequest->body.rspSem);
+    goto End;
+  }
+
   if (connectRsp.dnodeNum == 1) {
     SEpSet srcEpSet = getEpSet_s(&pTscObj->pAppInfo->mgmtEp);
     SEpSet dstEpSet = connectRsp.epSet;
@@ -120,6 +126,7 @@ int32_t processConnectRsp(void* param, SDataBuf* pMsg, int32_t code) {
   }
 
   pTscObj->sysInfo = connectRsp.sysInfo;
+  pTscObj->enable = connectRsp.enable;
   pTscObj->connId = connectRsp.connId;
   pTscObj->acctId = connectRsp.acctId;
   tstrncpy(pTscObj->sVer, connectRsp.sVer, tListLen(pTscObj->sVer));

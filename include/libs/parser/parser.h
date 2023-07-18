@@ -57,6 +57,7 @@ typedef struct SParseContext {
   const char*      pUser;
   bool             isSuperUser;
   bool             enableSysInfo;
+  bool             enableUser;
   bool             async;
   bool             hasInvisibleCol;
   const char*      svrVer;

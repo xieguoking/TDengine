@@ -1032,6 +1032,7 @@ int32_t createParseContext(const SRequestObj *pRequest, SParseContext **pCxt) {
                            .pUser = pTscObj->user,
                            .isSuperUser = (0 == strcmp(pTscObj->user, TSDB_DEFAULT_USER)),
                            .enableSysInfo = pTscObj->sysInfo,
+                           .enableUser = pTscObj->enable,
                            .async = true,
                            .svrVer = pTscObj->sVer,
                            .nodeOffline = (pTscObj->pAppInfo->onlineDnodes < pTscObj->pAppInfo->totalDnodes),
