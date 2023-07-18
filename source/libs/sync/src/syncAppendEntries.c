@@ -194,7 +194,6 @@ _SEND_RESPONSE:
               "ths->commitIndex:%" PRId64 ", pEntry->index:%" PRId64 ", restoreFinish:%d, ths->pLogBuf->commitIndex:%" PRId64,
             ths->vgId, ths->commitIndex, pEntry->index, ths->restoreFinish, ths->pLogBuf->commitIndex);
       }
-      //TODO here is proper position?
     }
   }
   else{
@@ -204,7 +203,6 @@ _SEND_RESPONSE:
   }
   
   pEntry = NULL;
-  //TODO set null
 
   // commit index, i.e. leader notice me
   if (syncLogBufferCommit(ths->pLogBuf, ths, ths->commitIndex) < 0) {

@@ -60,7 +60,7 @@ static int32_t syncDoLeaderTransfer(SSyncNode* ths, SRpcMsg* pRpcMsg, SSyncRaftE
 
 static ESyncStrategy syncNodeStrategy(SSyncNode* pSyncNode);
 
-int64_t syncOpen(SSyncInfo* pSyncInfo, bool isFirst) {//TODO name is proper?
+int64_t syncOpen(SSyncInfo* pSyncInfo, bool isFirst) {
   SSyncNode* pSyncNode = syncNodeOpen(pSyncInfo, isFirst);
   if (pSyncNode == NULL) {
     sError("vgId:%d, failed to open sync node", pSyncInfo->vgId);
@@ -2467,9 +2467,6 @@ void syncNodeChangePeerAndCfgToVoter(SSyncNode* ths, SSyncCfg *cfg){
 }
 
 int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum){
-  //TODO cdm 直接copy这样状态复制是否可以？
-  //TODO cdm 是否会出现不按顺序的删除
-
   //1.rebuild replicasId, remove deleted one
   SRaftId oldReplicasId[TSDB_MAX_REPLICA + TSDB_MAX_LEARNER_REPLICA];
   memcpy(oldReplicasId, ths->replicasId, sizeof(oldReplicasId));
@@ -2530,7 +2527,6 @@ int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum
     for(int j = 0; j < oldtotalReplicaNum; j++){
       if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])) {
         *(ths->logReplMgrs[i]) = oldLogReplMgrs[j];
-        //TODO cdm 按结构体复制，是否合理
       }
     }
 
@@ -2549,7 +2545,6 @@ int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum
 
 
   //6.rebuild sender
-  //TODO cdm 是不是不需要, sender是用的时候再初始化的吗
   for(int i = 0; i < oldtotalReplicaNum; ++i){
     sDebug("vgId:%d, old sender i:%d, replicaIndex:%d, lastSendTime:%" PRId64, 
             ths->vgId, i, ths->senders[i]->replicaIndex, ths->senders[i]->lastSendTime)
@@ -2564,12 +2559,10 @@ int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum
 
   for(int i = 0; i < ths->totalReplicaNum; i++){
     ths->senders[i] = snapshotSenderCreate(ths, i);
-    //TODO cdm 这里不对，看不出哪不对了
 
     for(int j = 0; j < oldtotalReplicaNum; j++){
       if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])){
         *(ths->senders[i]) = oldSender[j];
-        //TODO cdm 按结构体复制，是否合理
       }
     }    
   }
@@ -2627,7 +2620,6 @@ void syncNodeChangeToVoter(SSyncNode* ths){
   for (int32_t i = 0; i < ths->pMatchIndex->totalReplicaNum; ++i){
     sDebug("vgId:%d, i:%d, match.index:%" PRId64, ths->vgId, i, ths->pMatchIndex->index[i]);
   }
-  //TODO cdm 为什么第一有一个，第二次有三个
 
   //pVotesGranted, pVotesRespond
   voteGrantedUpdate(ths->pVotesGranted, ths);
@@ -2719,7 +2711,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
     }
 
     if(incfg){//remove other
-      syncNodeResetPeerAndCfg(ths);//TODO cdm 需要清空吗？
+      syncNodeResetPeerAndCfg(ths);
 
       //no need to change myNodeInfo
 
@@ -2730,7 +2722,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
     else{//remove myself
       //no need to do anything actually, to change the following to reduce distruptive server chance
 
-      syncNodeResetPeerAndCfg(ths);//TODO cdm 需要清空吗？
+      syncNodeResetPeerAndCfg(ths);
 
       //change myNodeInfo
       ths->myNodeInfo.nodeRole = TAOS_SYNC_ROLE_LEARNER;
@@ -2746,7 +2738,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
       ths->replicaNum = 0;
       ths->totalReplicaNum = 1;
       
-      ths->pMatchIndex->replicaNum = 0; //TODO 强行修改
+      ths->pMatchIndex->replicaNum = 0; //TODO cdm 强行修改
       ths->pNextIndex->replicaNum = 0;
 
       ths->pNextIndex->totalReplicaNum = 1;
@@ -2761,11 +2753,9 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
 
     //SVotesGranted *grant = ths->pVotesGranted;
     //grant->quorum = syncUtilQuorum(ths->replicaNum);
-    //TODO为什么3-1要改
+    //TODO cdm 为什么3-1要改
 
-    ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
-    //TODO cdm 3-1的时候，config的apply比alterconfirm晚
-    //TODO cdm 为什么要设置restoreFinish
+    ths->restoreFinish = false; 
   }
   else{//add replica, or change replica type
     if(ths->totalReplicaNum == 3){ //change replica type
@@ -2794,9 +2784,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
         }
       }
 
-      ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
-      //TODO cdm 3-1的时候，config的apply比alterconfirm晚
-      //TODO cdm 为什么要设置restoreFinish
+      ths->restoreFinish = false; 
     }
     else{//add replica
       sInfo("vgId:%d, begin add replica", ths->vgId);
@@ -2812,9 +2800,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
       //no need to change state
 
       if(ths->myNodeInfo.nodeRole == TAOS_SYNC_ROLE_LEARNER){
-        ths->restoreFinish = false; //TODO cdm 两个过程的位置不一样
-        //TODO cdm 3-1的时候，config的apply比alterconfirm晚
-        //TODO cdm 为什么要设置restoreFinish
+        ths->restoreFinish = false;
       }
     }
   }
@@ -2824,12 +2810,11 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
   ths->raftCfg.lastConfigIndex = pEntry->index;
   ths->raftCfg.cfg.lastIndex = pEntry->index;
   ths->raftCfg.cfg.changeVersion = cfg->changeVersion;
-  //TODO no need to set lastIndex?
 
   syncNodeLogConfigInfo(ths, cfg, "after config change");
 
   syncWriteCfgFile(ths);
-  //TODO handle fail
+  //TODO cdm handle fail
 
   taosMemoryFree(cfg); 
 }
@@ -3178,7 +3163,6 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
     uint64_t  seqNum = syncRespMgrAdd(ths->pSyncRespMgr, &stub);
     pEntry->seqNum = seqNum;
   }
-  //TODO cdm
 
   if (pEntry == NULL) {
     sError("vgId:%d, failed to process client request since %s.", ths->vgId, terrstr());
@@ -3263,7 +3247,6 @@ bool syncNodeIsOptimizedOneReplica(SSyncNode* ths, SRpcMsg* pMsg) {
 
 bool syncNodeInRaftGroup(SSyncNode* ths, SRaftId* pRaftId) {
   sTrace("vgId:%d, check in raft group, ths->totalReplicaNum:%d, pRaftId->addr:%" PRIx64, ths->vgId, ths->totalReplicaNum, pRaftId->addr);
-  //TODO cdm here should be ReplicaNum
   for (int32_t i = 0; i < ths->totalReplicaNum; ++i) {
     sTrace("vgId:%d, check in raft group, replicasId addr:%" PRIx64, ths->vgId, (ths->replicasId)[i].addr);
     if (syncUtilSameId(&((ths->replicasId)[i]), pRaftId)) {

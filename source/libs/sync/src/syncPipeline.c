@@ -94,6 +94,7 @@ int32_t syncLogBufferAppend(SSyncLogBuffer* pBuf, SSyncNode* pNode, SSyncRaftEnt
          pNode->vgId, pEntry->index, pEntry->term, pNode->pLogBuf->startIndex, pNode->pLogBuf->commitIndex,
          pNode->pLogBuf->matchIndex, pNode->pLogBuf->endIndex);
   }
+  //TODO cdm tmp code
   return 0;
 
 _err:
@@ -485,12 +486,12 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
            pNode->vgId, pBuf->startIndex, pBuf->matchIndex, pBuf->endIndex);
 
     // persist
-    if (syncLogStorePersist(pLogStore, pNode, pEntry) < 0) { //TODO cdm persist first is proper?
+    if (syncLogStorePersist(pLogStore, pNode, pEntry) < 0) {
       sError("vgId:%d, failed to persist sync log entry from buffer since %s. index:%" PRId64, pNode->vgId, terrstr(),
              pEntry->index);
       goto _out;
     }
-    ASSERT(pEntry->index == pBuf->matchIndex); //TODO cdm move to here is proper?
+    ASSERT(pEntry->index == pBuf->matchIndex);
   
     if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
       if(pNode->pLogBuf->commitIndex == pEntry->index -1){
@@ -515,9 +516,6 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
               pNode->pLogBuf->matchIndex, pNode->pLogBuf->endIndex, 
               pEntry->index - 1, pNode->pLogBuf->commitIndex);
       }
-      //TODO cdm here is proper?
-      //TODO cdm ths->commitIndex, ths->pLogBuf->commitIndex, what is difference
-      //TODO cdm syncLogBufferProceed is common function, why from append
     }
 
     // replicate on demand
@@ -544,7 +542,7 @@ int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTe
       pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_LEARNER &&
       pNode->restoreFinish && pNode->vgId != 1 /*&& pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE*/
       && force == false) {
-    //TODO cdm
+    //TODO cdm tmp code
     sInfo("vgId:%d, not to execute, index:%" PRId64 ", term:%" PRId64 ", type:%s code:0x%x, replicaNum:%d,"
           "role:%d, restoreFinish:%d",
            pNode->vgId, pEntry->index, pEntry->term, TMSG_INFO(pEntry->originalRpcType), applyCode,
@@ -655,8 +653,7 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
       syncNodeChangeConfig(pNode, pNextEntry, "Commit");
 
       
-      //TODO cdm 但是这样就提前commit了，为什么可以commit
-      //TODO cdm 如果upperIndex这时还没有上来，是不是还会有crash，index + 1 <= upperIndex
+      //TODO cdm tmp code
       if(index + 1 > upperIndex){
         sInfo("vgId:%d, exeed upperIndex. index + 1:%" PRId64 ", term:%" PRId64
               ", role:%d, current term:%" PRId64 ", upperIndex:%" PRId64 ", commitIndex:%" PRId64
@@ -667,7 +664,6 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
 
       //for 2->1, need to apply config change entry in sync thead
       if(pNode->replicaNum == 1){
-        //TODO cdm 之前没加pNode->replicaNum == 1, 相当于在1-2, 2-3, 3-2提前apply了,为什么没问题
         if (syncFsmExecute(pNode, pFsm, role, currentTerm, pNextEntry, 0, true) != 0) {
           sError("vgId:%d, failed to execute sync log entry. index:%" PRId64 ", term:%" PRId64
               ", role:%d, current term:%" PRId64,
@@ -717,7 +713,7 @@ _out:
         "currentTerm:%" PRId64 ,
           pNode->vgId, pNode->restoreFinish, pBuf->commitIndex, pNode->commitIndex, currentTerm);
   }
-  
+  //TODO cdm tmp code
 
   if (!pNode->restoreFinish && pBuf->commitIndex >= pNode->commitIndex && pEntry != NULL &&
       currentTerm <= pEntry->term) {

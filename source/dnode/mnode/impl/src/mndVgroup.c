@@ -1310,7 +1310,6 @@ int32_t mndAddChangeConfigAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb,
   action.msgType = TDMT_SYNC_CONFIG_CHANGE;
   action.acceptableCode = TSDB_CODE_VND_ALREADY_IS_VOTER;
   action.retryCode = TSDB_CODE_VND_NOT_CATCH_UP;
-  //TODO cdm 考虑2个code应该是什么
 
   if (mndTransAppendRedoAction(pTrans, &action) != 0) {
     taosMemoryFree(pReq);
@@ -1444,7 +1443,6 @@ int32_t mndAddCheckLearnerCatchupAction(SMnode *pMnode, STrans *pTrans, SDbObj *
   action.msgType = TDMT_DND_CHECK_VNODE_LEARNER_CATCHUP;
   action.acceptableCode = TSDB_CODE_VND_ALREADY_IS_VOTER;
   action.retryCode = TSDB_CODE_VND_NOT_CATCH_UP;
-  //TODO cdm 考虑2个code应该是什么
 
   if (mndTransAppendRedoAction(pTrans, &action) != 0) {
     taosMemoryFree(pReq);
@@ -2314,7 +2312,6 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     newVgroup.vnodeGid[1].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.vnodeGid[2].nodeRole = TAOS_SYNC_ROLE_VOTER;
     newVgroup.syncConfChangeVer++;
-    //TODO cdm 每一步保存一次
     if (mndAddChangeConfigAction(pMnode, pTrans, pNewDb, pVgroup, &newVgroup, newVgroup.vnodeGid[0].dnodeId) != 0)
       return -1;
 
@@ -2340,7 +2337,6 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
     if (mndAddAlterVnodeConfirmAction(pMnode, pTrans, pNewDb, &newVgroup) != 0) return -1;
 
     if (mndAddDropVnodeAction(pMnode, pTrans, pNewDb, &newVgroup, &del1, true) != 0) return -1;
-    //TODO cdm drop 在confirm之后
 
     SSdbRaw *pVgRaw = mndVgroupActionEncode(&newVgroup);
     if (pVgRaw == NULL) return -1;
@@ -2349,7 +2345,6 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
       return -1;
     }
     (void)sdbSetRawStatus(pVgRaw, SDB_STATUS_READY);
-    //TODO cdm 这部分挪到最后，有什么影响
 
     SVnodeGid del2 = {0};
     if (mndRemoveVnodeFromVgroupWithoutSave(pMnode, pTrans, &newVgroup, pArray, &del2) != 0) return -1;
@@ -2368,7 +2363,6 @@ int32_t mndBuildAlterVgroupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pOldDb
       return -1;
     }
     (void)sdbSetRawStatus(pVgRaw, SDB_STATUS_READY);
-    //TODO cdm 中途停下来会怎么样
   } else {
     return -1;
   }

@@ -61,6 +61,7 @@ void voteGrantedUpdate(SVotesGranted *pVotesGranted, SSyncNode *pNode) {
 
 bool voteGrantedMajority(SVotesGranted *pVotesGranted) {
   sDebug("pVotesGranted->votes:%d, pVotesGranted->quorum:%d", pVotesGranted->votes, pVotesGranted->quorum);
+  //TODO cdm tmp code
   return pVotesGranted->votes >= pVotesGranted->quorum; 
 }
 

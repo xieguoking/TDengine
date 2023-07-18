@@ -59,7 +59,6 @@ bool syncNodeAgreedUpon(SSyncNode* pNode, SyncIndex index) {
   SSyncIndexMgr* pMatches = pNode->pMatchIndex;
   ASSERT(pNode->replicaNum == pMatches->replicaNum);
 
-  //TODO cdm here should be ReplicaNum
   for (int i = 0; i < pNode->totalReplicaNum; i++) {
     if(pNode->raftCfg.cfg.nodeInfo[i].nodeRole == TAOS_SYNC_ROLE_VOTER){
       SyncIndex matchIndex = pMatches->index[i];
