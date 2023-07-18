@@ -87,14 +87,6 @@ int32_t syncLogBufferAppend(SSyncLogBuffer* pBuf, SSyncNode* pNode, SSyncRaftEnt
 
   syncLogBufferValidate(pBuf);
   taosThreadMutexUnlock(&pBuf->mutex);
-
-  if(pNode->pLogBuf->commitIndex - pNode->pLogBuf->endIndex> 2){
-    sTrace("vgId:%d, reply delay, buffer append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
-         ", %" PRId64 ")",
-         pNode->vgId, pEntry->index, pEntry->term, pNode->pLogBuf->startIndex, pNode->pLogBuf->commitIndex,
-         pNode->pLogBuf->matchIndex, pNode->pLogBuf->endIndex);
-  }
-  //TODO cdm tmp code
   return 0;
 
 _err:
@@ -546,8 +538,7 @@ int32_t syncFsmExecute(SSyncNode* pNode, SSyncFSM* pFsm, ESyncState role, SyncTe
       pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_LEARNER &&
       pNode->restoreFinish && pNode->vgId != 1 /*&& pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE*/
       && force == false) {
-    //TODO cdm tmp code
-    sInfo("vgId:%d, not to execute, index:%" PRId64 ", term:%" PRId64 ", type:%s code:0x%x, replicaNum:%d,"
+    sDebug("vgId:%d, not to execute, index:%" PRId64 ", term:%" PRId64 ", type:%s code:0x%x, replicaNum:%d,"
           "role:%d, restoreFinish:%d",
            pNode->vgId, pEntry->index, pEntry->term, TMSG_INFO(pEntry->originalRpcType), applyCode,
            pNode->replicaNum, pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole, pNode->restoreFinish);
@@ -712,18 +703,6 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
   ret = 0;
 _out:
   // mark as restored if needed
-  if(pEntry != NULL){
-    sInfo("vgId:%d, check restore. restoreFinish:%d, pBuf->commitIndex:%" PRId64 ", pNode->commitIndex:%" PRId64 ", " 
-        "currentTerm:%" PRId64 ", pEntry->term:%"PRId64,
-          pNode->vgId, pNode->restoreFinish, pBuf->commitIndex, pNode->commitIndex, currentTerm, pEntry->term);
-  }
-  else{
-    sInfo("vgId:%d, check restore. restoreFinish%d, pBuf->commitIndex:%" PRId64 ", pNode->commitIndex:%" PRId64 ", " 
-        "currentTerm:%" PRId64 ,
-          pNode->vgId, pNode->restoreFinish, pBuf->commitIndex, pNode->commitIndex, currentTerm);
-  }
-  //TODO cdm tmp code
-
   if (!pNode->restoreFinish && pBuf->commitIndex >= pNode->commitIndex && pEntry != NULL &&
       currentTerm <= pEntry->term) {
     pNode->pFsm->FpRestoreFinishCb(pNode->pFsm, pBuf->commitIndex);
