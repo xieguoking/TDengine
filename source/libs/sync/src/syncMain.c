@@ -3168,13 +3168,7 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
         (void)syncRespMgrGetAndDel(ths->pSyncRespMgr, pEntry->seqNum, &rsp.info);
         if (rsp.info.handle != NULL) {
           tmsgSendRsp(&rsp);
-        } else {
-          //if (rsp.pCont) {
-          //  rpcFreeCont(rsp.pCont);
-          //}
-        }
-        //TODO cdm rsp.pCount 和 有个 respmgr
-        //if(code != 0) return code;
+        } 
         return -1;
       }
     }
