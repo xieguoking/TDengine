@@ -187,7 +187,12 @@ _SEND_RESPONSE:
               pEntry->index, pEntry->term, 
               ths->restoreFinish,
               pEntry->index -1, ths->commitIndex, ths->pLogBuf->commitIndex);
-        syncNodeChangeConfig(ths, pEntry, "OnAppn");
+        if(syncNodeChangeConfig(ths, pEntry, "OnAppn") != 0){
+            sError("vgId:%d, failed to change config from OnAppendEntry, "
+              "ths->commitIndex:%" PRId64 ", pEntry->index:%" PRId64 ", restoreFinish:%d, ths->pLogBuf->commitIndex:%" PRId64,
+              ths->vgId, ths->commitIndex, pEntry->index, ths->restoreFinish, ths->pLogBuf->commitIndex);
+            goto _IGNORE;
+        }
       }
       else{
         sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from OnAppendEntry, "

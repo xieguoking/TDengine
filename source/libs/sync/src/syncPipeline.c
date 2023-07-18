@@ -503,7 +503,12 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
               pEntry->index, pEntry->term, 
               pNode->restoreFinish, pNode->commitIndex,
               pEntry->index - 1, pNode->pLogBuf->commitIndex);
-        syncNodeChangeConfig(pNode, pEntry, "Append");
+        if(syncNodeChangeConfig(pNode, pEntry, "Append") != 0){
+          sError("vgId:%d, failed to change config from Append since %s. index:%" PRId64, pNode->vgId, terrstr(),
+             pEntry->index);
+          goto _out;
+        }
+        //TODO cdm from append
       }
       else{
         sInfo("vgId:%d, delay change config from Node Append. "
@@ -650,7 +655,12 @@ int32_t syncLogBufferCommit(SSyncLogBuffer* pBuf, SSyncNode* pNode, int64_t comm
             role, currentTerm, pNode->restoreFinish,
             pNextEntry->index, TMSG_INFO(pNextEntry->originalRpcType));
 
-      syncNodeChangeConfig(pNode, pNextEntry, "Commit");
+      if(syncNodeChangeConfig(pNode, pNextEntry, "Commit") != 0){
+        sError("vgId:%d, failed to change config from Commit. index:%" PRId64 ", term:%" PRId64
+              ", role:%d, current term:%" PRId64,
+              vgId, pNextEntry->index, pNextEntry->term, role, currentTerm);
+          goto _out;
+      }
 
       
       //TODO cdm tmp code

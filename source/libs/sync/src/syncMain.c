@@ -2634,9 +2634,9 @@ void syncNodeResetPeerAndCfg(SSyncNode* ths){
   }
 }
 
-void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
+int32_t syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
   if(pEntry->originalRpcType != TDMT_SYNC_CONFIG_CHANGE){
-    return;
+    return -1;
   }
 
   SMsgHead *head = (SMsgHead *)pEntry->data;
@@ -2645,13 +2645,13 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
   SAlterVnodeTypeReq req = {0};
   if (tDeserializeSAlterVnodeReplicaReq(pReq, head->contLen, &req) != 0) {
     terrno = TSDB_CODE_INVALID_MSG;
-    return;
+    return -1;
   }
 
   SSyncCfg *cfg = taosMemoryMalloc(sizeof(SSyncCfg));
   if(cfg == NULL){
     terrno = TSDB_CODE_OUT_OF_MEMORY;
-    return;
+    return -1;
   }
   syncBuildConfigFromReq(&req, cfg);   
 
@@ -2662,7 +2662,7 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
         ths->vgId, 
         pEntry->index, pEntry->term, cfg->totalReplicaNum, cfg->changeVersion, 
         ths->replicaNum, ths->peersNum, ths->raftCfg.lastConfigIndex, ths->raftCfg.cfg.changeVersion);
-    return;
+    return 0;
   }
 
   if(strcmp(str, "Commit") == 0){
@@ -2708,9 +2708,13 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
 
       //no need to change myNodeInfo
 
-      syncNodeRebuildPeerAndCfg(ths, cfg); //TODO cdm return -1
+      if(syncNodeRebuildPeerAndCfg(ths, cfg) != 0){
+        return -1;
+      }; 
 
-      syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum); //TODO cdm return -1
+      if(syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum) != 0){
+        return -1;
+      };
     }
     else{//remove myself
       //no need to do anything actually, to change the following to reduce distruptive server chance
@@ -2727,7 +2731,9 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
       ths->raftCfg.cfg.totalReplicaNum = 1;
 
       //change other
-      syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum);
+      if(syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum) != 0){
+        return -1;
+      }
 
       //change state
       ths->state = TAOS_SYNC_STATE_LEARNER;
@@ -2770,10 +2776,14 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
       //no need to change myNodeInfo
 
       //change peer and cfg
-      syncNodeRebuildPeerAndCfg(ths, cfg); //TODO cdm return -1
+      if(syncNodeRebuildPeerAndCfg(ths, cfg) != 0){
+        return -1;
+      };
 
       //change other
-      syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum); //TODO cdm return -1
+      if(syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum) != 0){
+        return -1;
+      };
 
       //no need to change state
 
@@ -2791,10 +2801,14 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
 
   syncNodeLogConfigInfo(ths, cfg, "after config change");
 
-  syncWriteCfgFile(ths);
-  //TODO cdm handle fail
+  if(syncWriteCfgFile(ths) != 0){
+    sError("vgId:%d, failed to create sync cfg file", ths->vgId);
+    return -1;
+  };
 
   taosMemoryFree(cfg); 
+
+  return 0;
 }
 
 int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
