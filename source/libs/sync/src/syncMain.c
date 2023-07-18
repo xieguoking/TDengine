@@ -2393,7 +2393,7 @@ int32_t syncNodeRebuildPeerAndCfg(SSyncNode* ths, SSyncCfg *cfg){
   //change peersNodeInfo
   i = 0;
   for(int32_t j = 0; j < cfg->totalReplicaNum; ++j){
-    if(!(strcmp(ths->myNodeInfo.nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 //TODO cdm better?
+    if(!(strcmp(ths->myNodeInfo.nodeFqdn, cfg->nodeInfo[j].nodeFqdn) == 0 
       && ths->myNodeInfo.nodePort == cfg->nodeInfo[j].nodePort)){
       ths->peersNodeInfo[i].nodeRole = cfg->nodeInfo[j].nodeRole;
       ths->peersNodeInfo[i].clusterId = cfg->nodeInfo[j].clusterId;
