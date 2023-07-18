@@ -514,6 +514,7 @@ SSyncState syncGetState(int64_t rid) {
     } else {
       state.canRead = state.restored;
     }
+    /*
     double progress = 0;
     if(pSyncNode->pLogBuf->totalIndex > 0 && pSyncNode->pLogBuf->commitIndex > 0){
       progress = (double)pSyncNode->pLogBuf->commitIndex/(double)pSyncNode->pLogBuf->totalIndex;
@@ -526,6 +527,7 @@ SSyncState syncGetState(int64_t rid) {
             "progress:%lf, progress:%d", 
           pSyncNode->vgId,
          pSyncNode->pLogBuf->commitIndex, pSyncNode->pLogBuf->totalIndex, progress, state.progress);
+    */
     syncNodeRelease(pSyncNode);
   }
 
