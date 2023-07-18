@@ -1398,34 +1398,6 @@ int32_t mndAddAlterVnodeReplicaAction(SMnode *pMnode, STrans *pTrans, SDbObj *pD
   return 0;
 }
 
-/*
-int32_t mndAddAlterVnodeTypeAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, SVgObj *pVgroup, int32_t dnodeId) {
-  SDnodeObj *pDnode = mndAcquireDnode(pMnode, dnodeId);
-  if (pDnode == NULL) return -1;
-
-  STransAction action = {0};
-  action.epSet = mndGetDnodeEpset(pDnode);
-  mndReleaseDnode(pMnode, pDnode);
-
-  int32_t contLen = 0;
-  void   *pReq = mndBuildAlterVnodeReplicaReq(pMnode, pDb, pVgroup, dnodeId, &contLen);
-  if (pReq == NULL) return -1;
-
-  action.pCont = pReq;
-  action.contLen = contLen;
-  action.msgType = TDMT_DND_ALTER_VNODE_TYPE;
-  action.acceptableCode = TSDB_CODE_VND_ALREADY_IS_VOTER;
-  action.retryCode = TSDB_CODE_VND_NOT_CATCH_UP;
-
-  if (mndTransAppendRedoAction(pTrans, &action) != 0) {
-    taosMemoryFree(pReq);
-    return -1;
-  }
-
-  return 0;
-}
-*/
-
 int32_t mndAddCheckLearnerCatchupAction(SMnode *pMnode, STrans *pTrans, SDbObj *pDb, SVgObj *pVgroup, int32_t dnodeId) {
   SDnodeObj *pDnode = mndAcquireDnode(pMnode, dnodeId);
   if (pDnode == NULL) return -1;

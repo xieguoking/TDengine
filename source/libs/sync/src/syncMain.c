@@ -1439,12 +1439,6 @@ int32_t syncNodeSendMsgById(const SRaftId* destRaftId, SSyncNode* pNode, SRpcMsg
     rpcFreeCont(pMsg->pCont);
     terrno = TSDB_CODE_SYN_INTERNAL_ERROR;
   }
-  else{
-    sTrace("vgId:%d, sync send msg, epset:%p dnode:%d addr:%" PRId64, pNode->vgId, epSet,
-           DID(destRaftId), destRaftId->addr);
-    //TODO cdm temp code
-  }
-  
   return code;
 }
 
@@ -2328,7 +2322,7 @@ void syncBuildConfigFromReq(SAlterVnodeReplicaReq *pReq, SSyncCfg *cfg){//TODO S
   if(pReq->learnerSelfIndex != -1){
     cfg->myIndex = pReq->replica + pReq->learnerSelfIndex;
   }
-  cfg->changeVersion = pReq->changeVersion; //TODO cdm changeVersion name is proper?
+  cfg->changeVersion = pReq->changeVersion;
 }
 
 int32_t syncNodeCheckChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry){
@@ -2696,7 +2690,6 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
 
   syncNodeLogConfigInfo(ths, cfg, "before config change");
   
-  //int32_t oldReplicaNum = ths->replicaNum; //TODO cdm
   int32_t oldTotalReplicaNum = ths->totalReplicaNum;
 
   if(cfg->totalReplicaNum == 1 || cfg->totalReplicaNum == 2){//remove replica
@@ -2734,26 +2727,11 @@ void syncNodeChangeConfig(SSyncNode* ths, SSyncRaftEntry* pEntry, char* str){
       ths->raftCfg.cfg.totalReplicaNum = 1;
 
       //change other
-      /*
-      ths->replicaNum = 0;
-      ths->totalReplicaNum = 1;
-      
-      ths->pMatchIndex->replicaNum = 0; //TODO cdm 强行修改
-      ths->pNextIndex->replicaNum = 0;
-
-      ths->pNextIndex->totalReplicaNum = 1;
-      ths->pNextIndex->totalReplicaNum = 1;
-      */
-
       syncNodeRebuildAndCopyIfExist(ths, oldTotalReplicaNum);
 
       //change state
       ths->state = TAOS_SYNC_STATE_LEARNER;
     }
-
-    //SVotesGranted *grant = ths->pVotesGranted;
-    //grant->quorum = syncUtilQuorum(ths->replicaNum);
-    //TODO cdm 为什么3-1要改
 
     ths->restoreFinish = false; 
   }
