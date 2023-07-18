@@ -164,8 +164,8 @@ int32_t syncNodeOnAppendEntries(SSyncNode* ths, const SRpcMsg* pRpcMsg) {
   accepted = true;
 
 _SEND_RESPONSE:
-
-  pReply->matchIndex = syncLogBufferProceed(ths->pLogBuf, ths, &pReply->lastMatchTerm);
+  pEntry = NULL;
+  pReply->matchIndex = syncLogBufferProceed(ths->pLogBuf, ths, &pReply->lastMatchTerm, "OnAppn");
   bool matched = (pReply->matchIndex >= pReply->lastSendIndex);
   if (accepted && matched) {
     pReply->success = true;
@@ -176,6 +176,7 @@ _SEND_RESPONSE:
   // ack, i.e. send response
   (void)syncNodeSendMsgById(&pReply->destId, ths, &rpcRsp);
 
+/*
   if(pEntry != NULL){
     if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
       if(ths->pLogBuf->commitIndex == pEntry->index -1){
@@ -206,8 +207,7 @@ _SEND_RESPONSE:
               "ths->commitIndex:%" PRId64 ", pEntry is null, restoreFinish:%d, ths->pLogBuf->commitIndex:%" PRId64,
             ths->vgId, ths->commitIndex, ths->restoreFinish, ths->pLogBuf->commitIndex);
   }
-  
-  pEntry = NULL;
+*/
 
   // commit index, i.e. leader notice me
   if (syncLogBufferCommit(ths->pLogBuf, ths, ths->commitIndex) < 0) {

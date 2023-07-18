@@ -438,7 +438,7 @@ int32_t syncLogStorePersist(SSyncLogStore* pLogStore, SSyncNode* pNode, SSyncRaf
   return 0;
 }
 
-int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* pMatchTerm) {
+int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* pMatchTerm, char *str) {
   taosThreadMutexLock(&pBuf->mutex);
   syncLogBufferValidate(pBuf);
 
@@ -495,27 +495,26 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
   
     if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
       if(pNode->pLogBuf->commitIndex == pEntry->index -1){
-        sInfo("vgId:%d, to change config at Append. "
+        sInfo("vgId:%d, to change config at %s. "
               "current entry, index:%" PRId64 ", term:%" PRId64", "
               "node, restore:%d, commitIndex:%" PRId64 ", "
               "cond: (pre entry index:%" PRId64 "== buf commit index:%" PRId64 ")",
-              pNode->vgId, 
+              pNode->vgId, str,
               pEntry->index, pEntry->term, 
               pNode->restoreFinish, pNode->commitIndex,
               pEntry->index - 1, pNode->pLogBuf->commitIndex);
-        if(syncNodeChangeConfig(pNode, pEntry, "Append") != 0){
+        if(syncNodeChangeConfig(pNode, pEntry, str) != 0){
           sError("vgId:%d, failed to change config from Append since %s. index:%" PRId64, pNode->vgId, terrstr(),
              pEntry->index);
           goto _out;
         }
-        //TODO cdm from append
       }
       else{
-        sInfo("vgId:%d, delay change config from Node Append. "
+        sInfo("vgId:%d, delay change config from Node %s. "
               "curent entry, index:%" PRId64 ", term:%" PRId64 ", "
               "node, commitIndex:%" PRId64 ",  pBuf: [%" PRId64 " %" PRId64 " %" PRId64 ", %" PRId64 "), "
               "cond:( pre entry index:%" PRId64" != buf commit index:%" PRId64 ")",
-              pNode->vgId, 
+              pNode->vgId, str,
               pEntry->index, pEntry->term, 
               pNode->commitIndex, pNode->pLogBuf->startIndex, pNode->pLogBuf->commitIndex,
               pNode->pLogBuf->matchIndex, pNode->pLogBuf->endIndex, 

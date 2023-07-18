@@ -2829,13 +2829,13 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
   }
  
   // proceed match index, with replicating on needed
-  SyncIndex matchIndex = syncLogBufferProceed(ths->pLogBuf, ths, NULL);  
+  SyncIndex matchIndex = syncLogBufferProceed(ths->pLogBuf, ths, NULL, "Append");  
 
   sTrace("vgId:%d, append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
          ", %" PRId64 ")",
          ths->vgId, pEntry->index, pEntry->term, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
          ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
-
+/*
   if(ths->pLogBuf->matchIndex - ths->pLogBuf->commitIndex >= 2){
     sTrace("vgId:%d, commit delay, append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
          ", %" PRId64 ")",
@@ -2849,22 +2849,12 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
          ths->vgId, pEntry->index, pEntry->term, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
          ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
   }
-  
+*/  
 
   // multi replica
   if (ths->replicaNum > 1) {
     return 0;
   }
-
-/*
-  if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
-    sTrace("vgId:%d, config change. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
-         ", %" PRId64 ")",
-         ths->vgId, pEntry->index, pEntry->term, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
-         ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
-    return 0;
-  }
-*/
 
   // single replica
   (void)syncNodeUpdateCommitIndex(ths, matchIndex);
