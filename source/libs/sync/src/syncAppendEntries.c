@@ -22,8 +22,6 @@
 #include "syncReplication.h"
 #include "syncUtil.h"
 #include "syncCommit.h"
-#include "syncVoteMgr.h"
-#include "syncIndexMgr.h"
 
 // TLA+ Spec
 // HandleAppendEntriesRequest(i, j, m) ==
@@ -175,39 +173,6 @@ _SEND_RESPONSE:
 
   // ack, i.e. send response
   (void)syncNodeSendMsgById(&pReply->destId, ths, &rpcRsp);
-
-/*
-  if(pEntry != NULL){
-    if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
-      if(ths->pLogBuf->commitIndex == pEntry->index -1){
-        sInfo("vgId:%d, to change config at OnAppn. "
-              "current entry, index:%" PRId64 ", term:%" PRId64", "
-              "node, restore:%d, "
-              "cond, pre entry index:%" PRId64 ", commitIndex:%" PRId64 ", buf commit index:%" PRId64,
-              ths->vgId, 
-              pEntry->index, pEntry->term, 
-              ths->restoreFinish,
-              pEntry->index -1, ths->commitIndex, ths->pLogBuf->commitIndex);
-        if(syncNodeChangeConfig(ths, pEntry, "OnAppn") != 0){
-            sError("vgId:%d, failed to change config from OnAppendEntry, "
-              "ths->commitIndex:%" PRId64 ", pEntry->index:%" PRId64 ", restoreFinish:%d, ths->pLogBuf->commitIndex:%" PRId64,
-              ths->vgId, ths->commitIndex, pEntry->index, ths->restoreFinish, ths->pLogBuf->commitIndex);
-            goto _IGNORE;
-        }
-      }
-      else{
-        sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from OnAppendEntry, "
-              "ths->commitIndex:%" PRId64 ", pEntry->index:%" PRId64 ", restoreFinish:%d, ths->pLogBuf->commitIndex:%" PRId64,
-            ths->vgId, ths->commitIndex, pEntry->index, ths->restoreFinish, ths->pLogBuf->commitIndex);
-      }
-    }
-  }
-  else{
-    sError("vgId:%d, failed to syncNodeChageConfig_lastcommit from OnAppendEntry, "
-              "ths->commitIndex:%" PRId64 ", pEntry is null, restoreFinish:%d, ths->pLogBuf->commitIndex:%" PRId64,
-            ths->vgId, ths->commitIndex, ths->restoreFinish, ths->pLogBuf->commitIndex);
-  }
-*/
 
   // commit index, i.e. leader notice me
   if (syncLogBufferCommit(ths->pLogBuf, ths, ths->commitIndex) < 0) {

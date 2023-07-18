@@ -2838,21 +2838,6 @@ int32_t syncNodeAppend(SSyncNode* ths, SSyncRaftEntry* pEntry) {
          ", %" PRId64 ")",
          ths->vgId, pEntry->index, pEntry->term, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
          ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
-/*
-  if(ths->pLogBuf->matchIndex - ths->pLogBuf->commitIndex >= 2){
-    sTrace("vgId:%d, commit delay, append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
-         ", %" PRId64 ")",
-         ths->vgId, pEntry->index, pEntry->term, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
-         ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
-  }
-
-  if(ths->pLogBuf->commitIndex - ths->pLogBuf->endIndex>= 2){
-    sTrace("vgId:%d, reply delay, append raft entry. index:%" PRId64 ", term:%" PRId64 " pBuf: [%" PRId64 " %" PRId64 " %" PRId64
-         ", %" PRId64 ")",
-         ths->vgId, pEntry->index, pEntry->term, ths->pLogBuf->startIndex, ths->pLogBuf->commitIndex,
-         ths->pLogBuf->matchIndex, ths->pLogBuf->endIndex);
-  }
-*/  
 
   // multi replica
   if (ths->replicaNum > 1) {
@@ -3142,6 +3127,8 @@ int32_t syncNodeOnClientRequest(SSyncNode* ths, SRpcMsg* pMsg, SyncIndex* pRetIn
     pEntry = syncEntryBuildFromRpcMsg(pMsg, term, index);
   }
 
+  //1->2, config change is add in write thread, and will continue in sync thread
+  //need save message for it
   if(pMsg->msgType == TDMT_SYNC_CONFIG_CHANGE){
     SRespStub stub = {.createTime = taosGetTimestampMs(), .rpcMsg = *pMsg};
     uint64_t  seqNum = syncRespMgrAdd(ths->pSyncRespMgr, &stub);
@@ -3224,9 +3211,7 @@ bool syncNodeIsOptimizedOneReplica(SSyncNode* ths, SRpcMsg* pMsg) {
 }
 
 bool syncNodeInRaftGroup(SSyncNode* ths, SRaftId* pRaftId) {
-  sTrace("vgId:%d, check in raft group, ths->totalReplicaNum:%d, pRaftId->addr:%" PRIx64, ths->vgId, ths->totalReplicaNum, pRaftId->addr);
   for (int32_t i = 0; i < ths->totalReplicaNum; ++i) {
-    sTrace("vgId:%d, check in raft group, replicasId addr:%" PRIx64, ths->vgId, (ths->replicasId)[i].addr);
     if (syncUtilSameId(&((ths->replicasId)[i]), pRaftId)) {
       return true;
     }
