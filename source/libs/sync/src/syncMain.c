@@ -59,8 +59,8 @@ static int32_t syncDoLeaderTransfer(SSyncNode* ths, SRpcMsg* pRpcMsg, SSyncRaftE
 
 static ESyncStrategy syncNodeStrategy(SSyncNode* pSyncNode);
 
-int64_t syncOpen(SSyncInfo* pSyncInfo, bool isFirst) {
-  SSyncNode* pSyncNode = syncNodeOpen(pSyncInfo, isFirst);
+int64_t syncOpen(SSyncInfo* pSyncInfo, int32_t vnodeVersion) {
+  SSyncNode* pSyncNode = syncNodeOpen(pSyncInfo, vnodeVersion);
   if (pSyncNode == NULL) {
     sError("vgId:%d, failed to open sync node", pSyncInfo->vgId);
     return -1;
@@ -778,7 +778,7 @@ int32_t syncNodeLogStoreRestoreOnNeed(SSyncNode* pNode) {
 }
 
 // open/close --------------
-SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo, bool isFirst) {
+SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo, int32_t vnodeVersion) {
   SSyncNode* pSyncNode = taosMemoryCalloc(1, sizeof(SSyncNode));
   if (pSyncNode == NULL) {
     terrno = TSDB_CODE_OUT_OF_MEMORY;
@@ -798,7 +798,7 @@ SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo, bool isFirst) {
            TD_DIRSEP);
   snprintf(pSyncNode->configPath, sizeof(pSyncNode->configPath), "%s%sraft_config.json", pSyncInfo->path, TD_DIRSEP);
 
-  if (!taosCheckExistFile(pSyncNode->configPath) && isFirst) {
+  if (!taosCheckExistFile(pSyncNode->configPath)) {
     // create a new raft config file
     sInfo("vgId:%d, create a new raft config file", pSyncNode->vgId);
     pSyncNode->raftCfg.isStandBy = pSyncInfo->isStandBy;
@@ -820,7 +820,7 @@ SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo, bool isFirst) {
       goto _error;
     }
 
-    if(isFirst){
+    if(vnodeVersion > pSyncInfo->syncCfg.changeVersion){
       if (pSyncInfo->syncCfg.totalReplicaNum > 0 && syncIsConfigChanged(&pSyncNode->raftCfg.cfg, &pSyncInfo->syncCfg)) {
         sInfo("vgId:%d, use sync config from input options and write to cfg file", pSyncNode->vgId);
         pSyncNode->raftCfg.cfg = pSyncInfo->syncCfg;
@@ -851,7 +851,7 @@ SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo, bool isFirst) {
           pNode->nodeId, pNode->clusterId);
   }
 
-  if(isFirst){
+  if(vnodeVersion > pSyncInfo->syncCfg.changeVersion){
     if (updated) {
       sInfo("vgId:%d, save config info since dnode info changed", pSyncNode->vgId);
       if (syncWriteCfgFile(pSyncNode) != 0) {
