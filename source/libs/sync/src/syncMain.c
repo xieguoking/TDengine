@@ -820,7 +820,7 @@ SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo, int32_t vnodeVersion) {
       goto _error;
     }
 
-    if(vnodeVersion > pSyncInfo->syncCfg.changeVersion){
+    if(vnodeVersion > pSyncNode->raftCfg.cfg.changeVersion){
       if (pSyncInfo->syncCfg.totalReplicaNum > 0 && syncIsConfigChanged(&pSyncNode->raftCfg.cfg, &pSyncInfo->syncCfg)) {
         sInfo("vgId:%d, use sync config from input options and write to cfg file", pSyncNode->vgId);
         pSyncNode->raftCfg.cfg = pSyncInfo->syncCfg;
@@ -832,6 +832,10 @@ SSyncNode* syncNodeOpen(SSyncInfo* pSyncInfo, int32_t vnodeVersion) {
         sInfo("vgId:%d, use sync config from sync cfg file", pSyncNode->vgId);
         pSyncInfo->syncCfg = pSyncNode->raftCfg.cfg;
       }
+    }
+    else{
+      sInfo("vgId:%d, skip save sync cfg file since request ver:%d <= file ver:%d", 
+        pSyncNode->vgId, vnodeVersion, pSyncInfo->syncCfg.changeVersion);
     }
   }
 
@@ -2382,12 +2386,38 @@ void syncNodeLogConfigInfo(SSyncNode* ths, SSyncCfg *cfg, char *str){
     ths->peersNodeInfo[i].nodePort, ths->peersNodeInfo[i].nodeRole);
   }
 
+  for (int32_t i = 0; i < ths->peersNum; ++i){
+    char buf[256];
+    int32_t len = 256;
+    int32_t n = 0;
+    n += snprintf(buf + n, len - n, "%s", "{");
+    for (int i = 0; i < ths->peersEpset->numOfEps; i++) {
+      n += snprintf(buf + n, len - n, "%s:%d%s", ths->peersEpset->eps[i].fqdn, ths->peersEpset->eps[i].port,
+                    (i + 1 < ths->peersEpset->numOfEps ? ", " : ""));
+    }
+    n += snprintf(buf + n, len - n, "%s", "}");
+
+    sInfo("vgId:%d, %s, peersEpset%d, %s, inUse:%d", 
+    ths->vgId, str, i, buf, ths->peersEpset->inUse);
+  }
+
+  for (int32_t i = 0; i < ths->peersNum; ++i){
+    sInfo("vgId:%d, %s, peersId%d, addr:%"PRId64, 
+    ths->vgId, str, i, ths->peersId[i].addr);
+  }
+
   for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i){
     sInfo("vgId:%d, %s, nodeInfo%d, clusterId:%" PRId64 ", nodeId:%d, Fqdn:%s, port:%d, role:%d", 
     ths->vgId, str, i, ths->raftCfg.cfg.nodeInfo[i].clusterId, 
     ths->raftCfg.cfg.nodeInfo[i].nodeId, ths->raftCfg.cfg.nodeInfo[i].nodeFqdn, 
     ths->raftCfg.cfg.nodeInfo[i].nodePort, ths->raftCfg.cfg.nodeInfo[i].nodeRole);
   }
+
+  for (int32_t i = 0; i < ths->raftCfg.cfg.totalReplicaNum; ++i){
+    sInfo("vgId:%d, %s, replicasId%d, addr:%" PRId64, 
+    ths->vgId, str, i, ths->replicasId[i].addr);
+  }
+  
 }
 
 int32_t syncNodeRebuildPeerAndCfg(SSyncNode* ths, SSyncCfg *cfg){
@@ -2520,6 +2550,7 @@ int32_t syncNodeRebuildAndCopyIfExist(SSyncNode* ths, int32_t oldtotalReplicaNum
     for(int j = 0; j < oldtotalReplicaNum; j++){
       if (syncUtilSameId(&ths->replicasId[i], &oldReplicasId[j])) {
         *(ths->logReplMgrs[i]) = oldLogReplMgrs[j];
+        ths->logReplMgrs[i]->peerId = i;
       }
     }      
   } 

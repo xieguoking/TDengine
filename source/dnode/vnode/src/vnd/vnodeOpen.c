@@ -117,9 +117,10 @@ int32_t vnodeAlterReplica(const char *path, SAlterVnodeReplicaReq *pReq, int32_t
   if(pReq->learnerSelfIndex != -1){
     pCfg->myIndex = pReq->replica + pReq->learnerSelfIndex;
   }
+  pCfg->changeVersion = pReq->changeVersion;
 
-  vInfo("vgId:%d, save config while alter, replicas:%d totalReplicas:%d selfIndex:%d",
-            pReq->vgId, pCfg->replicaNum, pCfg->totalReplicaNum, pCfg->myIndex);
+  vInfo("vgId:%d, save config while alter, replicas:%d totalReplicas:%d selfIndex:%d changeVersion:%d",
+            pReq->vgId, pCfg->replicaNum, pCfg->totalReplicaNum, pCfg->myIndex, pCfg->changeVersion);
 
   info.config.syncCfg = *pCfg;
   ret = vnodeSaveInfo(dir, &info);
@@ -216,6 +217,7 @@ int32_t vnodeAlterHashRange(const char *srcPath, const char *dstPath, SAlterVnod
   info.config.hashEnd = pReq->hashEnd;
   info.config.hashChange = true;
   info.config.walCfg.vgId = pReq->dstVgId;
+  info.config.syncCfg.changeVersion = pReq->changeVersion;
 
   SSyncCfg *pCfg = &info.config.syncCfg;
   pCfg->myIndex = 0;
