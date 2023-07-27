@@ -256,7 +256,7 @@ static int32_t tdSetRSmaInfoItemParams(SSma *pSma, SRSmaParam *param, SRSmaStat 
       taosMemoryFree(s);
     }
 
-    SStreamTask task = {.id.taskId = 0, .id.streamId = 0};  // TODO: assign value
+    SStreamTask task = {.id.taskId = idx + 1, .id.streamId = pRSmaInfo->suid};
     task.pMeta = pVnode->pTq->pStreamMeta;
     pStreamState = streamStateOpen(taskInfDir, &task, true, -1, -1);
     if (!pStreamState) {
@@ -619,6 +619,10 @@ static int32_t tdRSmaExecAndSubmitResult(SSma *pSma, qTaskInfo_t taskInfo, SRSma
       STsdb       *sinkTsdb = (pItem->level == TSDB_RETENTION_L1 ? pSma->pRSmaTsdb[0] : pSma->pRSmaTsdb[1]);
       SSubmitReq2 *pReq = NULL;
 
+      char *pBuf = NULL;
+      smaDebug("%s", dumpBlockData(output, "prop:", &pBuf));
+      taosMemoryFree(pBuf);
+
       // TODO: the schema update should be handled later(TD-17965)
       if (buildSubmitReqFromDataBlock(&pReq, output, pTSchema, output->info.id.groupId, SMA_VID(pSma), suid) < 0) {
         code = terrno ? terrno : TSDB_CODE_RSMA_RESULT;
@@ -917,6 +921,34 @@ _err:
   return TSDB_CODE_FAILED;
 }
 
+int32_t tdProcessRSmaDelete(SSma *pSma, int64_t ver, void *pReq, int32_t len, tb_uid_t suid) {
+  SRSmaInfo *pInfo = NULL;
+
+  if (!(pInfo = tdAcquireRSmaInfoBySuid(pSma, suid))) {
+    return TSDB_CODE_SUCCESS;
+  }
+
+  // for (int32_t i = 0; i < TSDB_RETENTION_L2; ++i) {
+  //   SRSmaInfoItem *pItem = &pInfo->items[i];
+  //   if (pItem) {
+  //     atomic_store_8(&pItem->fetchLevel, pItem->level);
+  //   }
+  // }
+
+  SStreamRefDataBlock *pItem = NULL;
+  extractDelDataBlock(pReq, len, ver, (SStreamRefDataBlock **)pItem);
+
+  //   if (atomic_load_8(&pInfo->assigned) == 0) {
+  //   SSmaEnv   *pEnv = SMA_RSMA_ENV(pSma);
+  //   SRSmaStat *pStat = (SRSmaStat *)SMA_ENV_STAT(pEnv);
+  //   tsem_post(&(pStat->notEmpty));
+  // }
+
+  tdReleaseRSmaInfo(pSma, pInfo);
+
+  return TSDB_CODE_SUCCESS;
+}
+
 /**
  * @brief retrieve rsma meta and init
  *
@@ -1166,7 +1198,7 @@ static void tdRSmaFetchTrigger(void *param, void *tmrId) {
       smaDebug("vgId:%d, rsma fetch task planned for level:%" PRIi8 " suid:%" PRIi64 " since stat is active",
                SMA_VID(pSma), pItem->level, pRSmaInfo->suid);
       // async process
-      pItem->fetchLevel = pItem->level;
+      atomic_store_8(&pItem->fetchLevel,pItem->level);
 #if 0
       // debugging codes
       SRSmaInfo     *qInfo = tdAcquireRSmaInfoBySuid(pSma, pRSmaInfo->suid);
@@ -1218,8 +1250,8 @@ static int32_t tdRSmaFetchAllResult(SSma *pSma, SRSmaInfo *pInfo) {
   SSDataBlock dataBlock = {.info.type = STREAM_GET_ALL};
   for (int8_t i = 1; i <= TSDB_RETENTION_L2; ++i) {
     SRSmaInfoItem *pItem = RSMA_INFO_ITEM(pInfo, i - 1);
-    if (pItem->fetchLevel) {
-      pItem->fetchLevel = 0;
+    if (atomic_load_8(&pItem->fetchLevel)) {
+      atomic_store_8(&pItem->fetchLevel, 0);
       qTaskInfo_t taskInfo = RSMA_INFO_QTASK(pInfo, i - 1);
       if (!taskInfo) {
         continue;
@@ -1410,7 +1442,7 @@ int32_t tdRSmaProcessExecImpl(SSma *pSma, ERsmaExecType type) {
       if (pEnv->flag & SMA_ENV_FLG_CLOSE) {
         break;
       }
-
+      smaInfo("prop:%s:%d  tsem_wait(&pRSmaStat->notEmpty)", __func__, __LINE__);
       tsem_wait(&pRSmaStat->notEmpty);
 
       if ((pEnv->flag & SMA_ENV_FLG_CLOSE) && (atomic_load_64(&pRSmaStat->nBufItems) <= 0)) {

@@ -136,8 +136,8 @@ struct SSmaStat {
 #define RSMA_FS_LOCK(r)      (&(r)->lock)
 
 struct SRSmaInfoItem {
-  int8_t   level : 4;
-  int8_t   fetchLevel : 4;
+  int8_t   level;
+  int8_t   fetchLevel;
   int8_t   triggerStat;
   uint16_t nScanned;
   int32_t  maxDelay;  // ms

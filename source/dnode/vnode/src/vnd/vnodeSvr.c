@@ -1768,6 +1768,8 @@ static int32_t vnodeProcessDeleteReq(SVnode *pVnode, int64_t ver, void *pReq, in
   tDecoderClear(pCoder);
   taosArrayDestroy(pRes->uidList);
 
+  tdProcessRSmaDelete(pVnode->pSma, ver, pReq, len, pRes->suid);
+
   SVDeleteRsp rsp = {.affectedRows = pRes->affectedRows};
   int32_t     ret = 0;
   tEncodeSize(tEncodeSVDeleteRsp, &rsp, pRsp->contLen, ret);

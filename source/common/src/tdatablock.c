@@ -1897,6 +1897,8 @@ int32_t buildSubmitReqFromDataBlock(SSubmitReq2** ppReq, const SSDataBlock* pDat
     }
   }
 
+  uInfo("prop:%s:%d pDataBlock->info.type is %d", __func__, __LINE__, pDataBlock->info.type);
+
   for (int32_t i = 0; i < sz; ++i) {
     int32_t colNum = taosArrayGetSize(pDataBlock->pDataBlock);
     int32_t rows = pDataBlock->info.rows;
