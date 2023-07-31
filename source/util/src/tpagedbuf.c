@@ -208,9 +208,8 @@ static char* doFlushBufPage(SDiskbasedBuf* pBuf, SPageInfo* pg) {
   char* pDataBuf = pg->pData;
   memset(pDataBuf, 0, getAllocPageSize(pBuf->pageSize));
 
-#ifdef BUF_PAGE_DEBUG
-  uDebug("page_flush %p, pageId:%d, offset:%d", pDataBuf, pg->pageId, offset);
-#endif
+  uDebug("page_flush %p, pageId:%d, offset:%d, len: %d", pDataBuf, pg->pageId, offset, size);
+  if (t && size == 4100) uDebug("page_flush, first 4 bytes: %d", *((int32_t*)t));
 
   pg->offset = offset;
   pg->length = size;  // on disk size
@@ -450,9 +449,7 @@ void* getNewBufPage(SDiskbasedBuf* pBuf, int32_t* pageId) {
   pi->pData = availablePage;
 
   ((void**)pi->pData)[0] = pi;
-#ifdef BUF_PAGE_DEBUG
   uDebug("page_getNewBufPage , pi->pData:%p, pageId:%d, offset:%" PRId64, pi->pData, pi->pageId, pi->offset);
-#endif
 
   return (void*)(GET_PAYLOAD_DATA(pi));
 }
@@ -524,9 +521,7 @@ void* getBufPage(SDiskbasedBuf* pBuf, int32_t id) {
         return NULL;
       }
     }
-#ifdef BUF_PAGE_DEBUG
     uDebug("page_getBufPage2 pageId:%d, offset:%" PRId64, (*pi)->pageId, (*pi)->offset);
-#endif
     return (void*)(GET_PAYLOAD_DATA(*pi));
   }
 }
@@ -541,9 +536,7 @@ void releaseBufPage(SDiskbasedBuf* pBuf, void* page) {
 }
 
 void releaseBufPageInfo(SDiskbasedBuf* pBuf, SPageInfo* pi) {
-#ifdef BUF_PAGE_DEBUG
   uDebug("page_releaseBufPageInfo pageId:%d, used:%d, offset:%" PRId64, pi->pageId, pi->used, pi->offset);
-#endif
 
   if (pi == NULL) {
     return;
