@@ -327,7 +327,7 @@ TdFilePtr taosOpenFile(const char *path, int32_t tdFileOptions) {
 #else
     // Remove it instantly, so when the program exits normally/abnormally, the file
     // will be automatically remove by OS.
-    unlink(path);
+    //unlink(path);
 #endif
   }
 
