@@ -208,7 +208,7 @@ static char* doFlushBufPage(SDiskbasedBuf* pBuf, SPageInfo* pg) {
   char* pDataBuf = pg->pData;
   memset(pDataBuf, 0, getAllocPageSize(pBuf->pageSize));
 
-  uDebug("page_flush %p, pageId:%d, offset:%d, len: %d", pDataBuf, pg->pageId, offset, size);
+  uDebug("page_flush %p, pageId:%d, offset:%ld, len: %d", pDataBuf, pg->pageId, offset, size);
   if (t && size == 4100) uDebug("page_flush, first 4 bytes: %d", *((int32_t*)t));
 
   pg->offset = offset;
