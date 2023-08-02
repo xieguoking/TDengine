@@ -29,6 +29,8 @@
 #include "mndUser.h"
 #include "mndVgroup.h"
 #include "systable.h"
+#include "tjson.h"
+#include "thttp.h"
 
 #define DB_VER_NUMBER   1
 #define DB_RESERVE_SIZE 46
@@ -713,6 +715,33 @@ _OVER:
   tFreeSCreateDbReq(&createReq);
 
   return code;
+}
+
+static void auditGenBasicJson() {
+  SJson *pJson = tjsonCreateObject();
+  if (pJson == NULL) {
+    terrno = TSDB_CODE_OUT_OF_MEMORY;
+    return;
+  }
+
+  char   buf[40] = {0};
+  int64_t curTime = taosGetTimestampMs();
+  taosFormatUtcTime(buf, sizeof(buf), curTime, TSDB_TIME_PRECISION_MILLI);
+
+  tjsonAddStringToObject(pJson, "ts", buf);
+  tjsonAddStringToObject(pJson, "user", "");
+  tjsonAddStringToObject(pJson, "operation", "");
+  tjsonAddStringToObject(pJson, "detail", "");
+
+  char *pCont = tjsonToString(pJson);
+  mDebug("report cont:%s\n", pCont);
+  if (pCont != NULL) {
+    EHttpCompFlag flag = tsMonitor.cfg.comp ? HTTP_GZIP : HTTP_FLAT;
+    if (taosSendHttpReport(tsMonitor.cfg.server, tsMonUri, tsMonitor.cfg.port, pCont, strlen(pCont), flag) != 0) {
+      uError("failed to send monitor msg");
+    }
+    taosMemoryFree(pCont);
+  }
 }
 
 static int32_t mndSetDbCfgFromAlterDbReq(SDbObj *pDb, SAlterDbReq *pAlter) {
