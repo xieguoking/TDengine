@@ -581,6 +581,13 @@ int32_t streamTryExec(SStreamTask* pTask) {
         if (code != TSDB_CODE_SUCCESS) {
           return code;
         }
+        SStreamRefDataBlock* pItem = taosAllocateQitem(sizeof(SStreamRefDataBlock), DEF_QITEM, 0);;
+        SSDataBlock* pDelBlock = createSpecialDataBlock(STREAM_DELETE_DATA);
+        pDelBlock->info.rows = 0;
+        pDelBlock->info.version = 0;
+        pItem->type = STREAM_INPUT__REF_DATA_BLOCK;
+        pItem->pBlock = pDelBlock;
+        tAppendDataToInputQueue(pTask, (SStreamQueueItem*)pItem);
         streamSchedExec(pTask);
       } else {
         atomic_store_8(&pTask->status.schedStatus, TASK_SCHED_STATUS__INACTIVE);
