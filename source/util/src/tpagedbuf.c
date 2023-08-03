@@ -56,6 +56,7 @@ static int32_t createDiskFile(SDiskbasedBuf* pBuf) {
     char path[PATH_MAX] = {0};
     taosGetTmpfilePath(pBuf->prefix, "paged-buf", path);
     pBuf->path = taosStrdup(path);
+    uDebug("create disk file: %s", pBuf->path);
     if (pBuf->path == NULL) {
       return TSDB_CODE_OUT_OF_MEMORY;
     }
@@ -206,7 +207,7 @@ static char* doFlushBufPage(SDiskbasedBuf* pBuf, SPageInfo* pg) {
   }
 
   char* pDataBuf = pg->pData;
-  uDebug("page_flush %p, pageId:%d, offset:%ld, len: %d", pDataBuf, pg->pageId, offset, size);
+  uDebug("page_flush %p, pageId:%d, offset:%ld, len: %d, file: %s", pDataBuf, pg->pageId, offset, size, pBuf->path);
   if (t && size == 4100) uDebug("page_flush, first 4 bytes: %d", *((int32_t*)t));
 
   memset(pDataBuf, 0, getAllocPageSize(pBuf->pageSize));
