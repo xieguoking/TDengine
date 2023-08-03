@@ -33,7 +33,9 @@ typedef struct {
   bool        comp;
 } SAuditCfg;
 
+int32_t auditInit(const SAuditCfg *pCfg);
 void    auditSend(SJson *pJson);
+void    auditRecord(char *user, char *oper, char *detail);
 
 #ifdef __cplusplus
 }

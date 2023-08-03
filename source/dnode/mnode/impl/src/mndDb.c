@@ -706,6 +706,13 @@ static int32_t mndProcessCreateDbReq(SRpcMsg *pReq) {
   code = mndCreateDb(pMnode, pReq, &createReq, pUser);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
+  char *user = pReq->info.conn.user;
+
+  char detail[100] = {0};
+  sprintf(detail, "dbname:%s", createReq.db);
+
+  auditRecord(user, "createDB", detail);
+
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
     mError("db:%s, failed to create since %s", createReq.db, terrstr());
@@ -716,25 +723,6 @@ _OVER:
   tFreeSCreateDbReq(&createReq);
 
   return code;
-}
-
-static void auditGenBasicJson() {
-  SJson *pJson = tjsonCreateObject();
-  if (pJson == NULL) {
-    terrno = TSDB_CODE_OUT_OF_MEMORY;
-    return;
-  }
-
-  char   buf[40] = {0};
-  int64_t curTime = taosGetTimestampMs();
-  taosFormatUtcTime(buf, sizeof(buf), curTime, TSDB_TIME_PRECISION_MILLI);
-
-  tjsonAddStringToObject(pJson, "ts", buf);
-  tjsonAddStringToObject(pJson, "user", "");
-  tjsonAddStringToObject(pJson, "operation", "");
-  tjsonAddStringToObject(pJson, "detail", "");
-
-  auditSend(pJson);
 }
 
 static int32_t mndSetDbCfgFromAlterDbReq(SDbObj *pDb, SAlterDbReq *pAlter) {
