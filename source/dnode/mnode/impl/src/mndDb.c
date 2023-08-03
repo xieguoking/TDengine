@@ -31,6 +31,7 @@
 #include "systable.h"
 #include "tjson.h"
 #include "thttp.h"
+#include "audit.h"
 
 #define DB_VER_NUMBER   1
 #define DB_RESERVE_SIZE 46
@@ -733,15 +734,7 @@ static void auditGenBasicJson() {
   tjsonAddStringToObject(pJson, "operation", "");
   tjsonAddStringToObject(pJson, "detail", "");
 
-  char *pCont = tjsonToString(pJson);
-  mDebug("report cont:%s\n", pCont);
-  if (pCont != NULL) {
-    EHttpCompFlag flag = tsMonitor.cfg.comp ? HTTP_GZIP : HTTP_FLAT;
-    if (taosSendHttpReport(tsMonitor.cfg.server, tsMonUri, tsMonitor.cfg.port, pCont, strlen(pCont), flag) != 0) {
-      uError("failed to send monitor msg");
-    }
-    taosMemoryFree(pCont);
-  }
+  auditSend(pJson);
 }
 
 static int32_t mndSetDbCfgFromAlterDbReq(SDbObj *pDb, SAlterDbReq *pAlter) {
