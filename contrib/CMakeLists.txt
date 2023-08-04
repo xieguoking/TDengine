@@ -83,7 +83,7 @@ if (${BUILD_CONTRIB})
         add_definitions(-DUSE_ROCKSDB)
     endif()
 else() 
-    if (NOT ${TD_LINUX})
+    if (NOT ${TD_CONTRIB_STATIC})
         if(${BUILD_WITH_ROCKSDB})
             cat("${TD_SUPPORT_DIR}/rocksdb_CMakeLists.txt.in" ${CONTRIB_TMP_FILE})
             add_definitions(-DUSE_ROCKSDB)
@@ -300,7 +300,7 @@ if (${BUILD_WITH_ROCKSDB})
             PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rocksdb/include>
         )
     else() 
-        if (NOT ${TD_LINUX})
+        if (NOT ${TD_CONTRIB_STATIC})
             MESSAGE(STATUS "CXXXX STATUS CONFIG: " ${CMAKE_CXX_FLAGS})
             if(${TD_DARWIN})
                 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=maybe-uninitialized")
@@ -547,20 +547,22 @@ endif(${BUILD_ADDR2LINE})
 
 # geos
 if(${BUILD_GEOS})
-    if(${TD_LINUX})
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS_REL}")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_REL}")
-        IF ("${CMAKE_BUILD_TYPE}" STREQUAL "")
-            SET(CMAKE_BUILD_TYPE Release)
-        endif()
-    endif(${TD_LINUX})
-    option(BUILD_SHARED_LIBS "Build GEOS with shared libraries" OFF)
-    add_subdirectory(geos EXCLUDE_FROM_ALL)
-    unset(CMAKE_CXX_STANDARD CACHE) # undo libgeos's setting of global CMAKE_CXX_STANDARD
-    target_include_directories(
-        geos_c
-        PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/geos/include>
-    )
+    if (${BUILD_CONTRIB} OR NOT ${TD_CONTRIB_STATIC})
+        if(${TD_LINUX})
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS_REL}")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_REL}")
+            if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
+                SET(CMAKE_BUILD_TYPE Release)
+            endif()
+        endif(${TD_LINUX})
+        option(BUILD_SHARED_LIBS "Build GEOS with shared libraries" OFF)
+        add_subdirectory(geos EXCLUDE_FROM_ALL)
+        unset(CMAKE_CXX_STANDARD CACHE) # undo libgeos's setting of global CMAKE_CXX_STANDARD
+        target_include_directories(
+            geos_c
+            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/geos/include>
+        )
+    endif()
 endif(${BUILD_GEOS})
 
 # ================================================================================================
