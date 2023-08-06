@@ -19,12 +19,31 @@ target_include_directories(
     PRIVATE "${TD_SOURCE_DIR}/include/common"
     PRIVATE "${GRANT_CFG_INCLUDE_DIR}"
 )
-target_link_libraries(
-    util
-    PUBLIC os
-    PUBLIC lz4_static
-    PUBLIC api cjson geos_c
-)
+
+if (${TD_CONTRIB_STATIC} AND NOT ${BUILD_CONTRIB})
+    target_include_directories(
+        util 
+        PUBLIC "${TD_SOURCE_DIR}/deps/${TD_DEPS_DIR}/geos_static"
+    )
+
+    target_link_directories(
+        util 
+        PUBLIC "${TD_SOURCE_DIR}/deps/${TD_DEPS_DIR}/geos_static"
+    )
+    target_link_libraries(
+        util
+        PUBLIC os
+        PUBLIC lz4_static
+        PUBLIC api cjson geos_c geos
+    )
+else()
+    target_link_libraries(
+        util
+        PUBLIC os
+        PUBLIC lz4_static
+        PUBLIC api cjson geos_c
+    )
+endif()
 
 if(${BUILD_TEST})
     ADD_SUBDIRECTORY(test)
