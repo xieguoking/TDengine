@@ -551,6 +551,22 @@ static int32_t mndCreateDb(SMnode *pMnode, SRpcMsg *pReq, SCreateDbReq *pCreate,
   dbObj.cfgVersion = 1;
   dbObj.vgVersion = 1;
   memcpy(dbObj.createUser, pUser->user, TSDB_USER_LEN);
+
+  mInfo("start to create db:%s, numOfVgroups:%d, numOfStables:%d, buffer:%d, pageSize:%d, pages:%d, "
+        "cacheLastSize:%d, daysPerFile:%d, daysToKeep0:%d, daysToKeep1:%d, daysToKeep2:%d, "
+        "minRows:%d, maxRows:%d, walFsyncPeriod:%d, walLevel:%d, precision:%d, "
+        "compression:%d, replications:%d, strict:%d, cacheLast:%d, schemaless:%d, "
+        "ignoreExist:%d, numOfRetensions:%d, walRetentionPeriod:%d, walRetentionSize:%" PRId64 ", "
+        "walRollPeriod:%d, walSegmentSize:%" PRId64 ", sstTrigger:%d, hashPrefix:%d, "
+        "hashSuffix:%d, tsdbPageSize:%d", 
+        pCreate->db, pCreate->numOfVgroups, pCreate->numOfStables, pCreate->buffer, pCreate->pageSize, pCreate->pages,
+        pCreate->cacheLastSize, pCreate->daysPerFile, pCreate->daysToKeep0, pCreate->daysToKeep1, pCreate->daysToKeep2,
+        pCreate->minRows, pCreate->maxRows, pCreate->walFsyncPeriod, pCreate->walLevel, pCreate->precision,
+        pCreate->compression, pCreate->replications, pCreate->strict, pCreate->cacheLast, pCreate->schemaless,
+        pCreate->ignoreExist, pCreate->numOfRetensions, pCreate->walRetentionPeriod, pCreate->walRetentionSize,
+        pCreate->walRollPeriod, pCreate->walSegmentSize, pCreate->sstTrigger, pCreate->hashPrefix,
+        pCreate->hashSuffix, pCreate->tsdbPageSize);
+
   dbObj.cfg = (SDbCfg){
       .numOfVgroups = pCreate->numOfVgroups,
       .numOfStables = pCreate->numOfStables,
