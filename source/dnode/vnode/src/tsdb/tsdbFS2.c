@@ -780,9 +780,12 @@ static int32_t tsdbFSRunBgTask(void *arg) {
   return 0;
 }
 
-static int32_t tsdbFSScheduleBgTaskImpl(STFileSystem *fs, EFSBgTaskT type, int32_t (*run)(void *), void (*free)(void *),
-                                        void *arg, int64_t *taskid) {
+static int32_t tsdbFSScheduleBgTaskImpl(STFileSystem *fs, EFSBgTaskT   type, int32_t (*run)(void *),
+                                        void (*destroy)(void *), void *arg, int64_t *taskid) {
   if (fs->stop) {
+    if (destroy) {
+      destroy(arg);
+    }
     return 0;  // TODO: use a better error code
   }
 
@@ -793,6 +796,9 @@ static int32_t tsdbFSScheduleBgTaskImpl(STFileSystem *fs, EFSBgTaskT type, int32
 
   for (STFSBgTask *task = fs->bgTaskQueue->next; task != fs->bgTaskQueue; task = task->next) {
     if (task->type == type) {
+      if (destroy) {
+        destroy(arg);
+      }
       return 0;
     }
   }
@@ -804,7 +810,7 @@ static int32_t tsdbFSScheduleBgTaskImpl(STFileSystem *fs, EFSBgTaskT type, int32
 
   task->type = type;
   task->run = run;
-  task->free = free;
+  task->destroy = destroy;
   task->arg = arg;
   task->scheduleTime = taosGetTimestampMs();
   task->taskid = ++fs->taskid;
@@ -826,10 +832,10 @@ static int32_t tsdbFSScheduleBgTaskImpl(STFileSystem *fs, EFSBgTaskT type, int32
   return 0;
 }
 
-int32_t tsdbFSScheduleBgTask(STFileSystem *fs, EFSBgTaskT type, int32_t (*run)(void *), void (*free)(void *), void *arg,
-                             int64_t *taskid) {
+int32_t tsdbFSScheduleBgTask(STFileSystem *fs, EFSBgTaskT type, int32_t (*run)(void *), void (*destroy)(void *),
+                             void *arg, int64_t *taskid) {
   taosThreadMutexLock(fs->mutex);
-  int32_t code = tsdbFSScheduleBgTaskImpl(fs, type, run, free, arg, taskid);
+  int32_t code = tsdbFSScheduleBgTaskImpl(fs, type, run, destroy, arg, taskid);
   taosThreadMutexUnlock(fs->mutex);
   return code;
 }
