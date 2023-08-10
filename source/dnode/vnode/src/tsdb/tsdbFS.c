@@ -754,6 +754,16 @@ _exit:
   return code;
 }
 
+static void tsdbGetCurrentJsonFName(STsdb *pTsdb, char *current_json) {
+  SVnode *pVnode = pTsdb->pVnode;
+  if (pVnode->pTfs) {
+    snprintf(current_json, TSDB_FILENAME_LEN - 1, "%s%s%s%scurrent.json", tfsGetPrimaryPath(pTsdb->pVnode->pTfs),
+             TD_DIRSEP, pTsdb->path, TD_DIRSEP);
+  } else {
+    snprintf(current_json, TSDB_FILENAME_LEN - 1, "%s%scurrent.json", pTsdb->path, TD_DIRSEP);
+  }
+}
+
 int32_t tsdbFSOpen(STsdb *pTsdb, int8_t rollback) {
   int32_t code = 0;
   int32_t lino = 0;
@@ -766,7 +776,15 @@ int32_t tsdbFSOpen(STsdb *pTsdb, int8_t rollback) {
   // open impl
   char current[TSDB_FILENAME_LEN] = {0};
   char current_t[TSDB_FILENAME_LEN] = {0};
+  char current_json[TSDB_FILENAME_LEN] = {0};
   tsdbGetCurrentFName(pTsdb, current, current_t);
+  tsdbGetCurrentJsonFName(pTsdb, current_json);
+
+  if (taosCheckExistFile(current_json)) {
+    code = TSDB_CODE_VERSION_NOT_COMPATIBLE;
+    tsdbError("vgId:%d current.json exists, please upgrade software first", TD_VID(pVnode));
+    TSDB_CHECK_CODE(code, lino, _exit);
+  }
 
   if (taosCheckExistFile(current)) {
     code = tsdbLoadFSFromFile(current, &pTsdb->fs);
