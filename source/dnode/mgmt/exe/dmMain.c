@@ -52,7 +52,8 @@
 // clang-format on
 static struct {
 #ifdef WINDOWS
-  bool winServiceMode;
+  bool   winServiceMode;
+  int8_t delay;
 #endif
   bool         dumpConfig;
   bool         dumpSdb;
@@ -183,6 +184,10 @@ static int32_t dmParseArgs(int32_t argc, char const *argv[]) {
 #ifdef WINDOWS
     } else if (strcmp(argv[i], "--win_service") == 0) {
       global.winServiceMode = true;
+    } else if(strcmp(argv[i], "--delay") == 0) {
+      if(++i < argc) {
+        global.delay = taosStr2Int8(argv[i], NULL, 10);
+      }
 #endif
     } else if (strcmp(argv[i], "-e") == 0) {
       global.envCmd[cmdEnvIndex] = argv[++i];
@@ -191,7 +196,7 @@ static int32_t dmParseArgs(int32_t argc, char const *argv[]) {
       global.memDbg = true;
     } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "--usage") == 0 ||
                strcmp(argv[i], "-?") == 0) {
-      global.printHelp = true;
+      global.printHelp = true;      
     } else {
     }
   }
@@ -283,6 +288,9 @@ int main(int argc, char const *argv[]) {
   return 0;
 }
 int mainWindows(int argc, char **argv) {
+  if(global.delay > 0) {
+    taosSsleep(global.delay);
+  }
 #endif
 
   if (global.generateGrant) {
