@@ -290,6 +290,7 @@ int32_t dmInitClient(SDnode *pDnode) {
   rpcInit.cfp = (RpcCfp)dmProcessRpcMsg;
   rpcInit.sessions = 1024;
   rpcInit.connType = TAOS_CONN_CLIENT;
+  rpcInit.user = TSDB_DEFAULT_USER;
   rpcInit.idleTime = tsShellActivityTimer * 1000;
   rpcInit.parent = pDnode;
   rpcInit.rfp = rpcRfp;
@@ -298,7 +299,7 @@ int32_t dmInitClient(SDnode *pDnode) {
   rpcInit.retryMinInterval = tsRedirectPeriod;
   rpcInit.retryStepFactor = tsRedirectFactor;
   rpcInit.retryMaxInterval = tsRedirectMaxPeriod;
-  rpcInit.retryMaxTimouet = tsMaxRetryWaitTime;
+  rpcInit.retryMaxTimeout = tsMaxRetryWaitTime;
 
   rpcInit.failFastInterval = 5000;  // interval threshold(ms)
   rpcInit.failFastThreshold = 3;    // failed threshold

@@ -515,7 +515,6 @@ int32_t mndRetrieveTagIdx(SRpcMsg *pReq, SShowObj *pShow, SSDataBlock *pBlock, i
     if (pDb == NULL) return 0;
   }
   SSmaAndTagIter *pIter = pShow->pIter;
-  int             invalid = -1;
   while (numOfRows < rows) {
     pIter->pIdxIter = sdbFetch(pSdb, SDB_IDX, pIter->pIdxIter, (void **)&pIdx);
     if (pIter->pIdxIter == NULL) break;
@@ -542,32 +541,32 @@ int32_t mndRetrieveTagIdx(SRpcMsg *pReq, SShowObj *pShow, SSDataBlock *pBlock, i
     STR_TO_VARSTR(n3, (char *)tNameGetTableName(&stbName));
 
     SColumnInfoData *pColInfo = taosArrayGet(pBlock->pDataBlock, cols++);
-    colDataAppend(pColInfo, numOfRows, (const char *)n1, false);
+    colDataSetVal(pColInfo, numOfRows, (const char *)n1, false);
 
     pColInfo = taosArrayGet(pBlock->pDataBlock, cols++);
-    colDataAppend(pColInfo, numOfRows, (const char *)n2, false);
+    colDataSetVal(pColInfo, numOfRows, (const char *)n2, false);
 
     pColInfo = taosArrayGet(pBlock->pDataBlock, cols++);
-    colDataAppend(pColInfo, numOfRows, (const char *)n3, false);
+    colDataSetVal(pColInfo, numOfRows, (const char *)n3, false);
 
     pColInfo = taosArrayGet(pBlock->pDataBlock, cols++);
 
-    colDataAppend(pColInfo, numOfRows, (const char *)&invalid, false);
+    colDataSetVal(pColInfo, numOfRows, NULL, true);
 
     pColInfo = taosArrayGet(pBlock->pDataBlock, cols++);
-    colDataAppend(pColInfo, numOfRows, (const char *)&pIdx->createdTime, false);
+    colDataSetVal(pColInfo, numOfRows, (const char *)&pIdx->createdTime, false);
 
     char col[TSDB_TABLE_FNAME_LEN + VARSTR_HEADER_SIZE] = {0};
     STR_TO_VARSTR(col, (char *)pIdx->colName);
 
     pColInfo = taosArrayGet(pBlock->pDataBlock, cols++);
-    colDataAppend(pColInfo, numOfRows, (const char *)col, false);
+    colDataSetVal(pColInfo, numOfRows, (const char *)col, false);
 
     pColInfo = taosArrayGet(pBlock->pDataBlock, cols++);
 
     char tag[TSDB_TABLE_FNAME_LEN + VARSTR_HEADER_SIZE] = {0};
     STR_TO_VARSTR(tag, (char *)"tag_index");
-    colDataAppend(pColInfo, numOfRows, (const char *)tag, false);
+    colDataSetVal(pColInfo, numOfRows, (const char *)tag, false);
 
     numOfRows++;
     sdbRelease(pSdb, pIdx);

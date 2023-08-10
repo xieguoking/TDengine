@@ -1144,6 +1144,7 @@ typedef struct {
   char    timezone[TD_TIMEZONE_LEN];  // tsTimezone
   char    locale[TD_LOCALE_LEN];      // tsLocale
   char    charset[TD_LOCALE_LEN];     // tsCharset
+  int8_t  ttlChangeOnWrite;
 } SClusterCfg;
 
 typedef struct {
@@ -1180,6 +1181,8 @@ typedef struct {
 typedef struct {
   int8_t syncState;
   int8_t syncRestore;
+  int64_t syncTerm;
+  int64_t roleTimeMs;
 } SMnodeLoad;
 
 typedef struct {
@@ -1495,6 +1498,7 @@ int32_t tDeserializeSShowVariablesReq(void* buf, int32_t bufLen, SShowVariablesR
 typedef struct {
   char name[TSDB_CONFIG_OPTION_LEN + 1];
   char value[TSDB_CONFIG_VALUE_LEN + 1];
+  char scope[TSDB_CONFIG_SCOPE_LEN + 1];
 } SVariablesInfo;
 
 typedef struct {
@@ -2763,6 +2767,7 @@ typedef struct {
 typedef struct {
   SMsgHead head;
   int64_t  leftForVer;
+  int64_t  streamId;
   int32_t  taskId;
 } SVDropStreamTaskReq;
 
@@ -2894,6 +2899,12 @@ enum {
   TMQ_OFFSET__SNAPSHOT_META = 3,
 };
 
+enum {
+  WITH_DATA = 0,
+  WITH_META = 1,
+  ONLY_META = 2,
+};
+
 typedef struct {
   int8_t type;
   union {
@@ -2948,6 +2959,7 @@ int32_t tDecodeMqVgOffset(SDecoder* pDecoder, SMqVgOffset* pOffset);
 
 typedef struct {
   SMsgHead head;
+  int64_t  streamId;
   int32_t  taskId;
 } SVPauseStreamTaskReq;
 
@@ -2966,6 +2978,7 @@ int32_t tDeserializeSMPauseStreamReq(void* buf, int32_t bufLen, SMPauseStreamReq
 typedef struct {
   SMsgHead head;
   int32_t  taskId;
+  int64_t  streamId;
   int8_t   igUntreated;
 } SVResumeStreamTaskReq;
 
@@ -3004,6 +3017,7 @@ typedef struct {
   char*   sql;
   char*   ast;
   int64_t deleteMark;
+  int64_t lastTs;
 } SMCreateSmaReq;
 
 int32_t tSerializeSMCreateSmaReq(void* buf, int32_t bufLen, SMCreateSmaReq* pReq);
