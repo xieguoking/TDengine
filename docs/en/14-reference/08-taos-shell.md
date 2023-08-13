@@ -89,3 +89,11 @@ taos -h h1.taos.com -s "use db; show tables;"
 - Execute `RESET QUERY CACHE` to clear the local cache of the table schema
 - Execute SQL statements in batches. You can store a series of shell commands (ending with ;, one line for each SQL command) in a script file and execute the command `source <file-name>` in the TDengine CLI to execute all SQL commands in that file automatically
 - Enter `q` to exit TDengine CLI
+
+## TDengine CLI exports query results to a file  
+
+You can use the symbol '>>' to export the query results to a file, with the syntax: SQL query statement >> 'output file name'; If the output file is not written as a path, it will be output to the current directory. For example, select * from d0>>'/root/d0. csv'; The query results will be output to/root/d0.csv.
+
+## TDengine CLI imports data from a file
+
+You can use insert into table_name file 'filename' and import the data file that was exported in the previous step into the specified table. For example, insert into d0 file '/root/d0. csv'; import data from file '/root/d0.csv' to table d0.
