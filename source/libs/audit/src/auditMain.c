@@ -29,7 +29,9 @@ int32_t auditInit(const SAuditCfg *pCfg) {
   return 0;
 }
 
-void auditRecord(char *user, char *oper, char *detail) {
+void auditRecord(SRpcMsg *pReq, char *oper, char *db, char *stable, char *detail) {
+  char *user = pReq->info.conn.user;
+
   if (!tsEnableAudit || tsAuditFqdn[0] == 0 || tsAuditPort == 0) return;
   SJson *pJson = tjsonCreateObject();
   if (pJson == NULL) {
@@ -44,6 +46,8 @@ void auditRecord(char *user, char *oper, char *detail) {
   tjsonAddStringToObject(pJson, "ts", buf);
   tjsonAddStringToObject(pJson, "user", user);
   tjsonAddStringToObject(pJson, "operation", oper);
+  tjsonAddStringToObject(pJson, "target1", db);
+  tjsonAddStringToObject(pJson, "target2", stable);
   tjsonAddStringToObject(pJson, "detail", detail);
 
   auditSend(pJson);
