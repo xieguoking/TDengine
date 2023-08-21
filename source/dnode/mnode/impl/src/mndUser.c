@@ -22,6 +22,7 @@
 #include "mndTopic.h"
 #include "mndTrans.h"
 #include "tbase64.h"
+#include "audit.h"
 
 #define USER_VER_NUMBER   4
 #define USER_RESERVE_SIZE 64
@@ -655,6 +656,12 @@ static int32_t mndProcessCreateUserReq(SRpcMsg *pReq) {
   code = mndCreateUser(pMnode, pOperUser->acct, &createReq, pReq);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
+  char detail[1000] = {0};
+  sprintf(detail, "user:%s, createType:%d", 
+          createReq.user, createReq.createType);
+
+  auditRecord(pReq, "createUser", createReq.user, "", detail);
+
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
     mError("user:%s, failed to create since %s", createReq.user, terrstr());
@@ -966,6 +973,12 @@ static int32_t mndProcessAlterUserReq(SRpcMsg *pReq) {
   code = mndAlterUser(pMnode, pUser, &newUser, pReq);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
+  char detail[1000] = {0};
+  sprintf(detail, "user:%s, objname:%s, alterType:%d", 
+          alterReq.user, alterReq.objname, alterReq.alterType);
+
+  auditRecord(pReq, "alterUser", alterReq.user, alterReq.objname, detail);
+
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
     mError("user:%s, failed to alter since %s", alterReq.user, terrstr());
@@ -1034,6 +1047,8 @@ static int32_t mndProcessDropUserReq(SRpcMsg *pReq) {
 
   code = mndDropUser(pMnode, pReq, pUser);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
+
+  auditRecord(pReq, "dropUser", dropReq.user, "", "");
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {

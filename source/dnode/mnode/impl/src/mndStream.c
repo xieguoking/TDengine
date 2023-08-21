@@ -27,6 +27,7 @@
 #include "mndVgroup.h"
 #include "parser.h"
 #include "tname.h"
+#include "audit.h"
 
 #define MND_STREAM_VER_NUMBER   2
 #define MND_STREAM_RESERVE_SIZE 64
@@ -820,6 +821,12 @@ static int32_t mndProcessCreateStreamReq(SRpcMsg *pReq) {
 
   code = TSDB_CODE_ACTION_IN_PROGRESS;
 
+  char detail[1000] = {0};
+  sprintf(detail, "name:%s, igExists:%d", 
+          createStreamReq.name, createStreamReq.igExists);
+
+  auditRecord(pReq, "createStream", createStreamReq.name, "", detail);
+
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
     mError("stream:%s, failed to create since %s", createStreamReq.name, terrstr());
@@ -1064,6 +1071,12 @@ static int32_t mndProcessDropStreamReq(SRpcMsg *pReq) {
     mndTransDrop(pTrans);
     return -1;
   }
+
+  char detail[1000] = {0};
+  sprintf(detail, "name:%s, igNotExists:%d", 
+          dropReq.name, dropReq.igNotExists);
+
+  auditRecord(pReq, "dropStream", dropReq.name, "", detail);
 
   sdbRelease(pMnode->pSdb, pStream);
   mndTransDrop(pTrans);

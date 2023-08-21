@@ -21,6 +21,8 @@
 #include "tlog.h"
 #include "tmsg.h"
 #include "tjson.h"
+#include "tmsgcb.h"
+#include "trpc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,7 +37,7 @@ typedef struct {
 
 int32_t auditInit(const SAuditCfg *pCfg);
 void    auditSend(SJson *pJson);
-void    auditRecord(char *user, char *oper, char *detail);
+void    auditRecord(SRpcMsg *pReq, char *oper, char *db, char *stable, char *detail);
 
 #ifdef __cplusplus
 }
