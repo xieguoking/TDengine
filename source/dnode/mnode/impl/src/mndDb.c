@@ -29,6 +29,9 @@
 #include "mndUser.h"
 #include "mndVgroup.h"
 #include "systable.h"
+#include "tjson.h"
+#include "thttp.h"
+#include "audit.h"
 
 #define DB_VER_NUMBER   1
 #define DB_RESERVE_SIZE 46
@@ -733,6 +736,14 @@ static int32_t mndProcessCreateDbReq(SRpcMsg *pReq) {
   code = mndCreateDb(pMnode, pReq, &createReq, pUser);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
+  char detail[1000] = {0};
+  sprintf(detail, "dbname:%s, buffer:%d, cacheLast:%d, cacheLastSize:%d, compression:%d, "
+          "daysPerFile:%d, daysToKeep0:%d, daysToKeep1:%d, daysToKeep2:%d", 
+          createReq.db, createReq.buffer, createReq.cacheLast, createReq.cacheLastSize, createReq.compression,
+          createReq.daysPerFile, createReq.daysToKeep0, createReq.daysToKeep1, createReq.daysToKeep2);
+
+  auditRecord(pReq, "createDB", createReq.db, "", detail);
+
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
     mError("db:%s, failed to create since %s", createReq.db, terrstr());
@@ -974,6 +985,14 @@ static int32_t mndProcessAlterDbReq(SRpcMsg *pReq) {
   } else {
     if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
   }
+
+  char detail[1000] = {0};
+  sprintf(detail, "dbname:%s, buffer:%d, cacheLast:%d, cacheLastSize:%d, "
+          "daysPerFile:%d, daysToKeep0:%d, daysToKeep1:%d, daysToKeep2:%d", 
+          alterReq.db, alterReq.buffer, alterReq.cacheLast, alterReq.cacheLastSize,
+          alterReq.daysPerFile, alterReq.daysToKeep0, alterReq.daysToKeep1, alterReq.daysToKeep2);
+
+  auditRecord(pReq, "alterDB", alterReq.db, "", detail);
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -1263,6 +1282,11 @@ static int32_t mndProcessDropDbReq(SRpcMsg *pReq) {
   if (code == TSDB_CODE_SUCCESS) {
     code = TSDB_CODE_ACTION_IN_PROGRESS;
   }
+
+  char detail[1000] = {0};
+  sprintf(detail, "dbname:%s, ignoreNotExists:%d", dropReq.db, dropReq.ignoreNotExists);
+
+  auditRecord(pReq, "dropDB", dropReq.db, "", detail);
 
 _OVER:
   if (code != TSDB_CODE_SUCCESS && code != TSDB_CODE_ACTION_IN_PROGRESS) {

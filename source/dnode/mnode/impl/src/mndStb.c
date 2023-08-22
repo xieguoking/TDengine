@@ -31,6 +31,7 @@
 #include "mndUser.h"
 #include "mndVgroup.h"
 #include "tname.h"
+#include "audit.h"
 
 #define STB_VER_NUMBER   1
 #define STB_RESERVE_SIZE 64
@@ -1133,6 +1134,12 @@ static int32_t mndProcessCreateStbReq(SRpcMsg *pReq) {
   }
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
+  char detail[1000] = {0};
+  sprintf(detail, "dbname:%s, stable:%s, igExists:%d, ttl:%d", 
+          pDb->name, createReq.name, createReq.igExists, createReq.ttl);
+
+  auditRecord(pReq, "createStb", pDb->name, createReq.name, detail);
+
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
     mError("stb:%s, failed to create since %s", createReq.name, terrstr());
@@ -2201,6 +2208,12 @@ static int32_t mndProcessAlterStbReq(SRpcMsg *pReq) {
   code = mndAlterStb(pMnode, pReq, &alterReq, pDb, pStb);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
+  char detail[1000] = {0};
+  sprintf(detail, "dbname:%s, stable:%s, alterType:%d, ttl:%d", 
+          pDb->name, alterReq.name, alterReq.alterType, alterReq.ttl);
+
+  auditRecord(pReq, "alterStb", pDb->name, alterReq.name, detail);
+
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
     mError("stb:%s, failed to alter since %s", alterReq.name, terrstr());
@@ -2460,6 +2473,12 @@ static int32_t mndProcessDropStbReq(SRpcMsg *pReq) {
 
   code = mndDropStb(pMnode, pReq, pDb, pStb);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
+
+  char detail[1000] = {0};
+  sprintf(detail, "dbname:%s, stable:%s, igNotExists:%d", 
+          pDb->name, dropReq.name, dropReq.igNotExists);
+
+  auditRecord(pReq, "dropStb", pDb->name, dropReq.name, detail);
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
