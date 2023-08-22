@@ -2284,6 +2284,8 @@ typedef struct SVCreateTbReq {
       SSchemaWrapper schemaRow;
     } ntb;
   };
+  int32_t sqlLen;
+  char*   sql;
 } SVCreateTbReq;
 
 int  tEncodeSVCreateTbReq(SEncoder* pCoder, const SVCreateTbReq* pReq);

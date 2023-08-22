@@ -146,6 +146,7 @@ target_link_libraries(
     PUBLIC executor
     PUBLIC scheduler
     PUBLIC tdb
+    PUBLIC audit
 
     # PUBLIC bdb
     # PUBLIC scalar
