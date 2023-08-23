@@ -860,7 +860,7 @@ static int32_t vnodeProcessCreateTbReq(SVnode *pVnode, int64_t ver, void *pReq, 
 
     taosArrayPush(rsp.pArray, &cRsp);
 
-    auditRecord(pReq, "createTable", pVnode->config.dbname, pCreateReq->name, "detail");
+    auditRecord(pReq, "createTable", pVnode->config.dbname, pCreateReq->name, pCreateReq->sqlLen, pCreateReq->sql);
   }
 
   vDebug("vgId:%d, add %d new created tables into query table list", TD_VID(pVnode), (int32_t)taosArrayGetSize(tbUids));

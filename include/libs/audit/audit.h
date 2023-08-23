@@ -31,13 +31,12 @@ extern "C" {
 typedef struct {
   const char *server;
   uint16_t    port;
-  int32_t     maxLogs;
   bool        comp;
 } SAuditCfg;
 
 int32_t auditInit(const SAuditCfg *pCfg);
 void    auditSend(SJson *pJson);
-void    auditRecord(SRpcMsg *pReq, char *oper, char *db, char *stable, char *detail);
+void    auditRecord(SRpcMsg *pReq, char *oper, char *db, char *stable, int32_t detailLen, char *detail);
 
 #ifdef __cplusplus
 }

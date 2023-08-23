@@ -736,13 +736,7 @@ static int32_t mndProcessCreateDbReq(SRpcMsg *pReq) {
   code = mndCreateDb(pMnode, pReq, &createReq, pUser);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
-  char detail[1000] = {0};
-  sprintf(detail, "dbname:%s, buffer:%d, cacheLast:%d, cacheLastSize:%d, compression:%d, "
-          "daysPerFile:%d, daysToKeep0:%d, daysToKeep1:%d, daysToKeep2:%d", 
-          createReq.db, createReq.buffer, createReq.cacheLast, createReq.cacheLastSize, createReq.compression,
-          createReq.daysPerFile, createReq.daysToKeep0, createReq.daysToKeep1, createReq.daysToKeep2);
-
-  auditRecord(pReq, "createDB", createReq.db, "", detail);
+  auditRecord(pReq, "createDB", createReq.db, "", createReq.sqlLen, createReq.sql);
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -986,13 +980,7 @@ static int32_t mndProcessAlterDbReq(SRpcMsg *pReq) {
     if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
   }
 
-  char detail[1000] = {0};
-  sprintf(detail, "dbname:%s, buffer:%d, cacheLast:%d, cacheLastSize:%d, "
-          "daysPerFile:%d, daysToKeep0:%d, daysToKeep1:%d, daysToKeep2:%d", 
-          alterReq.db, alterReq.buffer, alterReq.cacheLast, alterReq.cacheLastSize,
-          alterReq.daysPerFile, alterReq.daysToKeep0, alterReq.daysToKeep1, alterReq.daysToKeep2);
-
-  auditRecord(pReq, "alterDB", alterReq.db, "", detail);
+  auditRecord(pReq, "alterDB", alterReq.db, "", alterReq.sqlLen, alterReq.sql);
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -1283,10 +1271,7 @@ static int32_t mndProcessDropDbReq(SRpcMsg *pReq) {
     code = TSDB_CODE_ACTION_IN_PROGRESS;
   }
 
-  char detail[1000] = {0};
-  sprintf(detail, "dbname:%s, ignoreNotExists:%d", dropReq.db, dropReq.ignoreNotExists);
-
-  auditRecord(pReq, "dropDB", dropReq.db, "", detail);
+  auditRecord(pReq, "dropDB", dropReq.db, "", dropReq.sqlLen, dropReq.sql);
 
 _OVER:
   if (code != TSDB_CODE_SUCCESS && code != TSDB_CODE_ACTION_IN_PROGRESS) {

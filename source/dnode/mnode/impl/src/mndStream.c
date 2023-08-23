@@ -829,11 +829,7 @@ static int32_t mndProcessCreateStreamReq(SRpcMsg *pReq) {
 
   code = TSDB_CODE_ACTION_IN_PROGRESS;
 
-  char detail[1000] = {0};
-  sprintf(detail, "name:%s, igExists:%d", 
-          createStreamReq.name, createStreamReq.igExists);
-
-  auditRecord(pReq, "createStream", createStreamReq.name, "", detail);
+  auditRecord(pReq, "createStream", createStreamReq.name, "", createStreamReq.sqlLen, createStreamReq.sql);
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -1080,11 +1076,7 @@ static int32_t mndProcessDropStreamReq(SRpcMsg *pReq) {
     return -1;
   }
 
-  char detail[1000] = {0};
-  sprintf(detail, "name:%s, igNotExists:%d", 
-          dropReq.name, dropReq.igNotExists);
-
-  auditRecord(pReq, "dropStream", dropReq.name, "", detail);
+  auditRecord(pReq, "dropStream", dropReq.name, "", dropReq.sqlLen, dropReq.sql);
 
   sdbRelease(pMnode->pSdb, pStream);
   mndTransDrop(pTrans);

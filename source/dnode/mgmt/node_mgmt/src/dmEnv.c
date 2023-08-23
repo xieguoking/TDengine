@@ -37,8 +37,9 @@
 
 #define DM_INIT_AUDIT()                 \
   do {                                  \
-    auditCfg.port = tsAuditPort;        \
-    auditCfg.server = tsAuditFqdn;      \
+    auditCfg.port = tsMonitorPort;        \
+    auditCfg.server = tsMonitorFqdn;      \
+    auditCfg.comp = tsMonitorComp;      \
     if (auditInit(&auditCfg) != 0) {    \
       return -1;                        \
     }                                   \

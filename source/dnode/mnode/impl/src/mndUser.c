@@ -656,11 +656,7 @@ static int32_t mndProcessCreateUserReq(SRpcMsg *pReq) {
   code = mndCreateUser(pMnode, pOperUser->acct, &createReq, pReq);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
-  char detail[1000] = {0};
-  sprintf(detail, "user:%s, createType:%d", 
-          createReq.user, createReq.createType);
-
-  auditRecord(pReq, "createUser", createReq.user, "", detail);
+  auditRecord(pReq, "createUser", createReq.user, "", createReq.sqlLen, createReq.sql);
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -977,11 +973,26 @@ static int32_t mndProcessAlterUserReq(SRpcMsg *pReq) {
   code = mndAlterUser(pMnode, pUser, &newUser, pReq);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
-  char detail[1000] = {0};
-  sprintf(detail, "user:%s, objname:%s, alterType:%d", 
-          alterReq.user, alterReq.objname, alterReq.alterType);
-
-  auditRecord(pReq, "alterUser", alterReq.user, alterReq.objname, detail);
+  if(alterReq.alterType == TSDB_ALTER_USER_PASSWD){
+    auditRecord(pReq, "changePassword", alterReq.user, alterReq.objname, 0, "");
+  }
+  else if(alterReq.alterType == TSDB_ALTER_USER_SUPERUSER || 
+          alterReq.alterType == TSDB_ALTER_USER_ENABLE ||
+          alterReq.alterType == TSDB_ALTER_USER_SYSINFO){
+    auditRecord(pReq, "alterUser", alterReq.user, alterReq.objname, alterReq.sqlLen, alterReq.sql);
+  }
+  else if(alterReq.alterType == TSDB_ALTER_USER_ADD_READ_DB||
+          alterReq.alterType == TSDB_ALTER_USER_ADD_WRITE_DB||
+          alterReq.alterType == TSDB_ALTER_USER_ADD_ALL_DB||
+          alterReq.alterType == TSDB_ALTER_USER_ADD_SUBSCRIBE_TOPIC||
+          alterReq.alterType == TSDB_ALTER_USER_ADD_READ_TABLE||
+          alterReq.alterType == TSDB_ALTER_USER_ADD_WRITE_TABLE||
+          alterReq.alterType == TSDB_ALTER_USER_ADD_ALL_TABLE){
+    auditRecord(pReq, "GrantPrivileges", alterReq.user, alterReq.objname, alterReq.sqlLen, alterReq.sql);
+  }
+  else{
+    auditRecord(pReq, "RevokePrivileges", alterReq.user, alterReq.objname, alterReq.sqlLen, alterReq.sql);
+  }
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -1052,7 +1063,7 @@ static int32_t mndProcessDropUserReq(SRpcMsg *pReq) {
   code = mndDropUser(pMnode, pReq, pUser);
   if (code == 0) code = TSDB_CODE_ACTION_IN_PROGRESS;
 
-  auditRecord(pReq, "dropUser", dropReq.user, "", "");
+  auditRecord(pReq, "dropUser", dropReq.user, "", dropReq.sqlLen, dropReq.sql);
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {

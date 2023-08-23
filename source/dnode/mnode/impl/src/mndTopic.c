@@ -622,11 +622,8 @@ static int32_t mndProcessCreateTopicReq(SRpcMsg *pReq) {
     code = TSDB_CODE_ACTION_IN_PROGRESS;
   }
 
-  char detail[1000] = {0};
-  sprintf(detail, "subDbName:%s, subStbName:%s", 
-          createTopicReq.subDbName, createTopicReq.subStbName);
-
-  auditRecord(pReq, "crateTopic", createTopicReq.name, createTopicReq.subDbName, detail);
+  auditRecord(pReq, "crateTopic", createTopicReq.name, createTopicReq.subDbName, 
+              createTopicReq.sqlLen, createTopicReq.sql);
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -819,11 +816,7 @@ static int32_t mndProcessDropTopicReq(SRpcMsg *pReq) {
     return -1;
   }
 
-  char detail[1000] = {0};
-  sprintf(detail, "name:%s, igNotExists:%d", 
-          dropReq.name, dropReq.igNotExists);
-
-  auditRecord(pReq, "dropTopic", dropReq.name, "", detail);
+  auditRecord(pReq, "dropTopic", dropReq.name, "", dropReq.sqlLen, dropReq.sql);
 
   return TSDB_CODE_ACTION_IN_PROGRESS;
 }
