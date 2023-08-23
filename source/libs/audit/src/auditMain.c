@@ -29,14 +29,14 @@ int32_t auditInit(const SAuditCfg *pCfg) {
   return 0;
 }
 
-extern void auditRecordImp(SRpcMsg *pReq, char *oper, char *db, char *stable, char *detail);
+extern void auditRecordImp(SRpcMsg *pReq, char *oper, char *db, char *stable, int32_t detailLen, char *detail);
 
-void auditRecord(SRpcMsg *pReq, char *oper, char *db, char *stable, char *detail) {
-  auditRecordImp(pReq, oper, db, stable, detail);
+void auditRecord(SRpcMsg *pReq, char *oper, char *db, char *stable, int32_t detailLen, char *detail) {
+  auditRecordImp(pReq, oper, db, stable, detailLen, detail);
 }
 
 #ifndef TD_ENTERPRISE
-void auditRecordImp(SRpcMsg *pReq, char *oper, char *db, char *stable, char *detail) {
+void auditRecordImp(SRpcMsg *pReq, char *oper, char *db, char *stable, int32_t detailLen, char *detail) {
 }
 #endif
 
