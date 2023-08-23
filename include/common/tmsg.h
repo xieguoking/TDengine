@@ -1306,6 +1306,8 @@ void    tFreeSUserAuthBatchRsp(SUserAuthBatchRsp* pRsp);
 typedef struct {
   char        db[TSDB_DB_FNAME_LEN];
   STimeWindow timeRange;
+  int32_t     sqlLen;
+  char*       sql;
 } SCompactDbReq;
 
 int32_t tSerializeSCompactDbReq(void* buf, int32_t bufLen, SCompactDbReq* pReq);
@@ -1898,6 +1900,8 @@ enum {
 typedef struct {
   int32_t dnodeId;
   int8_t  restoreType;
+  int32_t sqlLen;
+  char*   sql;
 } SRestoreDnodeReq;
 
 int32_t tSerializeSRestoreDnodeReq(void* buf, int32_t bufLen, SRestoreDnodeReq* pReq);
@@ -1966,6 +1970,8 @@ int32_t tDeserializeSKillTransReq(void* buf, int32_t bufLen, SKillTransReq* pReq
 
 typedef struct {
   int32_t useless;  // useless
+  int32_t sqlLen;
+  char*   sql;
 } SBalanceVgroupReq;
 
 int32_t tSerializeSBalanceVgroupReq(void* buf, int32_t bufLen, SBalanceVgroupReq* pReq);
@@ -1984,6 +1990,8 @@ typedef struct {
   int32_t dnodeId1;
   int32_t dnodeId2;
   int32_t dnodeId3;
+  int32_t sqlLen;
+  char*   sql;
 } SRedistributeVgroupReq;
 
 int32_t tSerializeSRedistributeVgroupReq(void* buf, int32_t bufLen, SRedistributeVgroupReq* pReq);
@@ -1991,6 +1999,8 @@ int32_t tDeserializeSRedistributeVgroupReq(void* buf, int32_t bufLen, SRedistrib
 
 typedef struct {
   int32_t useless;
+  int32_t sqlLen;
+  char*   sql;
 } SBalanceVgroupLeaderReq;
 
 int32_t tSerializeSBalanceVgroupLeaderReq(void* buf, int32_t bufLen, SBalanceVgroupLeaderReq* pReq);

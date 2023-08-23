@@ -36,7 +36,7 @@ typedef struct {
 
 int32_t auditInit(const SAuditCfg *pCfg);
 void    auditSend(SJson *pJson);
-void    auditRecord(SRpcMsg *pReq, char *oper, char *db, char *stable, int32_t detailLen, char *detail);
+void    auditRecord(SRpcMsg *pReq, char *operation, char *target1, char *target2, int32_t len, char *detail);
 
 #ifdef __cplusplus
 }
