@@ -20,6 +20,7 @@
 #include "ttime.h"
 #include "tjson.h"
 #include "tglobal.h"
+#include "mnode.h"
 
 SAudit tsAudit = {0};
 char* tsAuditUri = "/audit";
@@ -29,14 +30,14 @@ int32_t auditInit(const SAuditCfg *pCfg) {
   return 0;
 }
 
-extern void auditRecordImp(SRpcMsg *pReq, char *operation, char *target1, char *target2, int32_t len, char *detail);
+extern void auditRecordImp(SRpcMsg *pReq, int64_t clusterId, char *operation, char *target1, char *target2, char *detail);
 
-void auditRecord(SRpcMsg *pReq, char *operation, char *target1, char *target2, int32_t len, char *detail) {
-  auditRecordImp(pReq, operation, target1, target2, len, detail);
+void auditRecord(SRpcMsg *pReq, int64_t clusterId, char *operation, char *target1, char *target2, char *detail) {
+  auditRecordImp(pReq, clusterId, operation, target1, target2, detail);
 }
 
 #ifndef TD_ENTERPRISE
-void auditRecordImp(SRpcMsg *pReq, char *operation, char *target1, char *target2, int32_t len, char *detail) {
+void auditRecordImp(SRpcMsg *pReq, int64_t clusterId, char *operation, char *target1, char *target2, char *detail) {
 }
 #endif
 

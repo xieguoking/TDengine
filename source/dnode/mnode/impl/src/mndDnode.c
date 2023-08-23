@@ -913,7 +913,7 @@ static int32_t mndProcessCreateDnodeReq(SRpcMsg *pReq) {
   sprintf(detail, "%s:%d", 
           createReq.fqdn, createReq.port);
 
-  auditRecord(pReq, "createDnode", detail, "", createReq.sqlLen, createReq.sql);
+  auditRecord(pReq, pMnode->clusterId, "createDnode", detail, "", "");
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -1068,7 +1068,7 @@ static int32_t mndProcessDropDnodeReq(SRpcMsg *pReq) {
   char obj2[10] = {0};
   sprintf(obj2, "%d", dropReq.dnodeId);
 
-  auditRecord(pReq, "dropDnode", obj1, obj2, dropReq.sqlLen, dropReq.sql);
+  auditRecord(pReq, pMnode->clusterId, "dropDnode", obj1, obj2, "");
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -1206,7 +1206,7 @@ static int32_t mndProcessConfigDnodeReq(SRpcMsg *pReq) {
   char detail[50] = {0};
   sprintf(detail, "%d", cfgReq.dnodeId);
 
-  auditRecord(pReq, "alterDnode", detail, "", cfgReq.sqlLen, cfgReq.sql);
+  auditRecord(pReq, pMnode->clusterId, "alterDnode", detail, "", "");
 
   int32_t code = -1;
   SSdb   *pSdb = pMnode->pSdb;

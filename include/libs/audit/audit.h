@@ -23,6 +23,7 @@
 #include "tjson.h"
 #include "tmsgcb.h"
 #include "trpc.h"
+#include "mnode.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,7 +37,7 @@ typedef struct {
 
 int32_t auditInit(const SAuditCfg *pCfg);
 void    auditSend(SJson *pJson);
-void    auditRecord(SRpcMsg *pReq, char *operation, char *target1, char *target2, int32_t len, char *detail);
+void    auditRecord(SRpcMsg *pReq, int64_t clusterId, char *operation, char *target1, char *target2, char *detail);
 
 #ifdef __cplusplus
 }

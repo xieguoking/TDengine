@@ -829,7 +829,7 @@ static int32_t mndProcessCreateStreamReq(SRpcMsg *pReq) {
 
   code = TSDB_CODE_ACTION_IN_PROGRESS;
 
-  auditRecord(pReq, "createStream", createStreamReq.name, "", createStreamReq.sqlLen, createStreamReq.sql);
+  auditRecord(pReq, pMnode->clusterId, "createStream", createStreamReq.name, "", "");
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -1076,7 +1076,7 @@ static int32_t mndProcessDropStreamReq(SRpcMsg *pReq) {
     return -1;
   }
 
-  auditRecord(pReq, "dropStream", dropReq.name, "", dropReq.sqlLen, dropReq.sql);
+  auditRecord(pReq, pMnode->clusterId, "dropStream", dropReq.name, "", "");
 
   sdbRelease(pMnode->pSdb, pStream);
   mndTransDrop(pTrans);

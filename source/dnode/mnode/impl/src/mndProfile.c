@@ -317,7 +317,7 @@ _CONNECT:
   sprintf(detail, "user:%s, from:%s, connType%d", 
           connReq.user, obj, connReq.connType);
 
-  auditRecord(pReq, "login", connReq.app, obj, strlen(detail), detail);
+  auditRecord(pReq, pMnode->clusterId, "login", connReq.app, obj, detail);
 
 _OVER:
 

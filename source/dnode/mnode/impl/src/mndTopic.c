@@ -622,8 +622,7 @@ static int32_t mndProcessCreateTopicReq(SRpcMsg *pReq) {
     code = TSDB_CODE_ACTION_IN_PROGRESS;
   }
 
-  auditRecord(pReq, "crateTopic", createTopicReq.name, createTopicReq.subDbName, 
-              createTopicReq.sqlLen, createTopicReq.sql);
+  auditRecord(pReq, pMnode->clusterId, "crateTopic", createTopicReq.name, createTopicReq.subDbName, createTopicReq.sql);
 
 _OVER:
   if (code != 0 && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -816,7 +815,7 @@ static int32_t mndProcessDropTopicReq(SRpcMsg *pReq) {
     return -1;
   }
 
-  auditRecord(pReq, "dropTopic", dropReq.name, "", dropReq.sqlLen, dropReq.sql);
+  auditRecord(pReq, pMnode->clusterId, "dropTopic", dropReq.name, "", dropReq.sql);
 
   return TSDB_CODE_ACTION_IN_PROGRESS;
 }
