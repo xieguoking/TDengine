@@ -21,46 +21,22 @@
 #include "tjson.h"
 #include "tglobal.h"
 
-static SAudit tsAudit = {0};
-static char* tsAuditUri = "/audit";
+SAudit tsAudit = {0};
+char* tsAuditUri = "/audit";
 
 int32_t auditInit(const SAuditCfg *pCfg) {
   tsAudit.cfg = *pCfg;
   return 0;
 }
 
+extern void auditRecordImp(SRpcMsg *pReq, char *oper, char *db, char *stable, char *detail);
+
 void auditRecord(SRpcMsg *pReq, char *oper, char *db, char *stable, char *detail) {
-  char *user = pReq->info.conn.user;
-
-  if (!tsEnableAudit || tsAuditFqdn[0] == 0 || tsAuditPort == 0) return;
-  SJson *pJson = tjsonCreateObject();
-  if (pJson == NULL) {
-    terrno = TSDB_CODE_OUT_OF_MEMORY;
-    return;
-  }
-
-  char   buf[40] = {0};
-  int64_t curTime = taosGetTimestampMs();
-  taosFormatUtcTime(buf, sizeof(buf), curTime, TSDB_TIME_PRECISION_MILLI);
-
-  tjsonAddStringToObject(pJson, "ts", buf);
-  tjsonAddStringToObject(pJson, "user", user);
-  tjsonAddStringToObject(pJson, "operation", oper);
-  tjsonAddStringToObject(pJson, "target1", db);
-  tjsonAddStringToObject(pJson, "target2", stable);
-  tjsonAddStringToObject(pJson, "detail", detail);
-
-  auditSend(pJson);
+  auditRecordImp(pReq, oper, db, stable, detail);
 }
 
-void auditSend(SJson *pJson) {
-  char *pCont = tjsonToString(pJson);
-  uDebug("audit record cont:%s\n", pCont);
-  if (pCont != NULL) {
-    EHttpCompFlag flag = tsAudit.cfg.comp ? HTTP_GZIP : HTTP_FLAT;
-    if (taosSendHttpReport(tsAudit.cfg.server, tsAuditUri, tsAudit.cfg.port, pCont, strlen(pCont), flag) != 0) {
-      uError("failed to send audit msg");
-    }
-    taosMemoryFree(pCont);
-  }
+#ifndef TD_ENTERPRISE
+void auditRecordImp(SRpcMsg *pReq, char *oper, char *db, char *stable, char *detail) {
 }
+#endif
+
