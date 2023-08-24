@@ -90,10 +90,6 @@ int32_t qwProcessHbLinkBroken(SQWorker *mgmt, SQWMsg *qwMsg, SSchedulerHbReq *re
   QW_RET(TSDB_CODE_SUCCESS);
 }
 
-static void freeItem(void *param) {
-  SExplainExecInfo *pInfo = param;
-  taosMemoryFree(pInfo->verboseInfo);
-}
 
 int32_t qwHandleTaskComplete(QW_FPARAMS_DEF, SQWTaskCtx *ctx) {
   qTaskInfo_t taskHandle = ctx->taskHandle;
@@ -101,29 +97,8 @@ int32_t qwHandleTaskComplete(QW_FPARAMS_DEF, SQWTaskCtx *ctx) {
   ctx->queryExecDone = true;
 
   if (TASK_TYPE_TEMP == ctx->taskType && taskHandle) {
-    if (ctx->explain) {
-      SArray *execInfoList = taosArrayInit(4, sizeof(SExplainExecInfo));
-      QW_ERR_RET(qGetExplainExecInfo(taskHandle, execInfoList));
-
-      if (ctx->localExec) {
-        SExplainLocalRsp localRsp = {0};
-        localRsp.rsp.numOfPlans = taosArrayGetSize(execInfoList);
-        SExplainExecInfo *pExec = taosMemoryCalloc(localRsp.rsp.numOfPlans, sizeof(SExplainExecInfo));
-        memcpy(pExec, taosArrayGet(execInfoList, 0), localRsp.rsp.numOfPlans * sizeof(SExplainExecInfo));
-        localRsp.rsp.subplanInfo = pExec;
-        localRsp.qId = qId;
-        localRsp.tId = tId;
-        localRsp.rId = rId;
-        localRsp.eId = eId;
-        taosArrayPush(ctx->explainRes, &localRsp);
-        taosArrayDestroy(execInfoList);
-      } else {
-        SRpcHandleInfo connInfo = ctx->ctrlConnInfo;
-        connInfo.ahandle = NULL;
-        int32_t code = qwBuildAndSendExplainRsp(&connInfo, execInfoList);
-        taosArrayDestroyEx(execInfoList, freeItem);
-        QW_ERR_RET(code);
-      }
+    if (ctx->explain && !ctx->explainRsped) {
+      QW_ERR_RET(qwSendExplainResponse(QW_FPARAMS(), ctx));
     }
 
     if (!ctx->needFetch) {

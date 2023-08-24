@@ -131,6 +131,7 @@ typedef struct SQWTaskCtx {
   bool    queryContinue;
   bool    queryExecDone;
   bool    queryInQueue;
+  bool    explainRsped;
   int32_t rspCode;
   int64_t affectedRows;  // for insert ...select stmt
 
@@ -403,6 +404,7 @@ int32_t qwAddTaskCtx(QW_FPARAMS_DEF);
 void    qwDbgSimulateRedirect(SQWMsg *qwMsg, SQWTaskCtx *ctx, bool *rsped);
 void    qwDbgSimulateSleep(void);
 void    qwDbgSimulateDead(QW_FPARAMS_DEF, SQWTaskCtx *ctx, bool *rsped);
+int32_t qwSendExplainResponse(QW_FPARAMS_DEF, SQWTaskCtx *ctx);
 
 #ifdef __cplusplus
 }
