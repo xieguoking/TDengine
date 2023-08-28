@@ -390,7 +390,7 @@ static int32_t doDispatchAllBlocks(SStreamTask* pTask, const SStreamDataBlock* p
 static void doRetryDispatchData(void* param, void* tmrId) {
   SStreamTask* pTask = param;
 
-  if (streamTaskShouldStop(&pTask->status)) {
+  if (streamTaskShouldStop(&pTask->status) || streamTaskShouldPause(&pTask->status)) {
     atomic_sub_fetch_8(&pTask->status.timerActive, 1);
     qDebug("s-task:%s should stop, abort from timer", pTask->id.idStr);
     return;
