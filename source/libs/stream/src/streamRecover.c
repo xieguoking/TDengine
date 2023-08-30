@@ -880,17 +880,13 @@ void streamTaskPause(SStreamTask* pTask, SStreamMeta* pMeta) {
 void streamTaskResume(SStreamTask* pTask, SStreamMeta* pMeta) {
   int8_t status = pTask->status.taskStatus;
   if (status == TASK_STATUS__PAUSE) {
-    taosWLockLatch(&pMeta->lock);
     pTask->status.taskStatus = pTask->status.keepTaskStatus;
     pTask->status.keepTaskStatus = TASK_STATUS__NORMAL;
     int32_t num = atomic_sub_fetch_32(&pMeta->pauseTaskNum, 1);
     qInfo("vgId:%d s-task:%s resume from pause. pause task num:%d", pMeta->vgId, pTask->id.idStr, num);
-    taosWUnLockLatch(&pMeta->lock);
   } else if (pTask->info.taskLevel == TASK_LEVEL__SINK) {
-    taosWLockLatch(&pMeta->lock);
     int32_t num = atomic_sub_fetch_32(&pMeta->pauseTaskNum, 1);
     qInfo("vgId:%d s-task:%s sink task.resume from pause. pause task num:%d", pMeta->vgId, pTask->id.idStr, num);
-    taosWUnLockLatch(&pMeta->lock);
   } else {
     qError("s-task:%s not in pause, failed to resume, status:%s", pTask->id.idStr, streamGetTaskStatusStr(status));
   }
