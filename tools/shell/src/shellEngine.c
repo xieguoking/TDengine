@@ -409,7 +409,7 @@ void shellDumpFieldToFile(TdFilePtr pFile, const char *val, TAOS_FIELD *field, i
       if(taosAscii2Hex(val, length, &tmp, &size) < 0){
         break;
       }
-      taosFprintfFile(pFile, "%s%s%s", quotationStr, tmp, quotationStr);
+      taosFprintfFile(pFile, "%s", tmp);
       taosMemoryFree(tmp);
       break;
     }
