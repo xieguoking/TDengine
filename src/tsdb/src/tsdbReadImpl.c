@@ -145,7 +145,9 @@ int tsdbLoadBlockIdx(SReadH *pReadh) {
 
     if (tsize > 0) {
       SBlockIdx *preBlockIdx = (SBlockIdx *)taosArrayGet(pReadh->aBlkIdx, tsize - 1);
-      if (preBlockIdx->offset > blkIdx.offset) {
+      if (blkIdx.offset != preBlockIdx->offset + preBlockIdx->len) {
+        tsdbWarn("vgId:%d SBlockIdx part in file %s maybe invalid, tsize:%d preBlockIdx.offset:%" PRId64 " preBlockIdx.len:%d blkIdx.offset:%" PRId64,
+                 TSDB_READ_REPO_ID(pReadh), TSDB_FILE_FULL_NAME(pHeadf), tsize, preBlockIdx->offset, preBlockIdx->len, blkIdx.offset);
         blkIdx.offset = preBlockIdx->offset + preBlockIdx->len;
       }
     }
