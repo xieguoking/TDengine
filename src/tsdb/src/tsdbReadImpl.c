@@ -105,7 +105,7 @@ int tsdbLoadBlockIdx(SReadH *pReadh) {
   int64_t offset = pHeadf->info.size - pHeadf->info.len;
 
   // No data at all, just return
-  if (offset <= 0 || pHeadf->info.size == 0) return 0;
+  if (offset <= 0 || pHeadf->info.len == 0) return 0;
 
   if (tsdbSeekDFile(pHeadf, offset, SEEK_SET) < 0) {
     tsdbError("vgId:%d failed to load SBlockIdx part while seek file %s since %s, offset:%" PRId64 " len :%u",
