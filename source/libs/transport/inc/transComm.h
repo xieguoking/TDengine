@@ -195,7 +195,7 @@ typedef struct {
 #pragma pack(pop)
 
 typedef enum { Normal, Quit, Release, Register, Update } STransMsgType;
-typedef enum { ConnNormal, ConnAcquire, ConnRelease, ConnBroken, ConnInPool } ConnStatus;
+typedef enum { ConnNormal, ConnAcquire, ConnRelease, ConnBroken, ConnInPool, ConnFail } ConnStatus;
 
 #define container_of(ptr, type, member) ((type*)((char*)(ptr)-offsetof(type, member)))
 #define RPC_RESERVE_SIZE                (sizeof(STranConnCtx))

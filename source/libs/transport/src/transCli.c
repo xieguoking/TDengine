@@ -869,7 +869,6 @@ static SCliConn* cliCreateConn(SCliThrd* pThrd) {
 static void cliDestroyConn(SCliConn* conn, bool clear) {
   SCliThrd* pThrd = conn->hostThrd;
   tTrace("%s conn %p remove from conn pool", CONN_GET_INST_LABEL(conn), conn);
-  conn->broken = true;
   QUEUE_REMOVE(&conn->q);
   QUEUE_INIT(&conn->q);
 
@@ -883,8 +882,10 @@ static void cliDestroyConn(SCliConn* conn, bool clear) {
     SConnList* connList = taosHashGet((SHashObj*)pThrd->pool, conn->dstAddr, strlen(conn->dstAddr) + 1);
     if (connList != NULL) connList->list->numOfConn--;
   }
+  if (conn->status != ConnFail) {
+    pThrd->newConnCount--;
+  }
   conn->list = NULL;
-  pThrd->newConnCount--;
 
   transReleaseExHandle(transGetRefMgt(), conn->refId);
   transRemoveExHandle(transGetRefMgt(), conn->refId);
@@ -1168,10 +1169,11 @@ static void cliHandleBatchReq(SCliBatch* pBatch, SCliThrd* pThrd) {
     return;
   }
   if (conn == NULL) {
+    pThrd->newConnCount++;
+
     conn = cliCreateConn(pThrd);
     conn->pBatch = pBatch;
     conn->dstAddr = taosStrdup(pList->dst);
-
     uint32_t ipaddr = cliGetIpFromFqdnCache(pThrd->fqdn2ipCache, pList->ip);
     if (ipaddr == 0xffffffff) {
       uv_timer_stop(conn->timer);
@@ -1188,7 +1190,6 @@ static void cliHandleBatchReq(SCliBatch* pBatch, SCliThrd* pThrd) {
     addr.sin_port = (uint16_t)htons(pList->port);
 
     tTrace("%s conn %p try to connect to %s", pTransInst->label, conn, pList->dst);
-    pThrd->newConnCount++;
     int32_t fd = taosCreateSocketWithTimeout(TRANS_CONN_TIMEOUT * 10);
     if (fd == -1) {
       tError("%s conn %p failed to create socket, reason:%s", transLabel(pTransInst), conn,
@@ -1267,6 +1268,9 @@ static void cliSendBatchCb(uv_write_t* req, int status) {
 static void cliHandleFastFail(SCliConn* pConn, int status) {
   SCliThrd* pThrd = pConn->hostThrd;
   STrans*   pTransInst = pThrd->pTransInst;
+
+  pThrd->newConnCount--;
+  pConn->status = ConnFail;
 
   if (status == -1) status = ENETUNREACH;
 
@@ -1639,6 +1643,7 @@ void cliHandleReq(SCliMsg* pMsg, SCliThrd* pThrd) {
       conn->timer = NULL;
 
       cliMayUpdateFqdnCache(pThrd->fqdn2ipCache, conn->dstAddr);
+
       cliHandleFastFail(conn, ret);
       return;
     }
