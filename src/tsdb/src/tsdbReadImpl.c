@@ -143,6 +143,13 @@ int tsdbLoadBlockIdx(SReadH *pReadh) {
     ptr = tsdbDecodeSBlockIdx(ptr, &blkIdx);
     ASSERT(ptr != NULL);
 
+    if (tsize > 0) {
+      SBlockIdx *preBlockIdx = (SBlockIdx *)taosArrayGet(pReadh->aBlkIdx, tsize - 1);
+      if (preBlockIdx->offset > blkIdx.offset) {
+        blkIdx.offset = preBlockIdx->offset + preBlockIdx->len;
+      }
+    }
+
     if (taosArrayPush(pReadh->aBlkIdx, (void *)(&blkIdx)) == NULL) {
       terrno = TSDB_CODE_TDB_OUT_OF_MEMORY;
       return -1;
@@ -317,7 +324,7 @@ int tsdbLoadBlockInfo(SReadH *pReadh, void **pTarget, uint32_t *extendedLen) {
   SBlockIdx *pBlkIdx = pReadh->pBlkIdx;
 
   if (tsdbSeekDFile(pHeadf, pBlkIdx->offset, SEEK_SET) < 0) {
-    tsdbError("vgId:%d failed to load SBlockInfo part while seek file %s since %s, offset:%u len:%u",
+    tsdbError("vgId:%d failed to load SBlockInfo part while seek file %s since %s, offset:%" PRId64 " len:%u",
               TSDB_READ_REPO_ID(pReadh), TSDB_FILE_FULL_NAME(pHeadf), tstrerror(terrno), pBlkIdx->offset, pBlkIdx->len);
     return -1;
   }
@@ -326,21 +333,21 @@ int tsdbLoadBlockInfo(SReadH *pReadh, void **pTarget, uint32_t *extendedLen) {
 
   int64_t nread = tsdbReadDFile(pHeadf, (void *)(pReadh->pBlkInfo), pBlkIdx->len);
   if (nread < 0) {
-    tsdbError("vgId:%d failed to load SBlockInfo part while read file %s since %s, offset:%u len :%u",
+    tsdbError("vgId:%d failed to load SBlockInfo part while read file %s since %s, offset:%" PRId64 " len :%u",
               TSDB_READ_REPO_ID(pReadh), TSDB_FILE_FULL_NAME(pHeadf), tstrerror(terrno), pBlkIdx->offset, pBlkIdx->len);
     return -1;
   }
 
   if (nread < pBlkIdx->len) {
     terrno = TSDB_CODE_TDB_FILE_CORRUPTED;
-    tsdbError("vgId:%d SBlockInfo part in file %s is corrupted, offset:%u expected bytes:%u read bytes:%" PRId64,
+    tsdbError("vgId:%d SBlockInfo part in file %s is corrupted, offset:%" PRId64 " expected bytes:%u read bytes:%" PRId64,
               TSDB_READ_REPO_ID(pReadh), TSDB_FILE_FULL_NAME(pHeadf), pBlkIdx->offset, pBlkIdx->len, nread);
     return -1;
   }
 
   if (!taosCheckChecksumWhole((uint8_t *)(pReadh->pBlkInfo), pBlkIdx->len)) {
     terrno = TSDB_CODE_TDB_FILE_CORRUPTED;
-    tsdbError("vgId:%d SBlockInfo part in file %s is corrupted since wrong checksum, offset:%u len :%u",
+    tsdbError("vgId:%d SBlockInfo part in file %s is corrupted since wrong checksum, offset:%" PRId64 " len :%u",
               TSDB_READ_REPO_ID(pReadh), TSDB_FILE_FULL_NAME(pHeadf), pBlkIdx->offset, pBlkIdx->len);
     return -1;
   }
@@ -525,7 +532,11 @@ int tsdbEncodeSBlockIdx(void **buf, SBlockIdx *pIdx) {
 
   tlen += taosEncodeVariantI32(buf, pIdx->tid);
   tlen += taosEncodeVariantU32(buf, pIdx->len);
+#if 0
   tlen += taosEncodeVariantU32(buf, pIdx->offset);
+#else
+  tlen += taosEncodeVariantU32(buf, (uint32_t)pIdx->offset);
+#endif
   tlen += taosEncodeFixedU8(buf, pIdx->hasLast);
   tlen += taosEncodeVariantU32(buf, pIdx->numOfBlocks);
   tlen += taosEncodeFixedU64(buf, pIdx->uid);
@@ -541,7 +552,13 @@ void *tsdbDecodeSBlockIdx(void *buf, SBlockIdx *pIdx) {
 
   if ((buf = taosDecodeVariantI32(buf, &(pIdx->tid))) == NULL) return NULL;
   if ((buf = taosDecodeVariantU32(buf, &(pIdx->len))) == NULL) return NULL;
+#if 0
   if ((buf = taosDecodeVariantU32(buf, &(pIdx->offset))) == NULL) return NULL;
+#else
+  uint32_t offset = 0;
+  if ((buf = taosDecodeVariantU32(buf, &offset)) == NULL) return NULL;
+  pIdx->offset = offset;
+#endif
   if ((buf = taosDecodeFixedU8(buf, &(hasLast))) == NULL) return NULL;
   pIdx->hasLast = hasLast;
   if ((buf = taosDecodeVariantU32(buf, &(numOfBlocks))) == NULL) return NULL;
