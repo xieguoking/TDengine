@@ -1114,7 +1114,12 @@ void *shellCancelHandler(void *arg) {
 
 #ifdef WEBSOCKET
     if (shell.args.restful || shell.args.cloud) {
-      shell.stop_query = true;
+      if (!shell.stop_query) {
+        shell.stop_query = true;
+        if (shell.ws_conn) {
+          ws_stop_query(shell.ws_conn);
+        }
+      }
     } else {
 #endif
       if (shell.conn) {
