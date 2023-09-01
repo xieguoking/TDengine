@@ -467,7 +467,10 @@ int32_t vnodeGetCtbIdListByFilter(SVnode *pVnode, int64_t suid, SArray *list, bo
 int32_t vnodeGetCtbIdList(void *pVnode, int64_t suid, SArray *list) {
   SVnode      *pVnodeObj = pVnode;
   SMCtbCursor *pCur = metaOpenCtbCursor(pVnodeObj, suid, 1);
-
+  if (!pCur) {
+    return TSDB_CODE_FAILED;
+  }
+  
   while (1) {
     tb_uid_t id = metaCtbCursorNext(pCur);
     if (id == 0) {

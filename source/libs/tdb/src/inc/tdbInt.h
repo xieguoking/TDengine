@@ -347,10 +347,22 @@ int  tdbPageUpdateCell(SPage *pPage, int idx, SCell *pCell, int szCell, TXN *pTx
 void tdbPageCopy(SPage *pFromPage, SPage *pToPage, int copyOvflCells);
 int  tdbPageCapacity(int pageSize, int amHdrSize);
 
+extern int64_t       nTdbPgCells;
 static inline SCell *tdbPageGetCell(SPage *pPage, int idx) {
   SCell *pCell;
   int    iOvfl;
   int    lidx;
+
+  u16 cellNum = pPage->pPageMethods->getCellNum(pPage);
+  u16 cellBody = pPage->pPageMethods->getCellBody(pPage);
+  u16 cellFree = pPage->pPageMethods->getCellFree(pPage);
+  int nOverflow = pPage->nOverflow;
+
+  if (((++nTdbPgCells) & 1048575) == 0) {
+    printf("%s:%d cellNum:%" PRIu16 ", cellBody:%" PRIu16 ", cellFree:%" PRIu16 ", nOverFlow:%d, nTdbPgCells:%" PRIi64
+           "\n",
+           __func__, __LINE__, cellNum, cellBody, cellFree, nOverflow, nTdbPgCells);
+  }
 
   ASSERT(idx >= 0 && idx < TDB_PAGE_TOTAL_CELLS(pPage));
 

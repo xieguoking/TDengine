@@ -240,6 +240,7 @@ int32_t metaRLock(SMeta *pMeta) {
   metaTrace("meta rlock %p", &pMeta->lock);
 
   ret = taosThreadRwlockRdlock(&pMeta->lock);
+  assert(ret == 0);
 
   return ret;
 }
@@ -250,7 +251,7 @@ int32_t metaWLock(SMeta *pMeta) {
   metaTrace("meta wlock %p", &pMeta->lock);
 
   ret = taosThreadRwlockWrlock(&pMeta->lock);
-
+  assert(ret == 0);
   return ret;
 }
 
@@ -260,7 +261,7 @@ int32_t metaULock(SMeta *pMeta) {
   metaTrace("meta ulock %p", &pMeta->lock);
 
   ret = taosThreadRwlockUnlock(&pMeta->lock);
-
+  assert(ret == 0);
   return ret;
 }
 

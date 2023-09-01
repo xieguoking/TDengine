@@ -175,7 +175,7 @@ int32_t taosRemoveFile(const char *path) { return remove(path); }
 
 int32_t taosRenameFile(const char *oldName, const char *newName) {
 #ifdef WINDOWS
-  bool code = MoveFileEx(oldName, newName, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED);
+  bool code = MoveFileEx(oldName, newName, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITE_THROUGH);
   if (!code) {
     printf("failed to rename file %s to %s, reason:%s\n", oldName, newName, strerror(errno));
   }
@@ -353,8 +353,8 @@ int32_t taosCloseFile(TdFilePtr *ppFile) {
   }
   if ((*ppFile)->fd >= 0) {
 #ifdef WINDOWS
-    HANDLE h = (HANDLE)_get_osfhandle((*ppFile)->fd);
-    !FlushFileBuffers(h);
+    // HANDLE h = (HANDLE)_get_osfhandle((*ppFile)->fd);
+    // !FlushFileBuffers(h);
 #else
     // warning: never fsync silently in base lib
     /*fsync((*ppFile)->fd);*/

@@ -235,6 +235,7 @@ int32_t tjsonGetUBigIntValue(const SJson* pJson, const char* pName, uint64_t* pV
   if (NULL == p) {
     return TSDB_CODE_SUCCESS;
   }
+// #ifdef WINDOWS_BASH
 #ifdef WINDOWS
   sscanf(p, "%" PRIu64, pVal);
 #else
