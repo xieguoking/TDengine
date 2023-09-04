@@ -30,6 +30,30 @@
 
 #include "tlog.h"
 
+#define DECODESQL()                                             \
+  do {                                                          \
+    if(tDecodeIsEnd(&decoder)){                                 \
+      if(tDecodeI32(&decoder, &pReq->sqlLen) < 0) return -1;    \
+      if(pReq->sqlLen > 0){                                     \
+        pReq->sql = taosMemoryCalloc(1, pReq->sqlLen + 1);      \
+        if (pReq->sql == NULL) return -1;                       \
+        if (tDecodeCStrTo(&decoder, pReq->sql) < 0) return -1;  \
+      }                                                         \
+    }                                                           \
+  } while (0)
+
+#define ENCODESQL()                                              \
+  do {                                                           \
+    if (tEncodeI32(&encoder, pReq->sqlLen) < 0) return -1;       \
+    if (tEncodeCStr(&encoder, pReq->sql) < 0) return -1;         \
+  } while (0)
+
+#define FREESQL()                     \
+  do {                                \
+    taosMemoryFree(pReq->sql);        \
+    pReq->sql = NULL;                 \
+  } while (0)
+
 static int32_t tDecodeSVAlterTbReqCommon(SDecoder *pDecoder, SVAlterTbReq *pReq);
 static int32_t tDecodeSBatchDeleteReqCommon(SDecoder *pDecoder, SBatchDeleteReq *pReq);
 
@@ -2397,6 +2421,7 @@ int32_t tSerializeSCreateDbReq(void *buf, int32_t bufLen, SCreateDbReq *pReq) {
     if (tEncodeI8(&encoder, pRetension->keepUnit) < 0) return -1;
   }
   if (tEncodeI32(&encoder, pReq->tsdbPageSize) < 0) return -1;
+  ENCODESQL();
   tEndEncode(&encoder);
 
   int32_t tlen = encoder.pos;
@@ -2459,6 +2484,8 @@ int32_t tDeserializeSCreateDbReq(void *buf, int32_t bufLen, SCreateDbReq *pReq) 
 
   if (tDecodeI32(&decoder, &pReq->tsdbPageSize) < 0) return -1;
 
+  DECODESQL();
+
   tEndDecode(&decoder);
 
   tDecoderClear(&decoder);
@@ -2468,6 +2495,7 @@ int32_t tDeserializeSCreateDbReq(void *buf, int32_t bufLen, SCreateDbReq *pReq) 
 void tFreeSCreateDbReq(SCreateDbReq *pReq) {
   taosArrayDestroy(pReq->pRetensions);
   pReq->pRetensions = NULL;
+  FREESQL();
 }
 
 int32_t tSerializeSAlterDbReq(void *buf, int32_t bufLen, SAlterDbReq *pReq) {
@@ -2496,6 +2524,7 @@ int32_t tSerializeSAlterDbReq(void *buf, int32_t bufLen, SAlterDbReq *pReq) {
   // 2nd modification
   if (tEncodeI32(&encoder, pReq->walRetentionPeriod) < 0) return -1;
   if (tEncodeI32(&encoder, pReq->walRetentionSize) < 0) return -1;
+  ENCODESQL();
   tEndEncode(&encoder);
 
   int32_t tlen = encoder.pos;
@@ -2539,10 +2568,15 @@ int32_t tDeserializeSAlterDbReq(void *buf, int32_t bufLen, SAlterDbReq *pReq) {
     pReq->walRetentionPeriod = -1;
     pReq->walRetentionSize = -1;
   }
+  DECODESQL();
   tEndDecode(&decoder);
 
   tDecoderClear(&decoder);
   return 0;
+}
+
+void tFreeSAlterDbReq(SAlterDbReq *pReq) {
+  FREESQL();
 }
 
 int32_t tSerializeSDropDbReq(void *buf, int32_t bufLen, SDropDbReq *pReq) {
