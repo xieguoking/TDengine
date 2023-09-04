@@ -28,7 +28,7 @@ static void    shellRecordCommandToHistory(char *command);
 static int32_t shellRunCommand(char *command, bool recordHistory);
 static void    shellRunSingleCommandImp(char *command);
 static char   *shellFormatTimestamp(char *buf, int64_t val, int32_t precision);
-static int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres);
+static int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres,const char *sql);
 static void    shellPrintNChar(const char *str, int32_t length, int32_t width);
 static void    shellPrintGeometry(const unsigned char *str, int32_t length, int32_t width);
 static int32_t shellVerticalPrintResult(TAOS_RES *tres, const char *sql);
