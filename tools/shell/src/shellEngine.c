@@ -443,12 +443,9 @@ void findTableName(const char* sql, char* tbName) {
         p = p1 + 1;
       }
       int i = 0;
-      while(*p != 0) {
+      while(*p != 0 && *p != ' ') {
         tbName[i] = *p;
         i++;
-        if(*p == ' ' ){
-          break;
-        }
         p++;
       }
     }
