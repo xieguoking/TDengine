@@ -45,6 +45,7 @@
 #define SHELL_PKT_LEN  "Packet length used for net test, default is 1024 bytes."
 #define SHELL_PKT_NUM  "Packet numbers used for net test, default is 100."
 #define SHELL_VERSION  "Print program version."
+#define SHELL_HEADSTR  "export to csv header pre-string"
 
 #ifdef WEBSOCKET
 #define SHELL_DSN     "Use dsn to connect to the cloud server or to a remote server which provides WebSocket connection."
@@ -127,6 +128,7 @@ static struct argp_option shellOptions[] = {
     {"timeout", 'T', "SECONDS", 0, SHELL_TIMEOUT},
 #endif
     {"pktnum", 'N', "PKTNUM", 0, SHELL_PKT_NUM},
+    {"headstr", 'Q', "HEADSTR", 0, SHELL_HEADSTR},
     {0},
 };
 
@@ -233,6 +235,10 @@ static int32_t shellParseSingleOpt(int32_t key, char *arg) {
     case 1:
       pArgs->abort = 1;
       break;
+    case 'Q':
+      pArgs->headstr = arg;
+      printf(" input headstr =%s \n", pArgs->headstr);
+      break;  
     default:
       return ARGP_ERR_UNKNOWN;
   }

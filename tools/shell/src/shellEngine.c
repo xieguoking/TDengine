@@ -455,7 +455,11 @@ int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres) {
     if (col > 0) {
       taosFprintfFile(pFile, ",");
     }
-    taosFprintfFile(pFile, "%s", fields[col].name);
+    if(shell.args.headst){
+      taosFprintfFile(pFile, "%s%s", shell.args.headst,[col].name);
+    } else {
+      taosFprintfFile(pFile, "%s", fields[col].name);
+    }
   }
   taosFprintfFile(pFile, "\r\n");
 

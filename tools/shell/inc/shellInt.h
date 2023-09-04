@@ -77,12 +77,14 @@ typedef struct {
   int32_t     pktNum;
   int32_t     displayWidth;
   int32_t     abort;
+  const char* headstr;
 #ifdef WEBSOCKET
   bool        restful;
   bool        cloud;
   char*       dsn;
   int32_t     timeout;
 #endif
+
 } SShellArgs;
 
 typedef struct {
