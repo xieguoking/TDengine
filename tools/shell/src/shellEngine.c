@@ -433,12 +433,12 @@ void shellDumpFieldToFile(TdFilePtr pFile, const char *val, TAOS_FIELD *field, i
 void findTableName(const char* sql, char* tbName) {
   const char * p = sql;
    while (*p != 0) {
-    if(strncasecmp(p, "from") == 0) {
+    if(strcasecmp(p, "from") == 0 || strcasecmp(p, "FROM") == 0) {
       p += 5;
       int i = 0;
       while(*p != 0) {
         tbName[i] = *p;
-        i++
+        i++;
         if(*p == ' ' ){
           break;
         }
