@@ -430,7 +430,25 @@ void shellDumpFieldToFile(TdFilePtr pFile, const char *val, TAOS_FIELD *field, i
   }
 }
 
-int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres) {
+void findTableName(const char* sql, char* tbName) {
+  const char * p = sql;
+   while (*p != 0) {
+    if(strncasecmp(p, "from") == 0) {
+      p += 5;
+      int i = 0;
+      while(*p != 0) {
+        tbName[i] = *p;
+        i++
+        if(*p == ' ' ){
+          break;
+        }
+      }
+    }
+    p ++;
+  }
+}
+
+int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres, const char *sql) {
   char fullname[PATH_MAX] = {0};
   if (taosExpandDir(fname, fullname, PATH_MAX) != 0) {
     tstrncpy(fullname, fname, PATH_MAX);
@@ -447,6 +465,10 @@ int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres) {
     return -1;
   }
 
+  char tbName[256];
+  memset(tbName, 0, 256);
+  findTableName(sql, tbName);
+
   TAOS_FIELD *fields = taos_fetch_fields(tres);
   int32_t     num_fields = taos_num_fields(tres);
   int32_t     precision = taos_result_precision(tres);
@@ -456,7 +478,7 @@ int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres) {
       taosFprintfFile(pFile, ",");
     }
     if(shell.args.headstr){
-      taosFprintfFile(pFile, "%s%s", shell.args.headstr,fields[col].name);
+      taosFprintfFile(pFile, "%s%s.%s", shell.args.headstr, tbName,fields[col].name);
     } else {
       taosFprintfFile(pFile, "%s", fields[col].name);
     }
@@ -922,7 +944,7 @@ int32_t shellHorizontalPrintResult(TAOS_RES *tres, const char *sql) {
 int32_t shellDumpResult(TAOS_RES *tres, char *fname, int32_t *error_no, bool vertical, const char *sql) {
   int32_t numOfRows = 0;
   if (fname != NULL) {
-    numOfRows = shellDumpResultToFile(fname, tres);
+    numOfRows = shellDumpResultToFile(fname, tres, sql);
   } else if (vertical) {
     numOfRows = shellVerticalPrintResult(tres, sql);
   } else {
