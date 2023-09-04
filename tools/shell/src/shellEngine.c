@@ -476,7 +476,6 @@ int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres, const char *sql
 
   char tbName[256];
   memset(tbName, 0, 256);
-  findTableName(sql, tbName);
 
   TAOS_FIELD *fields = taos_fetch_fields(tres);
   int32_t     num_fields = taos_num_fields(tres);
@@ -485,13 +484,14 @@ int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres, const char *sql
   for (int32_t col = 0; col < num_fields; col++) {
     if (col == 0) {
       if(shell.args.headstr) {
+        findTableName(sql, tbName);
         taosFprintfFile(pFile, "Time");
         continue;
       }
     } else {
       taosFprintfFile(pFile, ",");
     }
-    
+
     if(shell.args.headstr){
       taosFprintfFile(pFile, "%s%s.%s", shell.args.headstr, tbName,fields[col].name);
     } else {
