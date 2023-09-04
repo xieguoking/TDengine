@@ -423,8 +423,11 @@ void shellDumpFieldToFile(TdFilePtr pFile, const char *val, TAOS_FIELD *field, i
     }
     case TSDB_DATA_TYPE_TIMESTAMP:
       shellFormatTimestamp(buf, *(int64_t *)val, precision);
-      //taosFprintfFile(pFile, "%s%s%s", quotationStr, buf, quotationStr);
-      taosFprintfFile(pFile, "%s", buf);
+      if(shell.args.headstr) {
+        taosFprintfFile(pFile, "%s", buf);
+      } else {
+        taosFprintfFile(pFile, "%s%s%s", quotationStr, buf, quotationStr);
+      }
       break;
     default:
       break;
@@ -481,11 +484,14 @@ int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres, const char *sql
 
   for (int32_t col = 0; col < num_fields; col++) {
     if (col == 0) {
-      taosFprintfFile(pFile, "Time");
-      continue;
+      if(shell.args.headstr) {
+        taosFprintfFile(pFile, "Time");
+        continue;
+      }
     } else {
       taosFprintfFile(pFile, ",");
     }
+    
     if(shell.args.headstr){
       taosFprintfFile(pFile, "%s%s.%s", shell.args.headstr, tbName,fields[col].name);
     } else {
