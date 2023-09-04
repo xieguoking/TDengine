@@ -449,6 +449,7 @@ void findTableName(const char* sql, char* tbName) {
         if(*p == ' ' ){
           break;
         }
+        p++;
       }
     }
     p ++;
