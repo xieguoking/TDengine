@@ -1294,13 +1294,10 @@ static int32_t mndProcessDropDbReq(SRpcMsg *pReq) {
     code = TSDB_CODE_ACTION_IN_PROGRESS;
   }
 
-  char detail[1000] = {0};
-  sprintf(detail, "ignoreNotExists:%d", dropReq.ignoreNotExists);
-
   SName name = {0};
   tNameFromString(&name, dropReq.db, T_NAME_ACCT | T_NAME_DB);
 
-  auditRecord(pReq, pMnode->clusterId, "dropDB", name.dbname, "", detail);
+  auditRecord(pReq, pMnode->clusterId, "dropDB", name.dbname, "", dropReq.sql);
 
 _OVER:
   if (code != TSDB_CODE_SUCCESS && code != TSDB_CODE_ACTION_IN_PROGRESS) {
@@ -1308,6 +1305,7 @@ _OVER:
   }
 
   mndReleaseDb(pMnode, pDb);
+  tFreeSDropDbReq(&dropReq);
   return code;
 }
 
