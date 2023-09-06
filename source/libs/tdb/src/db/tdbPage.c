@@ -17,11 +17,8 @@
 
 extern SPageMethods pageMethods;
 extern SPageMethods pageLargeMethods;
-<<<<<<< HEAD
 int64_t             nCntXXX = 0;
-=======
 
->>>>>>> 3.0
 #define TDB_PAGE_HDR_SIZE(pPage)                        ((pPage)->pPageMethods->szPageHdr)
 #define TDB_PAGE_FREE_CELL_SIZE(pPage)                  ((pPage)->pPageMethods->szFreeCell)
 #define TDB_PAGE_NCELLS(pPage)                          (*(pPage)->pPageMethods->getCellNum)(pPage)
