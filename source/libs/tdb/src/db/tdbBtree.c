@@ -120,7 +120,7 @@ int tdbBtreeOpen(int keyLen, int valLen, SPager *pPager, char const *tbname, SPg
     SBtreeInitPageArg zArg;
     zArg.flags = 0x1 | 0x2;  // root leaf node;
     zArg.pBt = pBt;
-    ret = tdbPagerFetchPage(pPager, &pgno, &pPage, tdbBtreeInitPage, &zArg, txn);
+    ret = tdbPagerFetchPage(pPager, &pgno, &pPage, tdbBtreeInitPage, &zArg, txn, 0);
     if (ret < 0) {
       tdbAbort(pEnv, txn);
       tdbOsFree(pBt);
@@ -486,7 +486,7 @@ static int tdbBtreeBalanceDeeper(SBTree *pBt, SPage *pRoot, SPage **ppChild, TXN
   pgnoChild = 0;
   zArg.flags = TDB_FLAG_REMOVE(flags, TDB_BTREE_ROOT);
   zArg.pBt = pBt;
-  ret = tdbPagerFetchPage(pPager, &pgnoChild, &pChild, tdbBtreeInitPage, &zArg, pTxn);
+  ret = tdbPagerFetchPage(pPager, &pgnoChild, &pChild, tdbBtreeInitPage, &zArg, pTxn, 0);
   if (ret < 0) {
     return -1;
   }
@@ -565,7 +565,7 @@ static int tdbBtreeBalanceNonRoot(SBTree *pBt, SPage *pParent, int idx, TXN *pTx
       }
 
       ret = tdbPagerFetchPage(pBt->pPager, &pgno, pOlds + i, tdbBtreeInitPage,
-                              &((SBtreeInitPageArg){.pBt = pBt, .flags = 0}), pTxn);
+                              &((SBtreeInitPageArg){.pBt = pBt, .flags = 0}), pTxn, 0);
       if (ret < 0) {
         tdbError("tdb/btree-balance: fetch page failed with ret: %d.", ret);
         return -1;
@@ -753,7 +753,7 @@ static int tdbBtreeBalanceNonRoot(SBTree *pBt, SPage *pParent, int idx, TXN *pTx
         pgno = 0;
         iarg.pBt = pBt;
         iarg.flags = flags;
-        ret = tdbPagerFetchPage(pBt->pPager, &pgno, pNews + iNew, tdbBtreeInitPage, &iarg, pTxn);
+        ret = tdbPagerFetchPage(pBt->pPager, &pgno, pNews + iNew, tdbBtreeInitPage, &iarg, pTxn, 0);
         if (ret < 0) {
           tdbError("tdb/btree-balance: fetch page failed with ret: %d.", ret);
           return -1;
@@ -989,7 +989,7 @@ static int tdbFetchOvflPage(SPgno *pPgno, SPage **ppOfp, TXN *pTxn, SBTree *pBt)
   SBtreeInitPageArg iArg;
   iArg.pBt = pBt;
   iArg.flags = TDB_FLAG_ADD(0, TDB_BTREE_OVFL);
-  ret = tdbPagerFetchPage(pBt->pPager, pPgno, ppOfp, tdbBtreeInitPage, &iArg, pTxn);
+  ret = tdbPagerFetchPage(pBt->pPager, pPgno, ppOfp, tdbBtreeInitPage, &iArg, pTxn, 0);
   if (ret < 0) {
     return -1;
   }
@@ -1012,7 +1012,7 @@ static int tdbLoadOvflPage(SPgno *pPgno, SPage **ppOfp, TXN *pTxn, SBTree *pBt) 
   SBtreeInitPageArg iArg;
   iArg.pBt = pBt;
   iArg.flags = TDB_FLAG_ADD(0, TDB_BTREE_OVFL);
-  ret = tdbPagerFetchPage(pBt->pPager, pPgno, ppOfp, tdbBtreeInitPage, &iArg, pTxn);
+  ret = tdbPagerFetchPage(pBt->pPager, pPgno, ppOfp, tdbBtreeInitPage, &iArg, pTxn, 1);
   if (ret < 0) {
     return -1;
   }
@@ -1687,7 +1687,7 @@ int tdbBtcMoveToFirst(SBTC *pBtc) {
   if (pBtc->iPage < 0) {
     // move a clean cursor
     ret = tdbPagerFetchPage(pPager, &pBt->root, &(pBtc->pPage), tdbBtreeInitPage,
-                            &((SBtreeInitPageArg){.pBt = pBt, .flags = TDB_BTREE_ROOT | TDB_BTREE_LEAF}), pBtc->pTxn);
+                            &((SBtreeInitPageArg){.pBt = pBt, .flags = TDB_BTREE_ROOT | TDB_BTREE_LEAF}), pBtc->pTxn, 0);
     if (ret < 0) {
       tdbError("tdb/btc-move-tofirst: fetch page failed with ret: %d.", ret);
       return -1;
@@ -1769,7 +1769,7 @@ int tdbBtcMoveToLast(SBTC *pBtc) {
   if (pBtc->iPage < 0) {
     // move a clean cursor
     ret = tdbPagerFetchPage(pPager, &pBt->root, &(pBtc->pPage), tdbBtreeInitPage,
-                            &((SBtreeInitPageArg){.pBt = pBt, .flags = TDB_BTREE_ROOT | TDB_BTREE_LEAF}), pBtc->pTxn);
+                            &((SBtreeInitPageArg){.pBt = pBt, .flags = TDB_BTREE_ROOT | TDB_BTREE_LEAF}), pBtc->pTxn, 0);
     if (ret < 0) {
       tdbError("tdb/btc-move-tolast: fetch page failed with ret: %d.", ret);
       return -1;
@@ -2077,7 +2077,7 @@ static int tdbBtcMoveDownward(SBTC *pBtc) {
   pBtc->idx = -1;
 
   ret = tdbPagerFetchPage(pBtc->pBt->pPager, &pgno, &pBtc->pPage, tdbBtreeInitPage,
-                          &((SBtreeInitPageArg){.pBt = pBtc->pBt, .flags = 0}), pBtc->pTxn);
+                          &((SBtreeInitPageArg){.pBt = pBtc->pBt, .flags = 0}), pBtc->pTxn, 0);
   if (ret < 0) {
     tdbError("tdb/btc-move-downward: fetch page failed with ret: %d.", ret);
     return -1;
@@ -2340,7 +2340,7 @@ int tdbBtcMoveTo(SBTC *pBtc, const void *pKey, int kLen, int *pCRst) {
   if (pBtc->iPage < 0) {
     // move from a clear cursor
     ret = tdbPagerFetchPage(pPager, &pBt->root, &(pBtc->pPage), tdbBtreeInitPage,
-                            &((SBtreeInitPageArg){.pBt = pBt, .flags = TDB_BTREE_ROOT | TDB_BTREE_LEAF}), pBtc->pTxn);
+                            &((SBtreeInitPageArg){.pBt = pBt, .flags = TDB_BTREE_ROOT | TDB_BTREE_LEAF}), pBtc->pTxn, 0);
     if (ret < 0) {
       // TODO
       tdbError("tdb/btc-move-to: fetch page failed with ret: %d.", ret);

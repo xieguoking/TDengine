@@ -651,7 +651,7 @@ int tdbPagerFlushPage(SPager *pPager, TXN *pTxn) {
 static int tdbPagerAllocPage(SPager *pPager, SPgno *ppgno, TXN *pTxn);
 
 int tdbPagerFetchPage(SPager *pPager, SPgno *ppgno, SPage **ppPage, int (*initPage)(SPage *, void *, int), void *arg,
-                      TXN *pTxn) {
+                      TXN *pTxn, int flag) {
   SPage *pPage;
   SPgid  pgid;
   int    ret;
@@ -703,6 +703,10 @@ int tdbPagerFetchPage(SPager *pPager, SPgno *ppgno, SPage **ppPage, int (*initPa
   if (pPage->pPager != pPager) {
     tdbError("tdb/pager: %p/%p, fetch page failed.", pPager, pPage->pPager);
     return -1;
+  }
+
+  if(flag == 1) {
+    ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
   }
 
   *ppgno = pgno;
