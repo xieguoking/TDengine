@@ -17,9 +17,7 @@
 
 extern SPageMethods pageMethods;
 extern SPageMethods pageLargeMethods;
-
-int64_t              nTdbPgCells = 0;
-
+int64_t             nCntXXX = 0;
 #define TDB_PAGE_HDR_SIZE(pPage)                        ((pPage)->pPageMethods->szPageHdr)
 #define TDB_PAGE_FREE_CELL_SIZE(pPage)                  ((pPage)->pPageMethods->szFreeCell)
 #define TDB_PAGE_NCELLS(pPage)                          (*(pPage)->pPageMethods->getCellNum)(pPage)
@@ -723,3 +721,53 @@ SPageMethods pageLargeMethods = {
     getLPageFreeCellInfo,  // getFreeCellInfo
     setLPageFreeCellInfo   // setFreeCellInfo
 };
+
+
+SCell *tdbPageGetCell(SPage *pPage, int idx) {
+  SCell *pCell;
+  int    iOvfl;
+  int    lidx;
+
+  u16 cellNum = pPage->pPageMethods->getCellNum(pPage);
+  u16 cellBody = pPage->pPageMethods->getCellBody(pPage);
+  u16 cellFree = pPage->pPageMethods->getCellFree(pPage);
+  int nOverflow = pPage->nOverflow;
+
+  TDB *pEnv = NULL;
+
+  if (pPage->pPager != NULL) {
+    pEnv = pPage->pPager->pEnv;
+  }
+
+  if (pEnv) {
+    if (((++pEnv->nCnt) & 1048575) == 0) {
+      printf("%s:%d DB:%s cellNum:%" PRIu16 ", cellBody:%" PRIu16 ", cellFree:%" PRIu16 ", nOverFlow:%d, nCnt:%" PRIi64
+             "\n",
+             __func__, __LINE__, pEnv->dbName, cellNum, cellBody, cellFree, nOverflow, pEnv->nCnt);
+    }
+  } else {
+    if (((++nCntXXX) & 1048575) == 0) {
+      printf("%s:%d DB:%s cellNum:%" PRIu16 ", cellBody:%" PRIu16 ", cellFree:%" PRIu16 ", nOverFlow:%d, nCnt:%" PRIi64
+             "\n",
+             __func__, __LINE__, "Null DB", cellNum, cellBody, cellFree, nOverflow, nCntXXX);
+    }
+  }
+
+  ASSERT(idx >= 0 && idx < TDB_PAGE_TOTAL_CELLS(pPage));
+
+  iOvfl = 0;
+  for (; iOvfl < pPage->nOverflow; iOvfl++) {
+    if (pPage->aiOvfl[iOvfl] == idx) {
+      pCell = pPage->apOvfl[iOvfl];
+      return pCell;
+    } else if (pPage->aiOvfl[iOvfl] > idx) {
+      break;
+    }
+  }
+
+  lidx = idx - iOvfl;
+  ASSERT(lidx >= 0 && lidx < pPage->pPageMethods->getCellNum(pPage));
+  pCell = pPage->pData + pPage->pPageMethods->getCellOffset(pPage, lidx);
+
+  return pCell;
+}

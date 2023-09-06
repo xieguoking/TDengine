@@ -416,7 +416,7 @@ int32_t taosThreadRwlockWrlock(TdThreadRwlock *rwlock) {
   AcquireSRWLockExclusive(&rwlock->lock);
   atomic_store_8(&rwlock->excl, 1);
   int32_t nShare = atomic_load_32(&rwlock->nshare);
-  assert(nShare == 0);
+  ASSERTS(nShare == 0, "nShare:%d != 0", nShare);
   return 0;
 #else
   return pthread_rwlock_wrlock(rwlock);

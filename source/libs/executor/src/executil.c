@@ -1967,11 +1967,18 @@ int32_t tableListAddTableInfo(STableListInfo* pTableList, uint64_t uid, uint64_t
     pTableList->map = taosHashInit(32, taosGetDefaultHashFunction(TSDB_DATA_TYPE_BINARY), false, HASH_ENTRY_LOCK);
   }
 
+  ASSERTS(pTableList->map != NULL, "%s:%d pTableList->map is %p", __func__, __LINE__, pTableList->map);
+
   STableKeyInfo keyInfo = {.uid = uid, .groupId = gid};
   taosArrayPush(pTableList->pTableList, &keyInfo);
 
   int32_t slot = (int32_t)taosArrayGetSize(pTableList->pTableList) - 1;
   taosHashPut(pTableList->map, &uid, sizeof(uid), &slot, sizeof(slot));
+
+  size_t tbSize = taosArrayGetSize(pTableList->pTableList);
+  size_t hashSize = taosHashGetSize(pTableList->map);
+
+  ASSERTS(tbSize == hashSize, "tbSize:%" PRIi64 " != hashSize:%" PRIi64, tbSize, hashSize);
 
   qDebug("uid:%" PRIu64 ", groupId:%" PRIu64 " added into table list, slot:%d, total:%d", uid, gid, slot, slot + 1);
   return TSDB_CODE_SUCCESS;
@@ -2146,10 +2153,13 @@ int32_t buildGroupIdMapForAllTables(STableListInfo* pTableListInfo, SReadHandle*
 
   // add all table entry in the hash map
   size_t size = taosArrayGetSize(pTableListInfo->pTableList);
+  ASSERTS(size == numOfTables, "%s:%d size:%" PRIu64 " != numOfTables:%" PRIu64, __func__, __LINE__, size, numOfTables);
   for (int32_t i = 0; i < size; ++i) {
     STableKeyInfo* p = taosArrayGet(pTableListInfo->pTableList, i);
     taosHashPut(pTableListInfo->map, &p->uid, sizeof(uint64_t), &i, sizeof(int32_t));
   }
+  size_t hashSize = taosHashGetSize(pTableListInfo->map);
+  ASSERTS(size == hashSize, "%s:%d size:%" PRIu64 " != hashSize:%" PRIu64, __func__, __LINE__, size, hashSize);
 
   return code;
 }
