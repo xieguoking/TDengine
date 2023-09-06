@@ -2154,12 +2154,14 @@ int32_t buildGroupIdMapForAllTables(STableListInfo* pTableListInfo, SReadHandle*
   // add all table entry in the hash map
   size_t size = taosArrayGetSize(pTableListInfo->pTableList);
   ASSERTS(size == numOfTables, "%s:%d size:%" PRIu64 " != numOfTables:%" PRIu64, __func__, __LINE__, size, numOfTables);
+
   for (int32_t i = 0; i < size; ++i) {
     STableKeyInfo* p = taosArrayGet(pTableListInfo->pTableList, i);
     taosHashPut(pTableListInfo->map, &p->uid, sizeof(uint64_t), &i, sizeof(int32_t));
   }
   size_t hashSize = taosHashGetSize(pTableListInfo->map);
   ASSERTS(size == hashSize, "%s:%d size:%" PRIu64 " != hashSize:%" PRIu64, __func__, __LINE__, size, hashSize);
+
 
   return code;
 }

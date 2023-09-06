@@ -196,7 +196,7 @@ static int32_t dmParseArgs(int32_t argc, char const *argv[]) {
       global.memDbg = true;
     } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "--usage") == 0 ||
                strcmp(argv[i], "-?") == 0) {
-      global.printHelp = true;      
+      global.printHelp = true;
     } else {
     }
   }
