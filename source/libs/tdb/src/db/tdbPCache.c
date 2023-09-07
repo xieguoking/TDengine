@@ -37,7 +37,7 @@ static inline uint32_t tdbPCachePageHash(const SPgid *pPgid) {
 }
 
 static int    tdbPCacheOpenImpl(SPCache *pCache);
-static SPage *tdbPCacheFetchImpl(SPCache *pCache, const SPgid *pPgid, TXN *pTxn);
+static SPage *tdbPCacheFetchImpl(SPCache *pCache, const SPgid *pPgid, TXN *pTxn, int flag);
 static void   tdbPCachePinPage(SPCache *pCache, SPage *pPage);
 static void   tdbPCacheRemovePageFromHash(SPCache *pCache, SPage *pPage);
 static void   tdbPCacheAddPageToHash(SPCache *pCache, SPage *pPage);
@@ -167,13 +167,13 @@ int tdbPCacheAlter(SPCache *pCache, int32_t nPage) {
   return ret;
 }
 
-SPage *tdbPCacheFetch(SPCache *pCache, const SPgid *pPgid, TXN *pTxn) {
+SPage *tdbPCacheFetch(SPCache *pCache, const SPgid *pPgid, TXN *pTxn, int flag) {
   SPage *pPage;
   i32    nRef = 0;
 
   tdbPCacheLock(pCache);
 
-  pPage = tdbPCacheFetchImpl(pCache, pPgid, pTxn);
+  pPage = tdbPCacheFetchImpl(pCache, pPgid, pTxn, flag);
   if (pPage) {
     nRef = tdbRefPage(pPage);
   }
@@ -270,7 +270,7 @@ void tdbPCacheRelease(SPCache *pCache, SPage *pPage, TXN *pTxn) {
 
 int tdbPCacheGetPageSize(SPCache *pCache) { return pCache->szPage; }
 
-static SPage *tdbPCacheFetchImpl(SPCache *pCache, const SPgid *pPgid, TXN *pTxn) {
+static SPage *tdbPCacheFetchImpl(SPCache *pCache, const SPgid *pPgid, TXN *pTxn, int flag) {
   int    ret = 0;
   SPage *pPage = NULL;
   SPage *pPageH = NULL;
@@ -289,8 +289,14 @@ static SPage *tdbPCacheFetchImpl(SPCache *pCache, const SPgid *pPgid, TXN *pTxn)
 
   if (pPage) {
     if (pPage->isLocal || TDB_TXN_IS_WRITE(pTxn)) {
+      if (flag == 1) {
+        ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
+      }
       tdbPCachePinPage(pCache, pPage);
       return pPage;
+    }
+    if (flag == 1) {
+      ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
     }
   }
 
@@ -305,6 +311,12 @@ static SPage *tdbPCacheFetchImpl(SPCache *pCache, const SPgid *pPgid, TXN *pTxn)
     pCache->pFree = pPage->pFreeNext;
     pCache->nFree--;
     pPage->pLruNext = NULL;
+  }
+
+  if (pPage) {
+    if (flag == 1) {
+      ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
+    }
   }
 
   // 3. Try to Recycle a page
@@ -364,6 +376,11 @@ static SPage *tdbPCacheFetchImpl(SPCache *pCache, const SPgid *pPgid, TXN *pTxn)
 
       if (pPage->isLocal || TDB_TXN_IS_WRITE(pTxn)) {
         tdbPCacheAddPageToHash(pCache, pPage);
+      }
+    }
+    if (pPage) {
+      if (flag == 1) {
+        ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
       }
     }
   }

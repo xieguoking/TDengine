@@ -679,7 +679,7 @@ int tdbPagerFetchPage(SPager *pPager, SPgno *ppgno, SPage **ppPage, int (*initPa
   // fetch a page container
   memcpy(&pgid, pPager->fid, TDB_FILE_ID_LEN);
   pgid.pgno = pgno;
-  while ((pPage = tdbPCacheFetch(pPager->pCache, &pgid, pTxn)) == NULL) {
+  while ((pPage = tdbPCacheFetch(pPager->pCache, &pgid, pTxn, flag)) == NULL) {
     tdbPagerFlushPage(pPager, pTxn);
   }
 
