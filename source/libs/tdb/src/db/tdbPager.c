@@ -682,6 +682,22 @@ int tdbPagerFetchPage(SPager *pPager, SPgno *ppgno, SPage **ppPage, int (*initPa
   while ((pPage = tdbPCacheFetch(pPager->pCache, &pgid, pTxn, flag)) == NULL) {
     tdbPagerFlushPage(pPager, pTxn);
   }
+  SPage *pPageX = pPage;
+  u16    cellNumX = 0;
+  u16    cellBodyX = 0;
+  u16    cellFreeX = 0;
+  int    nOverflowX = 0;
+  int    entry = 0;
+  if (flag == 1 && TDB_PAGE_INITIALIZED(pPageX)) {
+    entry = 1;
+    cellNumX = pPageX->pPageMethods->getCellNum(pPageX);
+    cellBodyX = pPageX->pPageMethods->getCellBody(pPageX);
+    cellFreeX = pPageX->pPageMethods->getCellFree(pPageX);
+    nOverflowX = pPageX->nOverflow;
+    ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPageX));
+    printf("%s:%d cellNum:%" PRId16 ", cellBody:%" PRId16 ", cellFree:%" PRId16 ", nOverFlow:%d\n", __func__, __LINE__,
+           cellNumX, cellBodyX, cellFreeX, nOverflowX);
+  }
 
   tdbTrace("tdbttl fetch pager:%p", pPage->pPager);
   // init page if need
@@ -705,8 +721,16 @@ int tdbPagerFetchPage(SPager *pPager, SPgno *ppgno, SPage **ppPage, int (*initPa
     return -1;
   }
 
-  if(flag == 1) {
-    ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
+  if (flag == 1) {
+    u16 cellNum = pPage->pPageMethods->getCellNum(pPage);
+    u16 cellBody = pPage->pPageMethods->getCellBody(pPage);
+    u16 cellFree = pPage->pPageMethods->getCellFree(pPage);
+    int nOverflow = pPage->nOverflow;
+    if (flag == 1) {
+      ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
+      printf("%s:%d cellNum:%" PRId16 ", cellBody:%" PRId16 ", cellFree:%" PRId16 ", nOverFlow:%d\n", __func__,
+             __LINE__, cellNum, cellBody, cellFree, nOverflow);
+    }
   }
 
   *ppgno = pgno;

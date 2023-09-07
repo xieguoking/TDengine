@@ -184,6 +184,9 @@ SPage *tdbPCacheFetch(SPCache *pCache, const SPgid *pPgid, TXN *pTxn, int flag) 
   //        TDB_PAGE_PGNO(pPage), pPage, nRef);
 
   if (pPage) {
+    if (flag == 1) {
+      ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
+    }
     tdbTrace("pcache/fetch page %p/%d/%d/%d", pPage, TDB_PAGE_PGNO(pPage), pPage->id, nRef);
   } else {
     tdbTrace("pcache/fetch page %p", pPage);
@@ -290,7 +293,14 @@ static SPage *tdbPCacheFetchImpl(SPCache *pCache, const SPgid *pPgid, TXN *pTxn,
   if (pPage) {
     if (pPage->isLocal || TDB_TXN_IS_WRITE(pTxn)) {
       if (flag == 1) {
+        u16 cellNum = pPage->pPageMethods->getCellNum(pPage);
+        u16 cellBody = pPage->pPageMethods->getCellBody(pPage);
+        u16 cellFree = pPage->pPageMethods->getCellFree(pPage);
+        int nOverflow = pPage->nOverflow;
+
         ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
+        printf("%s:%d cellNum:%" PRId16 ", cellBody:%" PRId16 ", cellFree:%" PRId16 ", nOverFlow:%d\n", __func__,
+               __LINE__, cellNum, cellBody, cellFree, nOverflow);
       }
       tdbPCachePinPage(pCache, pPage);
       return pPage;

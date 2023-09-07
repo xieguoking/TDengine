@@ -21,6 +21,7 @@
 #include "tdatablock.h"
 #include "thash.h"
 #include "tmsg.h"
+#include "tsimplehash.h"
 #include "ttime.h"
 
 #include "executil.h"
@@ -926,27 +927,37 @@ SSDataBlock* createTagValBlockForFilter(SArray* pColList, int32_t numOfTables, S
   return pResBlock;
 }
 
-static int32_t doSetQualifiedUid(STableListInfo* pListInfo, SArray* pUidList, const SArray* pUidTagList, bool* pResultList, bool addUid) {
+static int32_t doSetQualifiedUid(STableListInfo* pListInfo, SArray* pUidList, const SArray* pUidTagList,
+                                 bool* pResultList, bool addUid) {
   taosArrayClear(pUidList);
 
+  SSHashObj *tbHash = tSimpleHashInit(1024, taosGetDefaultHashFunction(TSDB_DATA_TYPE_UBIGINT));
+
   STableKeyInfo info = {.uid = 0, .groupId = 0};
-  int32_t numOfTables = taosArrayGetSize(pUidTagList);
+  int32_t       numOfTables = taosArrayGetSize(pUidTagList);
   for (int32_t i = 0; i < numOfTables; ++i) {
     if (pResultList[i]) {
       uint64_t uid = ((STUidTagInfo*)taosArrayGet(pUidTagList, i))->uid;
       qDebug("tagfilter get uid:%" PRId64 ", res:%d", uid, pResultList[i]);
 
       info.uid = uid;
+      bool exists = tSimpleHashGet(tbHash, &info.uid, sizeof(info.uid)) != NULL;
+      if (exists) {
+        assert(0);
+      }
       void* p = taosArrayPush(pListInfo->pTableList, &info);
       if (p == NULL) {
         return TSDB_CODE_OUT_OF_MEMORY;
       }
+      tSimpleHashPut(tbHash, &info.uid, sizeof(info.uid), NULL, 0);
 
       if (addUid) {
         taosArrayPush(pUidList, &uid);
       }
     }
   }
+
+  tSimpleHashCleanup(tbHash);
 
   return TSDB_CODE_SUCCESS;
 }
@@ -1160,18 +1171,25 @@ int32_t getTableList(void* pVnode, SScanPhysiNode* pScanNode, SNode* pTagCond, S
 
 _end:
   if (!listAdded) {
+    SSHashObj *tbHash = tSimpleHashInit(numOfTables, taosGetDefaultHashFunction(TSDB_DATA_TYPE_UBIGINT));
     numOfTables = taosArrayGetSize(pUidList);
     for (int i = 0; i < numOfTables; i++) {
       STableKeyInfo info = {.uid = *(uint64_t*)taosArrayGet(pUidList, i), .groupId = 0};
-
+      bool exists = tSimpleHashGet(tbHash, &info.uid, sizeof(info.uid)) != NULL;
+      if (exists) {
+        assert(0);
+      }
       void* p = taosArrayPush(pListInfo->pTableList, &info);
       if (p == NULL) {
         taosArrayDestroy(pUidList);
+        tSimpleHashCleanup(tbHash);
         return TSDB_CODE_OUT_OF_MEMORY;
       }
+      tSimpleHashPut(tbHash, &info.uid, sizeof(info.uid), NULL, 0);
 
       qTrace("tagfilter get uid:%" PRIu64 ", %s", info.uid, idstr);
     }
+    tSimpleHashCleanup(tbHash);
   }
 
   taosArrayDestroy(pUidList);
@@ -2159,9 +2177,15 @@ int32_t buildGroupIdMapForAllTables(STableListInfo* pTableListInfo, SReadHandle*
 
   ASSERTS(0 == hashSize, "%s:%d size: 0 != hashSize:%" PRIu64, __func__, __LINE__, hashSize);
 
+  size_t oldSize, newSize;
   for (int32_t i = 0; i < size; ++i) {
     STableKeyInfo* p = taosArrayGet(pTableListInfo->pTableList, i);
+    oldSize = taosHashGetSize(pTableListInfo->map);
+    bool exists = taosHashGet(pTableListInfo->map, &p->uid, sizeof(p->uid)) != NULL;
     taosHashPut(pTableListInfo->map, &p->uid, sizeof(uint64_t), &i, sizeof(int32_t));
+    newSize = taosHashGetSize(pTableListInfo->map);
+    ASSERTS(newSize > oldSize, "%s:%d newSize:%" PRIu64 " <= oldSize:%" PRIu64, __func__, __LINE__, newSize, oldSize);
+
   }
   hashSize = taosHashGetSize(pTableListInfo->map);
   ASSERTS(size == hashSize, "%s:%d size:%" PRIu64 " != hashSize:%" PRIu64, __func__, __LINE__, size, hashSize);
