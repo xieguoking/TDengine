@@ -481,24 +481,27 @@ int32_t shellDumpResultToFile(const char *fname, TAOS_RES *tres, const char *sql
   int32_t     num_fields = taos_num_fields(tres);
   int32_t     precision = taos_result_precision(tres);
 
-  for (int32_t col = 0; col < num_fields; col++) {
-    if (col == 0) {
-      if(shell.args.headstr) {
-        findTableName(sql, tbName);
-        taosFprintfFile(pFile, "Time");
-        continue;
+  // only iotdb print header
+  if(shell.args.headstr) {
+    for (int32_t col = 0; col < num_fields; col++) {
+      if (col == 0) {
+        if(shell.args.headstr) {
+          findTableName(sql, tbName);
+          taosFprintfFile(pFile, "Time");
+          continue;
+        }
+      } else {
+        taosFprintfFile(pFile, ",");
       }
-    } else {
-      taosFprintfFile(pFile, ",");
-    }
 
-    if(shell.args.headstr){
-      taosFprintfFile(pFile, "%s%s.%s", shell.args.headstr, tbName,fields[col].name);
-    } else {
-      taosFprintfFile(pFile, "%s", fields[col].name);
+      if(shell.args.headstr){
+        taosFprintfFile(pFile, "%s%s.%s", shell.args.headstr, tbName,fields[col].name);
+      } else {
+        taosFprintfFile(pFile, "%s", fields[col].name);
+      }
     }
+    taosFprintfFile(pFile, "\r\n");
   }
-  taosFprintfFile(pFile, "\r\n");
 
   int32_t numOfRows = 0;
   do {
