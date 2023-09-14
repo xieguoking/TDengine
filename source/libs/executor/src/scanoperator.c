@@ -331,7 +331,9 @@ static int32_t loadDataBlock(SOperatorInfo* pOperator, STableScanBase* pTableSca
   } else if (*status == FUNC_DATA_REQUIRED_SMA_LOAD) {
     pCost->loadBlockStatis += 1;
     loadSMA = true;  // mark the operation of load sma;
+    int64_t st = taosGetTimestampUs();
     bool success = doLoadBlockSMA(pTableScanInfo, pBlock, pTaskInfo);
+    pCost->loadBlockStatisTime += (taosGetTimestampUs() - st) / 1000.0;
     if (success) {  // failed to load the block sma data, data block statistics does not exist, load data block instead
       qDebug("%s data block SMA loaded, brange:%" PRId64 "-%" PRId64 ", rows:%" PRId64, GET_TASKID(pTaskInfo),
              pBlockInfo->window.skey, pBlockInfo->window.ekey, pBlockInfo->rows);
@@ -348,7 +350,10 @@ static int32_t loadDataBlock(SOperatorInfo* pOperator, STableScanBase* pTableSca
 
   // try to filter data block according to sma info
   if (pOperator->exprSupp.pFilterInfo != NULL && (!loadSMA)) {
+    pCost->loadBlockStatis += 1;
+    int64_t st = taosGetTimestampUs();
     bool success = doLoadBlockSMA(pTableScanInfo, pBlock, pTaskInfo);
+    pCost->loadBlockStatisTime += (taosGetTimestampUs() - st) / 1000.0;
     if (success) {
       size_t size = taosArrayGetSize(pBlock->pDataBlock);
       bool   keep = doFilterByBlockSMA(pOperator->exprSupp.pFilterInfo, pBlock->pBlockAgg, size, pBlockInfo->rows);

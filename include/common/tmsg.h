@@ -1851,6 +1851,7 @@ typedef struct STableScanAnalyzeInfo {
   uint32_t loadBlockStatis;
   uint32_t skipBlocks;
   uint32_t filterOutBlocks;
+  double   loadBlockStatisTime;
   double   elapsedTime;
   double   filterTime;
 } STableScanAnalyzeInfo;

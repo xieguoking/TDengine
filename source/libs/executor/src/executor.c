@@ -840,9 +840,9 @@ static void printTaskExecCostInLog(SExecTaskInfo* pTaskInfo) {
     qDebug(
         "%s :cost summary: idle:%.2f ms, elapsed time:%.2f ms, extract tableList:%.2f ms, "
         "createGroupIdMap:%.2f ms, total blocks:%d, "
-        "load block SMA:%d, load data block:%d, total rows:%" PRId64 ", check rows:%" PRId64,
+        "load block SMA:%d, load SMA:%.2f ms, load data block:%d, total rows:%" PRId64 ", check rows:%" PRId64,
         GET_TASKID(pTaskInfo), idleTime / 1000.0, pSummary->elapsedTime / 1000.0, pSummary->extractListTime,
-        pSummary->groupIdMapTime, pRecorder->totalBlocks, pRecorder->loadBlockStatis, pRecorder->loadBlocks,
+        pSummary->groupIdMapTime, pRecorder->totalBlocks, pRecorder->loadBlockStatis, pRecorder->loadBlockStatisTime, pRecorder->loadBlocks,
         pRecorder->totalRows, pRecorder->totalCheckedRows);
   } else {
     qDebug("%s :cost summary: idle in queue:%.2f ms, elapsed time:%.2f ms", GET_TASKID(pTaskInfo), idleTime / 1000.0,
