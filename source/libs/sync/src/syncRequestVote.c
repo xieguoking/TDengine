@@ -65,19 +65,30 @@ static bool syncNodeOnRequestVoteLogOK(SSyncNode* ths, SyncRequestVote* pMsg) {
 
     if (pMsg->lastLogIndex < ths->commitIndex) {
       sNWarn(ths,
-             "logok:1, commit rollback required. {my-lterm:%" PRIu64 ", my-lindex:%" PRId64 ", recv-lterm:%" PRIu64
-             ", recv-lindex:%" PRId64 ", recv-term:%" PRIu64 "}",
-             myLastTerm, myLastIndex, pMsg->lastLogTerm, pMsg->lastLogIndex, pMsg->term);
+            "logok:1, commit rollback required. {my-lterm:%" PRIu64 ", my-lindex:%" PRId64 ", recv-lterm:%" PRIu64
+            ", recv-lindex:%" PRId64 ", recv-term:%" PRIu64 "}",
+            myLastTerm, myLastIndex, pMsg->lastLogTerm, pMsg->lastLogIndex, pMsg->term);
     }
     return true;
   }
 
-  if (pMsg->lastLogTerm == myLastTerm && pMsg->lastLogIndex >= myLastIndex) {
-    sNTrace(ths,
-            "logok:1, {my-lterm:%" PRIu64 ", my-lindex:%" PRId64 ", recv-lterm:%" PRIu64 ", recv-lindex:%" PRId64
-            ", recv-term:%" PRIu64 "}",
-            myLastTerm, myLastIndex, pMsg->lastLogTerm, pMsg->lastLogIndex, pMsg->term);
-    return true;
+  if(ths->raftCfg.cfg.nodeInfo[ths->raftCfg.cfg.myIndex].nodeRole == TAOS_SYNC_ROLE_ARBITRATOR){
+    if (pMsg->lastLogTerm == myLastTerm /*&& pMsg->lastLogIndex >= myLastIndex*/) {
+      sNTrace(ths,
+              "logok:1, {my-lterm:%" PRIu64 ", my-lindex:%" PRId64 ", recv-lterm:%" PRIu64 ", recv-lindex:%" PRId64
+              ", recv-term:%" PRIu64 "}",
+              myLastTerm, myLastIndex, pMsg->lastLogTerm, pMsg->lastLogIndex, pMsg->term);
+      return true;
+    }
+  }
+  else{
+    if (pMsg->lastLogTerm == myLastTerm && pMsg->lastLogIndex >= myLastIndex) {
+      sNTrace(ths,
+              "logok:1, {my-lterm:%" PRIu64 ", my-lindex:%" PRId64 ", recv-lterm:%" PRIu64 ", recv-lindex:%" PRId64
+              ", recv-term:%" PRIu64 "}",
+              myLastTerm, myLastIndex, pMsg->lastLogTerm, pMsg->lastLogIndex, pMsg->term);
+      return true;
+    }
   }
 
   sNTrace(ths,

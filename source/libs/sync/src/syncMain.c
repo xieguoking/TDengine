@@ -1360,6 +1360,9 @@ int32_t syncNodeStopElectTimer(SSyncNode* pSyncNode) {
 }
 
 int32_t syncNodeRestartElectTimer(SSyncNode* pSyncNode, int32_t ms) {
+  if(pSyncNode->raftCfg.cfg.nodeInfo[pSyncNode->raftCfg.cfg.myIndex].nodeRole == TAOS_SYNC_ROLE_ARBITRATOR){
+    return 0;
+  }
   int32_t ret = 0;
   syncNodeStopElectTimer(pSyncNode);
   syncNodeStartElectTimer(pSyncNode, ms);

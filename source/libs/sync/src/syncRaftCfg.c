@@ -154,14 +154,14 @@ static int32_t syncDecodeSyncCfg(const SJson *pJson, void *pObj) {
     tjsonGetNumberValue(info, "nodeId", pCfg->nodeInfo[i].nodeId, code);
     tjsonGetNumberValue(info, "clusterId", pCfg->nodeInfo[i].clusterId, code);
 
-    bool isReplica = false; 
     char tmp[10] = {0};
+
+    bool isReplica = false; 
     code = tjsonGetStringValue(info, "isReplica", tmp);
     if(code < 0) return -1;
     if(strcmp(tmp, "true") == 0) isReplica = true;
 
     bool isArbitrator = false;
-    char tmp[10] = {0};
     code = tjsonGetStringValue(info, "isArbitrator", tmp);
     if(strcmp(tmp, "true") == 0) isArbitrator = true;
 

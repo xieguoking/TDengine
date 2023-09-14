@@ -1046,7 +1046,7 @@ static int32_t taosSetServerCfg(SConfig *pCfg) {
   tsHeartbeatInterval = cfgGetItem(pCfg, "syncHeartbeatInterval")->i32;
   tsHeartbeatTimeout = cfgGetItem(pCfg, "syncHeartbeatTimeout")->i32;
 
-  tsIsArbitrator = cfgGetItem(pCfg, "isArbitrator")->bval;
+  //tsIsArbitrator = cfgGetItem(pCfg, "isArbitrator")->bval;
 
   tsVndCommitMaxIntervalMs = cfgGetItem(pCfg, "vndCommitMaxInterval")->i64;
 
