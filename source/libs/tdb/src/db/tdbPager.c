@@ -140,7 +140,7 @@ int hashset_contains(hashset_t set, void *item) {
 #define TDB_PAGE_INITIALIZED(pPage) ((pPage)->pPager != NULL)
 
 static int tdbPagerInitPage(SPager *pPager, SPage *pPage, int (*initPage)(SPage *, void *, int), void *arg,
-                            u8 loadPage);
+                            u8 loadPage, int flag);
 static int tdbPagerWritePageToJournal(SPager *pPager, SPage *pPage);
 static int tdbPagerPWritePageToDB(SPager *pPager, SPage *pPage);
 
@@ -702,7 +702,7 @@ int tdbPagerFetchPage(SPager *pPager, SPgno *ppgno, SPage **ppPage, int (*initPa
   tdbTrace("tdbttl fetch pager:%p", pPage->pPager);
   // init page if need
   if (!TDB_PAGE_INITIALIZED(pPage)) {
-    ret = tdbPagerInitPage(pPager, pPage, initPage, arg, loadPage);
+    ret = tdbPagerInitPage(pPager, pPage, initPage, arg, loadPage, flag);
     if (ret < 0) {
       tdbError("tdb/pager: %p, pPage: %p, init page failed.", pPager, pPage);
       return -1;
@@ -872,7 +872,7 @@ static int tdbPagerAllocPage(SPager *pPager, SPgno *ppgno, TXN *pTxn) {
 }
 
 static int tdbPagerInitPage(SPager *pPager, SPage *pPage, int (*initPage)(SPage *, void *, int), void *arg,
-                            u8 loadPage) {
+                            u8 loadPage, int flag) {
   int   ret;
   int   lcode;
   int   nLoops;

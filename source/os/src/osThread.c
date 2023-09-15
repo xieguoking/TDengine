@@ -352,6 +352,8 @@ int32_t taosThreadRwlockInit(TdThreadRwlock *rwlock, const TdThreadRwlockAttr *a
 int32_t taosThreadRwlockRdlock(TdThreadRwlock *rwlock) {
 #ifdef __USE_WIN_THREAD
   AcquireSRWLockShared(&rwlock->lock);
+  int8_t excl = atomic_load_8(&rwlock->excl);
+  assert(excl == 0);  
   int nShare = 0;
   nShare = atomic_add_fetch_32(&rwlock->nshare, 1);
   assert(nShare > 0);
@@ -372,6 +374,8 @@ int32_t taosThreadRwlockRdlock(TdThreadRwlock *rwlock) {
 int32_t taosThreadRwlockTryRdlock(TdThreadRwlock *rwlock) {
 #ifdef __USE_WIN_THREAD
   if (!TryAcquireSRWLockShared(&rwlock->lock)) return EBUSY;
+  int8_t excl = atomic_load_8(&rwlock->excl);
+  assert(excl == 0);
   int nShare = 0;
   nShare = atomic_add_fetch_32(&rwlock->nshare, 1);
   assert(nShare == 0);
@@ -400,10 +404,11 @@ int32_t taosThreadRwlockUnlock(TdThreadRwlock *rwlock) {
     assert(nShare == 0);
     ReleaseSRWLockExclusive(&rwlock->lock);
   } else {
-    ReleaseSRWLockShared(&rwlock->lock);
     int nShare = 0;
     nShare = atomic_sub_fetch_32(&rwlock->nshare, 1);
     assert(nShare >= 0);
+    ReleaseSRWLockShared(&rwlock->lock);
+
   }
   return 0;
 #else

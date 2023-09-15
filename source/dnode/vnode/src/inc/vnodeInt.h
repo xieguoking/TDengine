@@ -174,6 +174,7 @@ int32_t       metaResumeCtbCursor(SMCtbCursor* pCtbCur, int8_t first);
 void          metaPauseCtbCursor(SMCtbCursor* pCtbCur);
 void          metaCloseCtbCursor(SMCtbCursor* pCtbCur);
 tb_uid_t      metaCtbCursorNext(SMCtbCursor* pCtbCur);
+tb_uid_t      metaCtbCursorNextX(SMCtbCursor* pCtbCur, STDBPageInfo *pgInfo);
 SMStbCursor*  metaOpenStbCursor(SMeta* pMeta, tb_uid_t uid);
 void          metaCloseStbCursor(SMStbCursor* pStbCur);
 tb_uid_t      metaStbCursorNext(SMStbCursor* pStbCur);
@@ -183,6 +184,8 @@ SArray*       metaGetSmaIdsByTable(SMeta* pMeta, tb_uid_t uid);
 SArray*       metaGetSmaTbUids(SMeta* pMeta);
 void*         metaGetIdx(SMeta* pMeta);
 void*         metaGetIvtIdx(SMeta* pMeta);
+
+int metaTraversalX(SMeta* pMeta, int vgId);
 
 int64_t metaGetTbNum(SMeta* pMeta);
 void    metaReaderDoInit(SMetaReader* pReader, SMeta* pMeta, int32_t flags);
@@ -442,6 +445,7 @@ struct SVnode {
   int32_t       blockSec;
   int64_t       blockSeq;
   SQHandle*     pQuery;
+  int8_t        printLog;
 };
 
 #define TD_VID(PVNODE) ((PVNODE)->config.vgId)

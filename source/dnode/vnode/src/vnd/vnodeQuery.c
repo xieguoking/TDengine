@@ -464,6 +464,25 @@ int32_t vnodeGetCtbIdListByFilter(SVnode *pVnode, int64_t suid, SArray *list, bo
   return 0;
 }
 
+static int32_t taosArrayCompareKV(const void* a, const void* b) {
+  int64_t av = *(int64_t*)a;
+  int64_t bv = *(int64_t*)b;
+
+  if (av == bv) return 0;
+  if (av > bv) return 1;
+  return -1;
+}
+
+static int32_t taosArrayCompareKX(const void* a, const void* b) {
+  int64_t av = ((STDBPageInfo *)a)->ctbId;
+  int64_t bv = ((STDBPageInfo *)b)->ctbId;
+
+  if (av == bv) return 0;
+  if (av > bv) return 1;
+  return -1;
+}
+
+
 int32_t vnodeGetCtbIdList(void *pVnode, int64_t suid, SArray *list) {
   SVnode      *pVnodeObj = pVnode;
   SMCtbCursor *pCur = metaOpenCtbCursor(pVnodeObj, suid, 1);
@@ -471,13 +490,102 @@ int32_t vnodeGetCtbIdList(void *pVnode, int64_t suid, SArray *list) {
     return TSDB_CODE_FAILED;
   }
 
+  SArray *fullUids = taosArrayInit(1024, sizeof(STDBPageInfo));
+  SArray *dupUids = taosArrayInit(1024, sizeof(STDBPageInfo));
+
+  SSHashObj *hash = tSimpleHashInit(1024, taosGetDefaultHashFunction(TSDB_DATA_TYPE_UBIGINT));
   while (1) {
-    tb_uid_t id = metaCtbCursorNext(pCur);
+    STDBPageInfo pgInfo = {0};
+    tb_uid_t     id = metaCtbCursorNextX(pCur, &pgInfo);
     if (id == 0) {
       break;
     }
 
+    pgInfo.ctbId = id;
+
+    void *val = tSimpleHashGet(hash, &id, sizeof(id));
+    if (val) {
+      taosArrayPush(dupUids, &id);
+    }
+
     taosArrayPush(list, &id);
+    taosArrayPush(fullUids, &pgInfo);
+    if (!val) {
+      int rtn = tSimpleHashPut(hash, &id, sizeof(id), &id, sizeof(id));
+      assert(rtn == 0);
+    }
+  }
+
+  int32_t arrSize = taosArrayGetSize(list);
+  int32_t dupSize = taosArrayGetSize(dupUids);
+
+  int8_t print = 0;
+  if (dupSize > 0) {
+    print = 1;
+  } else {
+    if (atomic_val_compare_exchange_8(&pVnodeObj->printLog, 0, 1) == 0) {
+      print = 2;
+    }
+  }
+
+  for (int32_t i = 0; i < arrSize; ++i) {
+    tb_uid_t      t1 = *(tb_uid_t *)taosArrayGet(list, i);
+    STDBPageInfo *pg = (STDBPageInfo *)taosArrayGet(fullUids, i);
+    assert(t1 == pg->ctbId);
+    if (print == 1) {
+      vDebug("prop:%s:%d vgId:%d XfullUids:%d[%d] suid:%" PRIi64 ", uid:%" PRIi64 ", pgNo:%u, cellNo:%" PRIu8
+             ", nCells:%d",
+             __func__, __LINE__, pVnodeObj->config.vgId, arrSize, i, suid, t1, pg->pageNo, pg->cellNo, pg->nCells);
+    } else if (print == 2) {
+      vDebug("prop:%s:%d vgId:%d fullUids:%d[%d] suid:%" PRIi64 ", uid:%" PRIi64 ", pgNo:%u, cellNo:%" PRIu8
+             ", nCells:%d",
+             __func__, __LINE__, pVnodeObj->config.vgId, arrSize, i, suid, t1, pg->pageNo, pg->cellNo, pg->nCells);
+    }
+  }
+
+  if (dupSize > 0) {
+    // taosArraySort(list, taosArrayCompareKV);
+    taosArraySort(dupUids, taosArrayCompareKV);
+    taosArraySort(fullUids, taosArrayCompareKX);
+    // assert(0);
+    int64_t firstUid = *(int64_t *)taosArrayGet(dupUids, 0);
+    int32_t firstUidIdx = -1;
+
+    for (int32_t i = 0; i < arrSize; ++i) {
+      tb_uid_t t2 = ((STDBPageInfo *)taosArrayGet(fullUids, i))->ctbId;
+      if(t2 == firstUid) {
+        firstUidIdx = i;
+        break;
+      }
+    }
+    assert(firstUidIdx >= 0);
+
+    int32_t jIdx = firstUidIdx;
+
+    for (int32_t i = 0; i < dupSize; ++i) {
+      int64_t ctbUid = *(int64_t *)taosArrayGet(dupUids, i);
+      for (int32_t j = jIdx; j < arrSize; ++j) {
+        STDBPageInfo *pgInfo = (STDBPageInfo *)taosArrayGet(fullUids, j);
+        if (pgInfo->ctbId == ctbUid) {
+          vInfo("prop:%s:%d vgId:%d XdupUids:%d[%d] suid:%" PRIi64 ", uid:%" PRIi64 ", pgNo:%u, cellNo:%" PRIu8
+                ", nCells:%d",
+                __func__, __LINE__, pVnodeObj->config.vgId, dupSize, i, suid, ctbUid, pgInfo->pageNo, pgInfo->cellNo,
+                pgInfo->nCells);
+          ++jIdx;
+        } else if (pgInfo->ctbId > ctbUid) {
+          break;
+        } else {
+          assert(0);
+        }
+      }
+    }
+  }
+  taosArrayDestroy(dupUids);
+  taosArrayDestroy(fullUids);
+  tSimpleHashCleanup(hash);
+
+  if (dupSize > 0) {
+    metaTraversalX(pVnodeObj->pMeta, pVnodeObj->config.vgId);
   }
 
   metaCloseCtbCursor(pCur);

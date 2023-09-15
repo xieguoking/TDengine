@@ -2018,8 +2018,14 @@ int metaUpdateChangeTimeWithLock(SMeta *pMeta, tb_uid_t uid, int64_t changeTimeM
 static int metaUpdateCtbIdx(SMeta *pMeta, const SMetaEntry *pME) {
   SCtbIdxKey ctbIdxKey = {.suid = pME->ctbEntry.suid, .uid = pME->uid};
 
-  return tdbTbUpsert(pMeta->pCtbIdx, &ctbIdxKey, sizeof(ctbIdxKey), pME->ctbEntry.pTags,
-                     ((STag *)(pME->ctbEntry.pTags))->len, pMeta->txn);
+  void *val = tSimpleHashGet(pMeta->ctbIdxHash, &ctbIdxKey, sizeof(ctbIdxKey));
+  assert(val == NULL);
+
+  int32_t rtn = tSimpleHashPut(pMeta->ctbIdxHash, &ctbIdxKey, sizeof(ctbIdxKey), NULL, 0);
+  assert(rtn == 0);
+
+  return tdbTbUpsertX(pMeta->pCtbIdx, &ctbIdxKey, sizeof(ctbIdxKey), pME->ctbEntry.pTags,
+                      ((STag *)(pME->ctbEntry.pTags))->len, pMeta->txn);
 }
 
 int metaCreateTagIdxKey(tb_uid_t suid, int32_t cid, const void *pTagData, int32_t nTagData, int8_t type, tb_uid_t uid,
@@ -2187,6 +2193,8 @@ _exit:
   return rcode;
 }
 
+int metaTraversalX(SMeta *pMeta, int vgId) { return tdbTbTraversalX(pMeta->pCtbIdx, vgId); }
+
 int metaHandleEntry(SMeta *pMeta, const SMetaEntry *pME) {
   int32_t code = 0;
   int32_t line = 0;
@@ -2207,6 +2215,9 @@ int metaHandleEntry(SMeta *pMeta, const SMetaEntry *pME) {
   if (pME->type == TSDB_CHILD_TABLE) {
     // update ctb.idx
     code = metaUpdateCtbIdx(pMeta, pME);
+    if(code != 0) {
+      assert(0);
+    }
     VND_CHECK_CODE(code, line, _err);
 
     // update tag.idx

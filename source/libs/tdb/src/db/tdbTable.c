@@ -205,6 +205,10 @@ int tdbTbUpsert(TTB *pTb, const void *pKey, int kLen, const void *pVal, int vLen
   return tdbBtreeUpsert(pTb->pBt, pKey, kLen, pVal, vLen, pTxn);
 }
 
+int tdbTbUpsertX(TTB *pTb, const void *pKey, int kLen, const void *pVal, int vLen, TXN *pTxn) {
+  return tdbBtreeUpsertX(pTb->pBt, pKey, kLen, pVal, vLen, pTxn);
+}
+
 int tdbTbGet(TTB *pTb, const void *pKey, int kLen, void **ppVal, int *vLen) {
   return tdbBtreeGet(pTb->pBt, pKey, kLen, ppVal, vLen);
 }
@@ -261,6 +265,47 @@ int32_t tdbTbTraversal(TTB *pTb, void *data,
   return 0;
 }
 
+typedef struct {
+  int64_t suid;
+  int64_t uid;
+
+} SCtbIdxKeyX;
+
+int32_t tdbTbTraversalX(TTB *pTb, int vgId) {
+  TBC *pCur;
+  int  ret = tdbTbcOpen(pTb, &pCur, NULL);
+  if (ret < 0) {
+    return ret;
+  }
+
+  tdbTbcMoveToFirst(pCur);
+
+  void *pKey = NULL;
+  int   kLen = 0;
+  void *pValue = NULL;
+  int   vLen = 0;
+
+  int32_t nElements = 0;
+  while (1) {
+    STDBPageInfo pgInfo = {0};
+    ret = tdbTbcNextX(pCur, &pKey, &kLen, &pValue, &vLen, &pgInfo);
+    if (ret < 0) {
+      ret = 0;
+      break;
+    }
+    SCtbIdxKeyX *pKeyX = pKey;
+    tdbDebug("prop:%s:%d vgId:%d, i:%d, suid:%" PRId64 ", uid:%" PRIi64 ", pgNo:%u, cellNo:%" PRIu8 ", nCells:%d",
+             __func__, __LINE__, vgId, nElements, pKeyX->suid, pKeyX->uid, pgInfo.pageNo, pgInfo.cellNo, pgInfo.nCells);
+    ++nElements;
+  }
+  tdbDebug("prop:%s:%d vgId:%d, nElements:%d", __func__, __LINE__, vgId, nElements);
+  tdbFree(pKey);
+  tdbFree(pValue);
+  tdbTbcClose(pCur);
+
+  return 0;
+}
+
 int tdbTbcMoveTo(TBC *pTbc, const void *pKey, int kLen, int *c) { return tdbBtcMoveTo(&pTbc->btc, pKey, kLen, c); }
 
 int tdbTbcMoveToFirst(TBC *pTbc) { return tdbBtcMoveToFirst(&pTbc->btc); }
@@ -278,7 +323,11 @@ int tdbTbcGet(TBC *pTbc, const void **ppKey, int *pkLen, const void **ppVal, int
 int tdbTbcDelete(TBC *pTbc) { return tdbBtcDelete(&pTbc->btc); }
 
 int tdbTbcNext(TBC *pTbc, void **ppKey, int *kLen, void **ppVal, int *vLen) {
-  return tdbBtreeNext(&pTbc->btc, ppKey, kLen, ppVal, vLen);
+  return tdbBtreeNext(&pTbc->btc, ppKey, kLen, ppVal, vLen, NULL);
+}
+
+int tdbTbcNextX(TBC *pTbc, void **ppKey, int *kLen, void **ppVal, int *vLen, STDBPageInfo *pgInfo) {
+  return tdbBtreeNext(&pTbc->btc, ppKey, kLen, ppVal, vLen, pgInfo);
 }
 
 int tdbTbcPrev(TBC *pTbc, void **ppKey, int *kLen, void **ppVal, int *vLen) {

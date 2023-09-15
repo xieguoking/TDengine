@@ -382,7 +382,7 @@ static SPage *tdbPCacheFetchImpl(SPCache *pCache, const SPgid *pPgid, TXN *pTxn,
       memcpy(pPage->pData, pPageH->pData, pPage->pageSize);
       // tdbDebug("pcache/pPageH: %p %ld %p %p %u", pPageH, pPageH->pPageHdr - pPageH->pData, pPageH->xCellSize, pPage,
       //         TDB_PAGE_PGNO(pPageH));
-      tdbPageInit(pPage, pPageH->pPageHdr - pPageH->pData, pPageH->xCellSize);
+      tdbPageInit(pPage, pPageH->pPageHdr - pPageH->pData, pPageH->xCellSize, flag);
       pPage->kLen = pPageH->kLen;
       pPage->vLen = pPageH->vLen;
       pPage->maxLocal = pPageH->maxLocal;

@@ -106,7 +106,7 @@ int tdbPageDestroy(SPage *pPage, void (*xFree)(void *arg, void *ptr), void *arg)
   return 0;
 }
 
-void tdbPageZero(SPage *pPage, u8 szAmHdr, int (*xCellSize)(const SPage *, SCell *, int, TXN *, SBTree *pBt)) {
+void tdbPageZero(SPage *pPage, u8 szAmHdr, int (*xCellSize)(const SPage *, SCell *, int, TXN *, SBTree *pBt), int flag) {
   tdbTrace("page/zero: %p %" PRIu8 " %p", pPage, szAmHdr, xCellSize);
   pPage->pPageHdr = pPage->pData + szAmHdr;
   TDB_PAGE_NCELLS_SET(pPage, 0);
@@ -122,15 +122,29 @@ void tdbPageZero(SPage *pPage, u8 szAmHdr, int (*xCellSize)(const SPage *, SCell
 
   if ((u8 *)pPage->pPageFtr != pPage->pFreeEnd) {
     tdbError("tdb/page-zero: invalid page, pFreeEnd: %p, pPageFtr: %p", pPage->pFreeEnd, pPage->pPageFtr);
+    assert(0);
     return;
+  }
+
+  if (flag == 1) {
+    u16 cellNum = pPage->pPageMethods->getCellNum(pPage);
+    u16 cellBody = pPage->pPageMethods->getCellBody(pPage);
+    u16 cellFree = pPage->pPageMethods->getCellFree(pPage);
+    int nOverflow = pPage->nOverflow;
+
+    printf("%s:%d cellNum:%" PRIu16 ", cellBody:%" PRIu16 ", cellFree:%" PRIu16 ", nOverFlow:%d", __func__, __LINE__,
+           cellNum, cellBody, cellFree, nOverflow);
+
+    ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
   }
 }
 
-void tdbPageInit(SPage *pPage, u8 szAmHdr, int (*xCellSize)(const SPage *, SCell *, int, TXN *, SBTree *pBt)) {
+void tdbPageInit(SPage *pPage, u8 szAmHdr, int (*xCellSize)(const SPage *, SCell *, int, TXN *, SBTree *pBt),
+                 int flag) {
   tdbTrace("page/init: %p %" PRIu8 " %p", pPage, szAmHdr, xCellSize);
   pPage->pPageHdr = pPage->pData + szAmHdr;
   if (TDB_PAGE_NCELLS(pPage) == 0) {
-    return tdbPageZero(pPage, szAmHdr, xCellSize);
+    return tdbPageZero(pPage, szAmHdr, xCellSize, flag);
   }
   pPage->pCellIdx = pPage->pPageHdr + TDB_PAGE_HDR_SIZE(pPage);
   pPage->pFreeStart = pPage->pCellIdx + TDB_PAGE_OFFSET_SIZE(pPage) * TDB_PAGE_NCELLS(pPage);
@@ -141,12 +155,25 @@ void tdbPageInit(SPage *pPage, u8 szAmHdr, int (*xCellSize)(const SPage *, SCell
 
   if (pPage->pFreeEnd < pPage->pFreeStart) {
     tdbError("tdb/page-init: invalid page, pFreeEnd: %p, pFreeStart: %p", pPage->pFreeEnd, pPage->pFreeStart);
+    assert(0);
     return;
   }
   if (pPage->pFreeEnd - pPage->pFreeStart > TDB_PAGE_NFREE(pPage)) {
     tdbError("tdb/page-init: invalid page, pFreeEnd: %p, pFreeStart: %p, NFREE: %d", pPage->pFreeEnd, pPage->pFreeStart,
              TDB_PAGE_NFREE(pPage));
+    assert(0);
     return;
+  }
+  if (flag == 1) {
+    u16 cellNum = pPage->pPageMethods->getCellNum(pPage);
+    u16 cellBody = pPage->pPageMethods->getCellBody(pPage);
+    u16 cellFree = pPage->pPageMethods->getCellFree(pPage);
+    int nOverflow = pPage->nOverflow;
+
+    printf("%s:%d cellNum:%" PRIu16 ", cellBody:%" PRIu16 ", cellFree:%" PRIu16 ", nOverFlow:%d", __func__, __LINE__,
+           cellNum, cellBody, cellFree, nOverflow);
+
+    ASSERT(0 < TDB_PAGE_TOTAL_CELLS(pPage));
   }
 }
 

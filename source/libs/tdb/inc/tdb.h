@@ -30,6 +30,7 @@ typedef struct STDB TDB;
 typedef struct STTB TTB;
 typedef struct STBC TBC;
 typedef struct STxn TXN;
+typedef struct STDBPageInfo STDBPageInfo;
 
 // TDB
 int32_t tdbOpen(const char *dbname, int szPage, int pages, TDB **ppDb, int8_t rollback);
@@ -52,10 +53,12 @@ int32_t tdbTbDrop(TTB *pTb);
 int32_t tdbTbInsert(TTB *pTb, const void *pKey, int keyLen, const void *pVal, int valLen, TXN *pTxn);
 int32_t tdbTbDelete(TTB *pTb, const void *pKey, int kLen, TXN *pTxn);
 int32_t tdbTbUpsert(TTB *pTb, const void *pKey, int kLen, const void *pVal, int vLen, TXN *pTxn);
+int32_t tdbTbUpsertX(TTB *pTb, const void *pKey, int kLen, const void *pVal, int vLen, TXN *pTxn);
 int32_t tdbTbGet(TTB *pTb, const void *pKey, int kLen, void **ppVal, int *vLen);
 int32_t tdbTbPGet(TTB *pTb, const void *pKey, int kLen, void **ppKey, int *pkLen, void **ppVal, int *vLen);
 int32_t tdbTbTraversal(TTB *pTb, void *data,
                        int32_t (*func)(const void *pKey, int keyLen, const void *pVal, int valLen, void *data));
+int32_t tdbTbTraversalX(TTB *pTb, int32_t vgId);
 
 // TBC
 int32_t tdbTbcOpen(TTB *pTb, TBC **ppTbc, TXN *pTxn);
@@ -69,6 +72,7 @@ int32_t tdbTbcMoveToPrev(TBC *pTbc);
 int32_t tdbTbcGet(TBC *pTbc, const void **ppKey, int *pkLen, const void **ppVal, int *pvLen);
 int32_t tdbTbcDelete(TBC *pTbc);
 int32_t tdbTbcNext(TBC *pTbc, void **ppKey, int *kLen, void **ppVal, int *vLen);
+int32_t tdbTbcNextX(TBC *pTbc, void **ppKey, int *kLen, void **ppVal, int *vLen, STDBPageInfo *pgInfo);
 int32_t tdbTbcPrev(TBC *pTbc, void **ppKey, int *kLen, void **ppVal, int *vLen);
 int32_t tdbTbcUpsert(TBC *pTbc, const void *pKey, int nKey, const void *pData, int nData, int insert);
 
@@ -100,6 +104,14 @@ struct STxn {
   void     *xArg;
   tdb_fd_t  jfd;
   hashset_t jPageSet;
+};
+
+struct STDBPageInfo {
+  int64_t  ctbId;
+  int      nCells;
+  uint32_t pageNo;
+  uint8_t  cellNo;
+  // uint8_t  fileid[24];
 };
 
 // error code

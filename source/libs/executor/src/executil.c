@@ -1085,6 +1085,15 @@ end:
   return code;
 }
 
+int32_t taosArrayCompareKK(const void* a, const void* b) {
+  uint64_t av = *(uint64_t*)a;
+  uint64_t bv = *(uint64_t*)b;
+
+  if (av == bv) return 0;
+  if (av > bv) return 1;
+  return -1;
+}
+
 int32_t getTableList(void* pVnode, SScanPhysiNode* pScanNode, SNode* pTagCond, SNode* pTagIndexCond,
                      STableListInfo* pListInfo, uint8_t* digest, const char* idstr, SStorageAPI* pStorageAPI) {
   int32_t code = TSDB_CODE_SUCCESS;
@@ -1173,6 +1182,7 @@ _end:
   if (!listAdded) {
     SSHashObj *tbHash = tSimpleHashInit(numOfTables, taosGetDefaultHashFunction(TSDB_DATA_TYPE_UBIGINT));
     numOfTables = taosArrayGetSize(pUidList);
+    taosArraySort(pUidList, taosArrayCompareKK);
     for (int i = 0; i < numOfTables; i++) {
       STableKeyInfo info = {.uid = *(uint64_t*)taosArrayGet(pUidList, i), .groupId = 0};
       bool exists = tSimpleHashGet(tbHash, &info.uid, sizeof(info.uid)) != NULL;

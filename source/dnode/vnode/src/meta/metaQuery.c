@@ -511,6 +511,23 @@ tb_uid_t metaCtbCursorNext(SMCtbCursor *pCtbCur) {
   return pCtbIdxKey->uid;
 }
 
+tb_uid_t metaCtbCursorNextX(SMCtbCursor *pCtbCur, STDBPageInfo *pgInfo) {
+  int         ret;
+  SCtbIdxKey *pCtbIdxKey;
+
+  ret = tdbTbcNextX(pCtbCur->pCur, &pCtbCur->pKey, &pCtbCur->kLen, &pCtbCur->pVal, &pCtbCur->vLen, pgInfo);
+  if (ret < 0) {
+    return 0;
+  }
+
+  pCtbIdxKey = pCtbCur->pKey;
+  if (pCtbIdxKey->suid > pCtbCur->suid) {
+    return 0;
+  }
+
+  return pCtbIdxKey->uid;
+}
+
 struct SMStbCursor {
   SMeta   *pMeta;
   TBC     *pCur;

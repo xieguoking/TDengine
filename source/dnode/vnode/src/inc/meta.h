@@ -104,6 +104,8 @@ struct SMeta {
   SMetaIdx* pIdx;
 
   SMetaCache* pCache;
+
+  SSHashObj* ctbIdxHash;
 };
 
 typedef struct {

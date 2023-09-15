@@ -176,6 +176,8 @@ int metaOpen(SVnode *pVnode, SMeta **ppMeta, int8_t rollback) {
     goto _err;
   }
 
+  pMeta->ctbIdxHash = tSimpleHashInit(32768, taosGetDefaultHashFunction(TSDB_DATA_TYPE_BINARY));
+
   metaDebug("vgId:%d, meta is opened", TD_VID(pVnode));
 
   *ppMeta = pMeta;
@@ -285,6 +287,7 @@ static void metaCleanup(SMeta **ppMeta) {
     if (pMeta->pSkmDb) tdbTbClose(pMeta->pSkmDb);
     if (pMeta->pTbDb) tdbTbClose(pMeta->pTbDb);
     if (pMeta->pEnv) tdbClose(pMeta->pEnv);
+    if (pMeta->ctbIdxHash) tSimpleHashCleanup(pMeta->ctbIdxHash);
     metaDestroyLock(pMeta);
 
     taosMemoryFreeClear(*ppMeta);
