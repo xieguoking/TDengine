@@ -39,6 +39,7 @@ uint16_t tsServerPort = 6030;
 int32_t  tsVersion = 30000000;
 int32_t  tsStatusInterval = 1;  // second
 int32_t  tsNumOfSupportVnodes = 256;
+int32_t  nTdbCachePage = 256;
 
 // common
 int32_t tsMaxShellConns = 50000;

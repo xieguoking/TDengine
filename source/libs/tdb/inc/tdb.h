@@ -32,6 +32,8 @@ typedef struct STBC TBC;
 typedef struct STxn TXN;
 typedef struct STDBPageInfo STDBPageInfo;
 
+#define MAX_VALID_PGNO (1000000)
+
 // TDB
 int32_t tdbOpen(const char *dbname, int szPage, int pages, TDB **ppDb, int8_t rollback);
 int32_t tdbClose(TDB *pDb);

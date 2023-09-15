@@ -52,8 +52,8 @@
   } while (0)
 
 static SDnode      globalDnode = {0};
-static const char *dmOS[10] = {"Ubuntu",  "CentOS Linux", "Red Hat", "Debian GNU", "CoreOS",
-                               "FreeBSD", "openSUSE",     "SLES",    "Fedora",     "macOS"};
+static const char *dmOS[11] = {"Ubuntu",   "CentOS Linux", "Red Hat", "Debian GNU", "CoreOS", "FreeBSD",
+                               "openSUSE", "SLES",         "Fedora",  "macOS",      "Windows"};
 
 SDnode *dmInstance() { return &globalDnode; }
 
@@ -98,7 +98,7 @@ static int32_t dmInitMonitor() {
     }
   } else if (STR_STR_CMP(stName, dmOS[2]) || STR_STR_CMP(stName, dmOS[3]) || STR_STR_CMP(stName, dmOS[4]) ||
              STR_STR_CMP(stName, dmOS[5]) || STR_STR_CMP(stName, dmOS[6]) || STR_STR_CMP(stName, dmOS[7]) ||
-             STR_STR_CMP(stName, dmOS[8]) || STR_STR_CMP(stName, dmOS[9])) {
+             STR_STR_CMP(stName, dmOS[8]) || STR_STR_CMP(stName, dmOS[9]) || STR_STR_CMP(stName, dmOS[10])) {
     DM_ERR_RTN(0);
   }
 

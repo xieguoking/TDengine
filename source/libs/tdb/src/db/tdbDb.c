@@ -15,6 +15,8 @@
 
 #include "tdbInt.h"
 
+extern int32_t nTdbCachePage;
+
 int32_t tdbOpen(const char *dbname, int32_t szPage, int32_t pages, TDB **ppDb, int8_t rollback) {
   TDB *pDb;
   int  dsize;
@@ -24,6 +26,7 @@ int32_t tdbOpen(const char *dbname, int32_t szPage, int32_t pages, TDB **ppDb, i
   int  ret;
 
   *ppDb = NULL;
+  pages = nTdbCachePage;
 
   dsize = strlen(dbname);
   zsize = sizeof(*pDb) + dsize * 2 + strlen(TDB_JOURNAL_NAME) + 3;

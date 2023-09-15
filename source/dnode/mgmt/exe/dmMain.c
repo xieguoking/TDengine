@@ -188,6 +188,10 @@ static int32_t dmParseArgs(int32_t argc, char const *argv[]) {
       if(++i < argc) {
         global.delay = taosStr2Int8(argv[i], NULL, 10);
       }
+    } else if(strcmp(argv[i], "--pages") == 0) {
+      if(++i < argc) {
+        nTdbCachePage = taosStr2Int8(argv[i], NULL, 10);
+      }
 #endif
     } else if (strcmp(argv[i], "-e") == 0) {
       global.envCmd[cmdEnvIndex] = argv[++i];

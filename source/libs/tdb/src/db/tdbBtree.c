@@ -1394,9 +1394,13 @@ static int tdbBtreeDecodePayload(SPage *pPage, const SCell *pCell, int nHeader, 
       }
 
       memcpy(&pgno, pCell + nHeader + nPayload - nLeft, sizeof(pgno));
+      
+      assert(pgno < MAX_VALID_PGNO);
 
       // unpack left val data from ovpages
+      SArray *pgNoArr = taosArrayInit(1024, sizeof(SPgno));
       while (pgno != 0) {
+        taosArrayPush(pgNoArr, &pgno);
         ret = tdbLoadOvflPage(&pgno, &ofp, pTxn, pBt);
         if (ret < 0) {
           return -1;
@@ -1419,9 +1423,11 @@ static int tdbBtreeDecodePayload(SPage *pPage, const SCell *pCell, int nHeader, 
         nLeft -= bytes;
 
         memcpy(&pgno, ofpCell + bytes, sizeof(pgno));
+        assert(pgno < MAX_VALID_PGNO);
 
         tdbPCacheRelease(pBt->pPager->pCache, ofp, pTxn);
       }
+      taosArrayDestroy(pgNoArr);
     } else {
       int nLeftKey = kLen;
       // load partial key and nextPgno
