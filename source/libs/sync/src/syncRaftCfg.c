@@ -169,10 +169,10 @@ static int32_t syncDecodeSyncCfg(const SJson *pJson, void *pObj) {
       pCfg->nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_ARBITRATOR;
     }
     else if(isReplica) {
-      pCfg->nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_LEARNER;
+      pCfg->nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
     }
     else{
-      pCfg->nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
+      pCfg->nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_LEARNER;
     }
   }
 

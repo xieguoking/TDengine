@@ -1754,8 +1754,10 @@ void syncNodeBecomeFollower(SSyncNode* pSyncNode, const char* debugStr) {
   // min match index
   pSyncNode->minMatchIndex = SYNC_INDEX_INVALID;
 
-  // reset log buffer
-  syncLogBufferReset(pSyncNode->pLogBuf, pSyncNode);
+  if(pSyncNode->raftCfg.cfg.nodeInfo[pSyncNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_ARBITRATOR){
+    // reset log buffer
+    syncLogBufferReset(pSyncNode->pLogBuf, pSyncNode);
+  }
 
   // reset elect timer
   syncNodeResetElectTimer(pSyncNode);
