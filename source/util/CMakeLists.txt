@@ -19,7 +19,6 @@ target_include_directories(
     PRIVATE "${TD_SOURCE_DIR}/include/common"
     PRIVATE "${GRANT_CFG_INCLUDE_DIR}"
 )
-
 if (${TD_CONTRIB_STATIC} AND NOT ${BUILD_CONTRIB})
     target_include_directories(
         util 

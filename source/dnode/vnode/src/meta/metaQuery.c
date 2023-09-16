@@ -716,7 +716,6 @@ int64_t metaGetTbNum(SMeta *pMeta) {
 // N.B. Called by statusReq per second
 int64_t metaGetTimeSeriesNum(SMeta *pMeta) {
   // sum of (number of columns of stable -  1) * number of ctables (excluding timestamp column)
-
   int64_t nTables = metaGetTbNum(pMeta);
   if (nTables - pMeta->pVnode->config.vndStats.numOfCmprTables > 100 ||
       pMeta->pVnode->config.vndStats.numOfTimeSeries <= 0 ||

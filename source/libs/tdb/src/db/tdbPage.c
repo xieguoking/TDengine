@@ -750,7 +750,6 @@ SPageMethods pageLargeMethods = {
     setLPageFreeCellInfo   // setFreeCellInfo
 };
 
-
 SCell *tdbPageGetCell(SPage *pPage, int idx) {
   SCell *pCell;
   int    iOvfl;

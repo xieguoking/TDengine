@@ -77,6 +77,7 @@ class TDTestCase:
         tdSql.execute('drop database db')
         
     def run(self):
+        
         self.alter_buffer()
         self.alter_pages()
         self.alter_same_options()

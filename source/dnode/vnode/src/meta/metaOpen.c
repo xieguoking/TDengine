@@ -254,6 +254,7 @@ int32_t metaWLock(SMeta *pMeta) {
 
   ret = taosThreadRwlockWrlock(&pMeta->lock);
   assert(ret == 0);
+
   return ret;
 }
 
