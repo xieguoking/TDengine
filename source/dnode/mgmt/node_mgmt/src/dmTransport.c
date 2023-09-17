@@ -76,16 +76,17 @@ static void dmUpdateRpcIpWhite(SDnodeData *pData, void *pTrans, SRpcMsg *pRpc) {
   rpcFreeCont(pRpc->pCont);
 }
 static bool dmIsForbiddenIp(int8_t forbidden, char *user, uint32_t clientIp) {
-  if (forbidden) {
-    SIpV4Range range = {.ip = clientIp, .mask = 32};
-    char       buf[36] = {0};
+  // if (forbidden) {
+  //   SIpV4Range range = {.ip = clientIp, .mask = 32};
+  //   char       buf[36] = {0};
 
-    rpcUtilSIpRangeToStr(&range, buf);
-    dError("User:%s host:%s not in ip white list", user, buf);
-    return true;
-  } else {
-    return false;
-  }
+  //   rpcUtilSIpRangeToStr(&range, buf);
+  //   dError("User:%s host:%s not in ip white list", user, buf);
+  //   return true;
+  // } else {
+  //   return false;
+  // }
+  return false;
 }
 static void dmProcessRpcMsg(SDnode *pDnode, SRpcMsg *pRpc, SEpSet *pEpSet) {
   SDnodeTrans  *pTrans = &pDnode->trans;

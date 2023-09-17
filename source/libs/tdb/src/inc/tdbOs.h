@@ -69,13 +69,21 @@ typedef TdFilePtr tdb_fd_t;
 
 // For threads and lock -----------------
 /* spin lock */
-typedef TdThreadSpinlock tdb_spinlock_t;
+// typedef TdThreadSpinlock tdb_spinlock_t;
 
-#define tdbSpinlockInit    taosThreadSpinInit
-#define tdbSpinlockDestroy taosThreadSpinDestroy
-#define tdbSpinlockLock    taosThreadSpinLock
-#define tdbSpinlockUnlock  taosThreadSpinUnlock
-#define tdbSpinlockTrylock taosThreadSpinTrylock
+// #define tdbSpinlockInit    taosThreadSpinInit
+// #define tdbSpinlockDestroy taosThreadSpinDestroy
+// #define tdbSpinlockLock    taosThreadSpinLock
+// #define tdbSpinlockUnlock  taosThreadSpinUnlock
+// #define tdbSpinlockTrylock taosThreadSpinTrylock
+
+typedef TdThreadMutex tdb_spinlock_t;
+
+#define tdbSpinlockInit    taosThreadMutexInit
+#define tdbSpinlockDestroy taosThreadMutexDestroy
+#define tdbSpinlockLock    taosThreadMutexLock
+#define tdbSpinlockUnlock  taosThreadMutexUnlock
+#define tdbSpinlockTrylock taosThreadMutexTryLock
 
 /* mutex lock */
 typedef TdThreadMutex tdb_mutex_t;

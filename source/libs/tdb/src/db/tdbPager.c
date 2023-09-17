@@ -734,6 +734,7 @@ int tdbPagerFetchPage(SPager *pPager, SPgno *ppgno, SPage **ppPage, int (*initPa
   }
 
   *ppgno = pgno;
+  assert(pgno < MAX_VALID_PGNO);
   *ppPage = pPage;
   return 0;
 }
