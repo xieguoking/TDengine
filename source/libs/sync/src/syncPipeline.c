@@ -419,7 +419,11 @@ int32_t syncLogStorePersist(SSyncLogStore* pLogStore, SSyncNode* pNode, SSyncRaf
   ASSERT(pEntry->index == lastVer + 1);
 
   bool doFsync = syncLogStoreNeedFlush(pEntry, pNode->replicaNum);
-  if (pLogStore->syncLogAppendEntry(pLogStore, pEntry, doFsync) < 0) {
+  bool isArbitrator = false;
+  if(pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole == TAOS_SYNC_ROLE_ARBITRATOR){
+    isArbitrator = true;
+  }
+  if (pLogStore->syncLogAppendEntry(pLogStore, pEntry, doFsync, isArbitrator) < 0) {
     sError("failed to append sync log entry since %s. index:%" PRId64 ", term:%" PRId64 "", terrstr(), pEntry->index,
            pEntry->term);
     return -1;
@@ -477,7 +481,7 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
     sTrace("vgId:%d, log buffer proceed. start index:%" PRId64 ", match index:%" PRId64 ", end index:%" PRId64,
            pNode->vgId, pBuf->startIndex, pBuf->matchIndex, pBuf->endIndex);
 
-    if(pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_ARBITRATOR){
+    //if(pNode->raftCfg.cfg.nodeInfo[pNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_ARBITRATOR){
       // persist
       if (syncLogStorePersist(pLogStore, pNode, pEntry) < 0) {
         sError("vgId:%d, failed to persist sync log entry from buffer since %s. index:%" PRId64, pNode->vgId, terrstr(),
@@ -485,7 +489,7 @@ int64_t syncLogBufferProceed(SSyncLogBuffer* pBuf, SSyncNode* pNode, SyncTerm* p
         taosMsleep(1);
         goto _out;
       }
-    }
+    //}
     
     if(pEntry->originalRpcType == TDMT_SYNC_CONFIG_CHANGE){
       if(pNode->pLogBuf->commitIndex == pEntry->index -1){

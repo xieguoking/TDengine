@@ -2975,7 +2975,11 @@ static int32_t syncNodeAppendNoopOld(SSyncNode* ths) {
   LRUHandle* h = NULL;
 
   if (ths->state == TAOS_SYNC_STATE_LEADER) {
-    int32_t code = ths->pLogStore->syncLogAppendEntry(ths->pLogStore, pEntry, false);
+    bool isArbitrator = false;
+    if(ths->raftCfg.cfg.nodeInfo[ths->raftCfg.cfg.myIndex].nodeRole == TAOS_SYNC_ROLE_ARBITRATOR){
+      isArbitrator = true;
+    } 
+    int32_t code = ths->pLogStore->syncLogAppendEntry(ths->pLogStore, pEntry, false, isArbitrator);
     if (code != 0) {
       sError("append noop error");
       return -1;

@@ -482,7 +482,7 @@ static int32_t walWriteIndex(SWal *pWal, int64_t ver, int64_t offset) {
 }
 
 static FORCE_INLINE int32_t walWriteImpl(SWal *pWal, int64_t index, tmsg_t msgType, SWalSyncInfo syncMeta,
-                                         const void *body, int32_t bodyLen) {
+                                         const void *body, int32_t bodyLen, bool isArbitrator) {
   int64_t code = 0;
 
   int64_t       offset = walGetCurFileOffset(pWal);
@@ -498,29 +498,31 @@ static FORCE_INLINE int32_t walWriteImpl(SWal *pWal, int64_t index, tmsg_t msgTy
 
   pWal->writeHead.cksumHead = walCalcHeadCksum(&pWal->writeHead);
   pWal->writeHead.cksumBody = walCalcBodyCksum(body, bodyLen);
-  wDebug("vgId:%d, wal write log %" PRId64 ", msgType: %s, cksum head %u cksum body %u", pWal->cfg.vgId, index,
-         TMSG_INFO(msgType), pWal->writeHead.cksumHead, pWal->writeHead.cksumBody);
+  wDebug("vgId:%d, wal write log %" PRId64 ", msgType: %s, cksum head %u cksum body %u, isArbitrator:%d", pWal->cfg.vgId, index,
+         TMSG_INFO(msgType), pWal->writeHead.cksumHead, pWal->writeHead.cksumBody, isArbitrator);
 
   code = walWriteIndex(pWal, index, offset);
   if (code < 0) {
     goto END;
   }
 
-  if (taosWriteFile(pWal->pLogFile, &pWal->writeHead, sizeof(SWalCkHead)) != sizeof(SWalCkHead)) {
-    terrno = TAOS_SYSTEM_ERROR(errno);
-    wError("vgId:%d, file:%" PRId64 ".log, failed to write since %s", pWal->cfg.vgId, walGetLastFileFirstVer(pWal),
-           strerror(errno));
-    code = -1;
-    goto END;
-  }
+  //if(!isArbitrator){
+    if (taosWriteFile(pWal->pLogFile, &pWal->writeHead, sizeof(SWalCkHead)) != sizeof(SWalCkHead)) {
+      terrno = TAOS_SYSTEM_ERROR(errno);
+      wError("vgId:%d, file:%" PRId64 ".log, failed to write since %s", pWal->cfg.vgId, walGetLastFileFirstVer(pWal),
+            strerror(errno));
+      code = -1;
+      goto END;
+    }
 
-  if (taosWriteFile(pWal->pLogFile, (char *)body, bodyLen) != bodyLen) {
-    terrno = TAOS_SYSTEM_ERROR(errno);
-    wError("vgId:%d, file:%" PRId64 ".log, failed to write since %s", pWal->cfg.vgId, walGetLastFileFirstVer(pWal),
-           strerror(errno));
-    code = -1;
-    goto END;
-  }
+    if (taosWriteFile(pWal->pLogFile, (char *)body, bodyLen) != bodyLen) {
+      terrno = TAOS_SYSTEM_ERROR(errno);
+      wError("vgId:%d, file:%" PRId64 ".log, failed to write since %s", pWal->cfg.vgId, walGetLastFileFirstVer(pWal),
+            strerror(errno));
+      code = -1;
+      goto END;
+    }
+  //}
 
   // set status
   if (pWal->vers.firstVer == -1) {
@@ -555,7 +557,7 @@ END:
 }
 
 int64_t walAppendLog(SWal *pWal, int64_t index, tmsg_t msgType, SWalSyncInfo syncMeta, const void *body,
-                     int32_t bodyLen) {
+                     int32_t bodyLen, bool isArbitratyor) {
   taosThreadMutexLock(&pWal->mutex);
 
   if (index != pWal->vers.lastVer + 1) {
@@ -576,7 +578,7 @@ int64_t walAppendLog(SWal *pWal, int64_t index, tmsg_t msgType, SWalSyncInfo syn
     }
   }
 
-  if (walWriteImpl(pWal, index, msgType, syncMeta, body, bodyLen) < 0) {
+  if (walWriteImpl(pWal, index, msgType, syncMeta, body, bodyLen, isArbitratyor) < 0) {
     taosThreadMutexUnlock(&pWal->mutex);
     return -1;
   }
@@ -612,7 +614,7 @@ int32_t walWriteWithSyncInfo(SWal *pWal, int64_t index, tmsg_t msgType, SWalSync
     }
   }
 
-  if (walWriteImpl(pWal, index, msgType, syncMeta, body, bodyLen) < 0) {
+  if (walWriteImpl(pWal, index, msgType, syncMeta, body, bodyLen, false) < 0) {
     taosThreadMutexUnlock(&pWal->mutex);
     return -1;
   }
