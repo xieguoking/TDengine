@@ -1,10 +1,29 @@
 PROJECT(TDengine)
 
+IF (TD_WINDOWS)
+  INCLUDE_DIRECTORIES(. ${TD_SOURCE_DIR}/src/inc ${TD_SOURCE_DIR}/src/client/inc  ${TD_SOURCE_DIR}/inc)
+  AUX_SOURCE_DIRECTORY(. SRC)
+
+  add_executable(taosc_query "")
+
+  target_sources(taosc_query
+    PRIVATE
+      "taosc_query.c"
+      )
+
+  target_link_libraries(taosc_query
+      taos
+      )
+
+  SET_TARGET_PROPERTIES(taosc_query PROPERTIES OUTPUT_NAME taosc_query)
+
+ENDIF ()
+
 IF (TD_LINUX)
   INCLUDE_DIRECTORIES(. ${TD_SOURCE_DIR}/src/inc ${TD_SOURCE_DIR}/src/client/inc  ${TD_SOURCE_DIR}/inc)
   AUX_SOURCE_DIRECTORY(. SRC)
 
-  add_executable(tmq "")
+  add_executable(query "")
   add_executable(stream_demo "")
   add_executable(schemaless "")
   add_executable(prepare "")
