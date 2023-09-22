@@ -26,6 +26,7 @@ IF (TD_LINUX)
   AUX_SOURCE_DIRECTORY(. SRC)
 
   add_executable(query "")
+  add_executable(tmq "")
   add_executable(stream_demo "")
   add_executable(schemaless "")
   add_executable(prepare "")
