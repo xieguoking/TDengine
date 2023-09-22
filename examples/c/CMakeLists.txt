@@ -8,7 +8,7 @@ IF (TD_WINDOWS)
 
   target_sources(taosc_query
     PRIVATE
-      "taosc_query.c"
+      "taosc_query.cpp"
       )
 
   target_link_libraries(taosc_query
@@ -16,6 +16,8 @@ IF (TD_WINDOWS)
       )
 
   SET_TARGET_PROPERTIES(taosc_query PROPERTIES OUTPUT_NAME taosc_query)
+
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ENDIF ()
 
