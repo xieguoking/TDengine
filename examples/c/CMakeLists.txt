@@ -25,7 +25,6 @@ IF (TD_LINUX)
   INCLUDE_DIRECTORIES(. ${TD_SOURCE_DIR}/src/inc ${TD_SOURCE_DIR}/src/client/inc  ${TD_SOURCE_DIR}/inc)
   AUX_SOURCE_DIRECTORY(. SRC)
 
-  add_executable(query "")
   add_executable(tmq "")
   add_executable(stream_demo "")
   add_executable(schemaless "")
