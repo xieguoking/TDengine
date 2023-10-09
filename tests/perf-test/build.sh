@@ -8,6 +8,7 @@ git checkout -- .
 git checkout $2
 git pull
 
+# change rocksdb build option from off to on
 sed -i ':a;N;$!ba;s/\(.*\)OFF/\1ON/' $1/cmake/cmake.options
 
 mkdir -p $1/debug
@@ -18,5 +19,3 @@ cd $1/debug
 make -j 4
 cd $1/debug
 make install 
-
-systemctl start taosd
