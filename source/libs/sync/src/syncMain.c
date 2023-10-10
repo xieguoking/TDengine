@@ -1360,6 +1360,9 @@ int32_t syncNodeStopElectTimer(SSyncNode* pSyncNode) {
 }
 
 int32_t syncNodeRestartElectTimer(SSyncNode* pSyncNode, int32_t ms) {
+  if(pSyncNode->raftCfg.cfg.nodeInfo[pSyncNode->raftCfg.cfg.myIndex].nodeRole == TAOS_SYNC_ROLE_ARBITRATOR){
+    return 0;
+  }
   int32_t ret = 0;
   syncNodeStopElectTimer(pSyncNode);
   syncNodeStartElectTimer(pSyncNode, ms);
@@ -1751,8 +1754,10 @@ void syncNodeBecomeFollower(SSyncNode* pSyncNode, const char* debugStr) {
   // min match index
   pSyncNode->minMatchIndex = SYNC_INDEX_INVALID;
 
-  // reset log buffer
-  syncLogBufferReset(pSyncNode->pLogBuf, pSyncNode);
+  if(pSyncNode->raftCfg.cfg.nodeInfo[pSyncNode->raftCfg.cfg.myIndex].nodeRole != TAOS_SYNC_ROLE_ARBITRATOR){
+    // reset log buffer
+    syncLogBufferReset(pSyncNode->pLogBuf, pSyncNode);
+  }
 
   // reset elect timer
   syncNodeResetElectTimer(pSyncNode);
@@ -2970,6 +2975,10 @@ static int32_t syncNodeAppendNoopOld(SSyncNode* ths) {
   LRUHandle* h = NULL;
 
   if (ths->state == TAOS_SYNC_STATE_LEADER) {
+    bool isArbitrator = false;
+    if(ths->raftCfg.cfg.nodeInfo[ths->raftCfg.cfg.myIndex].nodeRole == TAOS_SYNC_ROLE_ARBITRATOR){
+      isArbitrator = true;
+    } 
     int32_t code = ths->pLogStore->syncLogAppendEntry(ths->pLogStore, pEntry, false);
     if (code != 0) {
       sError("append noop error");

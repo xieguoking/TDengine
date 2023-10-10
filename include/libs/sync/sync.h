@@ -84,7 +84,8 @@ typedef enum {
 typedef enum {
   TAOS_SYNC_ROLE_VOTER = 0,
   TAOS_SYNC_ROLE_LEARNER = 1,
-  TAOS_SYNC_ROLE_ERROR = 2,
+  TAOS_SYNC_ROLE_ARBITRATOR =2,
+  TAOS_SYNC_ROLE_ERROR = 3,
 } ESyncRole;
 
 typedef struct SNodeInfo {

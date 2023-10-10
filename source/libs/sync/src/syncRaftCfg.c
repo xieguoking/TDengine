@@ -29,15 +29,13 @@ const char* syncRoleToStr(ESyncRole role) {
   }
 }
 
-const ESyncRole syncStrToRole(char* str) {
-  if(strcmp(str, "true") == 0){
-    return TAOS_SYNC_ROLE_VOTER;
+const char* syncArbitratorRoleToStr(ESyncRole role) {
+  switch (role) {
+    case TAOS_SYNC_ROLE_ARBITRATOR:
+      return "true";
+    default:
+      return "false";
   }
-  if(strcmp(str, "false") == 0){
-    return TAOS_SYNC_ROLE_LEARNER;
-  }
-
-  return TAOS_SYNC_ROLE_ERROR;
 }
 
 static int32_t syncEncodeSyncCfg(const void *pObj, SJson *pJson) {
@@ -57,6 +55,7 @@ static int32_t syncEncodeSyncCfg(const void *pObj, SJson *pJson) {
     if (tjsonAddIntegerToObject(info, "nodeId", pCfg->nodeInfo[i].nodeId) < 0) return -1;
     if (tjsonAddIntegerToObject(info, "clusterId", pCfg->nodeInfo[i].clusterId) < 0) return -1;
     if (tjsonAddStringToObject(info, "isReplica", syncRoleToStr(pCfg->nodeInfo[i].nodeRole)) < 0) return -1;
+    if (tjsonAddStringToObject(info, "isArbitrator", syncArbitratorRoleToStr(pCfg->nodeInfo[i].nodeRole)) < 0) return -1;
     if (tjsonAddItemToArray(nodeInfo, info) < 0) return -1;
   }
 
@@ -154,14 +153,26 @@ static int32_t syncDecodeSyncCfg(const SJson *pJson, void *pObj) {
     if (code < 0) return -1;
     tjsonGetNumberValue(info, "nodeId", pCfg->nodeInfo[i].nodeId, code);
     tjsonGetNumberValue(info, "clusterId", pCfg->nodeInfo[i].clusterId, code);
-    char role[10] = {0};
-    code = tjsonGetStringValue(info, "isReplica", role);
+
+    char tmp[10] = {0};
+
+    bool isReplica = false; 
+    code = tjsonGetStringValue(info, "isReplica", tmp);
     if(code < 0) return -1;
-    if(strlen(role) != 0){
-      pCfg->nodeInfo[i].nodeRole = syncStrToRole(role);
+    if(strcmp(tmp, "true") == 0) isReplica = true;
+
+    bool isArbitrator = false;
+    code = tjsonGetStringValue(info, "isArbitrator", tmp);
+    if(strcmp(tmp, "true") == 0) isArbitrator = true;
+
+    if(isArbitrator){
+      pCfg->nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_ARBITRATOR;
+    }
+    else if(isReplica) {
+      pCfg->nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
     }
     else{
-      pCfg->nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_VOTER;
+      pCfg->nodeInfo[i].nodeRole = TAOS_SYNC_ROLE_LEARNER;
     }
   }
 
