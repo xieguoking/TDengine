@@ -87,7 +87,7 @@ ESyncRole mndGetRole(SMnode *pMnode);
  * @return int32_t 0 for success, -1 for failure.
  */
 int32_t mndGetMonitorInfo(SMnode *pMnode, SMonClusterInfo *pClusterInfo, SMonVgroupInfo *pVgroupInfo,
-                          SMonStbInfo *pStbInfo, SMonGrantInfo *pGrantInfo);
+                          SMonStbInfo *pStbInfo, SMonGrantInfo *pGrantInfo, SClusterStat * pClusterStat);
 
 /**
  * @brief Get mnode loads for status msg.

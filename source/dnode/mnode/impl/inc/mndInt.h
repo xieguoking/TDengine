@@ -104,6 +104,10 @@ typedef struct {
   int64_t timeseriesAllowed;
 } SGrantInfo;
 
+typedef struct SClusterStatis {
+  int64_t nSelect;              // delta
+} SClusterStatis;
+
 typedef struct SMnode {
   int32_t        selfDnodeId;
   int64_t        clusterId;
@@ -131,6 +135,7 @@ typedef struct SMnode {
   MndMsgFp       msgFp[TDMT_MAX];
   SMsgCb         msgCb;
   int64_t        ipWhiteVer;
+  SClusterStatis statis;
 } SMnode;
 
 void    mndSetMsgHandle(SMnode *pMnode, tmsg_t msgType, MndMsgFp fp);

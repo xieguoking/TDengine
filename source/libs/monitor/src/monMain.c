@@ -320,6 +320,27 @@ static void monGenGrantJson(SMonInfo *pMonitor) {
   tjsonAddDoubleToObject(pJson, "timeseries_total", pInfo->timeseries_total);
 }
 
+static void monGenClusterStatJson(SMonInfo *pMonitor) {
+  SClusterStat *pStat = &pMonitor->mmInfo.cstat;
+
+  SJson *pJson = tjsonCreateObject();
+  if (pJson == NULL) return;
+  if (tjsonAddItemToObject(pMonitor->pJson, "cluster_stat", pJson) != 0) {
+    tjsonDelete(pJson);
+    return;
+  }
+
+  double interval = (pMonitor->curTime - pMonitor->lastTime) / 1000.0;
+  if (pMonitor->curTime - pMonitor->lastTime == 0) {
+    interval = 1;
+  }
+
+  double req_select_rate = pStat->numOfSelectReqs / interval;
+
+  tjsonAddDoubleToObject(pJson, "req_select", pStat->numOfSelectReqs);
+  tjsonAddDoubleToObject(pJson, "req_select_rate", req_select_rate);
+}
+
 static void monGenDnodeJson(SMonInfo *pMonitor) {
   SMonDnodeInfo *pInfo = &pMonitor->dmInfo.dnode;
   SMonSysInfo   *pSys = &pMonitor->dmInfo.sys;
@@ -526,12 +547,13 @@ void monSendReport() {
   monGenVgroupJson(pMonitor);
   monGenStbJson(pMonitor);
   monGenGrantJson(pMonitor);
+  monGenClusterStatJson(pMonitor);
   monGenDnodeJson(pMonitor);
   monGenDiskJson(pMonitor);
   monGenLogJson(pMonitor);
 
   char *pCont = tjsonToString(pMonitor->pJson);
-  // uDebugL("report cont:%s\n", pCont);
+  uInfo("report cont:%s\n", pCont);
   if (pCont != NULL) {
     EHttpCompFlag flag = tsMonitor.cfg.comp ? HTTP_GZIP : HTTP_FLAT;
     if (taosSendHttpReport(tsMonitor.cfg.server, tsMonUri, tsMonitor.cfg.port, pCont, strlen(pCont), flag) != 0) {

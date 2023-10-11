@@ -766,7 +766,7 @@ int64_t mndGenerateUid(const char *name, int32_t len) {
 }
 
 int32_t mndGetMonitorInfo(SMnode *pMnode, SMonClusterInfo *pClusterInfo, SMonVgroupInfo *pVgroupInfo,
-                          SMonStbInfo *pStbInfo, SMonGrantInfo *pGrantInfo) {
+                          SMonStbInfo *pStbInfo, SMonGrantInfo *pGrantInfo, SClusterStat * pClusterStat) {
   if (mndAcquireRpc(pMnode) != 0) return -1;
 
   SSdb   *pSdb = pMnode->pSdb;
@@ -899,6 +899,8 @@ int32_t mndGetMonitorInfo(SMnode *pMnode, SMonClusterInfo *pClusterInfo, SMonVgr
     pGrantInfo->expire_time = INT32_MAX;
     pGrantInfo->timeseries_total = INT32_MAX;
   }
+
+  pClusterStat->numOfSelectReqs = atomic_load_64(&pMnode->statis.nSelect);
 
   mndReleaseRpc(pMnode);
   return 0;

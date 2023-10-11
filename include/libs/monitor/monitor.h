@@ -161,6 +161,7 @@ typedef struct {
   SMonGrantInfo   grant;
   SMonSysInfo     sys;
   SMonLogs        log;
+  SClusterStat    cstat;
 } SMonMmInfo;
 
 typedef struct {

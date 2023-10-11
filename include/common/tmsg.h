@@ -1445,6 +1445,10 @@ typedef struct {
 } SVnodesStat;
 
 typedef struct {
+  int64_t numOfSelectReqs;
+} SClusterStat;
+
+typedef struct {
   int32_t vgId;
   int8_t  syncState;
   int8_t  syncRestore;
@@ -1518,6 +1522,13 @@ typedef struct {
 int32_t tSerializeSStatusReq(void* buf, int32_t bufLen, SStatusReq* pReq);
 int32_t tDeserializeSStatusReq(void* buf, int32_t bufLen, SStatusReq* pReq);
 void    tFreeSStatusReq(SStatusReq* pReq);
+
+typedef struct {
+  int32_t     nSelect;
+} SStatisReq;
+
+int32_t tSerializeSStatisReq(void* buf, int32_t bufLen, SStatisReq* pReq);
+int32_t tDeserializeSStatisReq(void* buf, int32_t bufLen, SStatisReq* pReq);
 
 typedef struct {
   int32_t dnodeId;
