@@ -126,7 +126,7 @@ void     tsdbRowClose(STSDBRowIter *pIter);
 SColVal *tsdbRowIterNext(STSDBRowIter *pIter);
 
 // SRowMerger
-int32_t tsdbRowMergerInit(SRowMerger *pMerger, STSchema *pSchema);
+int32_t tsdbRowMergerInit(SRowMerger *pMerger, STSchema *pSchema, int32_t vgId);
 int32_t tsdbRowMergerAdd(SRowMerger *pMerger, TSDBROW *pRow, STSchema *pTSchema);
 int32_t tsdbRowMergerGetRow(SRowMerger *pMerger, SRow **ppRow);
 void    tsdbRowMergerClear(SRowMerger *pMerger);
@@ -638,6 +638,7 @@ struct STSDBRowIter {
   };
 };
 struct SRowMerger {
+  int32_t   vgId;
   STSchema *pTSchema;
   int64_t   version;
   SArray   *pArray;  // SArray<SColVal>

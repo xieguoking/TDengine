@@ -596,6 +596,8 @@ static int32_t tbDataDoPut(SMemTable *pMemTable, STbData *pTbData, SMemSkipListN
   }
 
 _exit:
+  tsdbInfo("prop:vgId:%d, %s:%d ts:%" PRIi64 ", version:%" PRIi64 ", code:%d", TD_VID(pMemTable->pTsdb->pVnode), __func__,
+           __LINE__, pRow->pTSRow->ts, pRow->version, code);
   return code;
 }
 

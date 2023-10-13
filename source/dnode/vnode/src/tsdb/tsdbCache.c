@@ -2176,7 +2176,7 @@ static int32_t getNextRowFromFS(void *iter, TSDBROW **ppRow, bool *pIgnoreEarlie
     } else {
       // TODO: merge rows and *ppRow = mergedRow
       SRowMerger *pMerger = &state->rowMerger;
-      tsdbRowMergerInit(pMerger, state->pTSchema);
+      tsdbRowMergerInit(pMerger, state->pTSchema, TD_VID(pTsdb->pVnode));
 
       code = tsdbRowMergerAdd(pMerger, &state->row, state->pTSchema);
       if (code != TSDB_CODE_SUCCESS) {

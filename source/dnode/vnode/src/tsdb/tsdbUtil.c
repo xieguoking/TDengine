@@ -760,6 +760,8 @@ int32_t tsdbRowMergerAdd(SRowMerger *pMerger, TSDBROW *pRow, STSchema *pTSchema)
           }
         }
       } else {
+        tsdbError("prop:vgId:%d, dup version not allowed. ts:%" PRIi64 ", ver:%" PRIi64 ",%" PRIi64, pMerger->vgId, key.ts,
+                  key.version, pMerger->version);
         ASSERT(0 && "dup versions not allowed");
       }
     }
@@ -769,9 +771,10 @@ int32_t tsdbRowMergerAdd(SRowMerger *pMerger, TSDBROW *pRow, STSchema *pTSchema)
   }
 }
 
-int32_t tsdbRowMergerInit(SRowMerger *pMerger, STSchema *pSchema) {
+int32_t tsdbRowMergerInit(SRowMerger *pMerger, STSchema *pSchema, int32_t vgId) {
   pMerger->pTSchema = pSchema;
   pMerger->pArray = taosArrayInit(pSchema->numOfCols, sizeof(SColVal));
+  pMerger->vgId = vgId;
   if (pMerger->pArray == NULL) {
     return TSDB_CODE_OUT_OF_MEMORY;
   } else {

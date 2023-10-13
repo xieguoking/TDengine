@@ -565,6 +565,30 @@ static void destroyVgDataBlocks(void* p) {
   taosMemoryFree(pVg);
 }
 
+static void printSubmitReqInClient(SSubmitReq2* pMsg, int32_t vgId) {
+  int32_t size = taosArrayGetSize(pMsg->aSubmitTbData);
+  for (int32_t i = 0; i < size; ++i) {
+    SSubmitTbData* pData = TARRAY_GET_ELEM(pMsg->aSubmitTbData, i);
+    if (pData->flags & SUBMIT_REQ_COLUMN_DATA_FORMAT) {
+      uint64_t  nColData = TARRAY_SIZE(pData->aCol);
+      SColData* aColData = (SColData*)TARRAY_DATA(pData->aCol);
+      if (nColData > 0) {
+        int32_t nRows = aColData[0].nVal;
+        TSKEY*  aKey = (TSKEY*)aColData[0].pData;
+        for (int32_t r = 0; r < nRows; ++r) {
+          uInfo("prop:vgId:%d, %s:%d ts:%" PRIi64, vgId, __func__, __LINE__, *(aKey + r));
+        }
+      }
+    } else {
+      int32_t nRows = taosArrayGetSize(pData->aRowP);
+      for (int32_t r = 0; r < nRows; ++r) {
+        SRow* pRow = (SRow*)taosArrayGetP(pData->aRowP, r);
+        uInfo("prop:vgId:%d, %s:%d ts:%" PRIi64, vgId, __func__, __LINE__, pRow->ts);
+      }
+    }
+  }
+}
+
 int32_t insBuildVgDataBlocks(SHashObj* pVgroupsHashObj, SArray* pVgDataCxtList, SArray** pVgDataBlocks) {
   size_t  numOfVg = taosArrayGetSize(pVgDataCxtList);
   SArray* pDataBlocks = taosArrayInit(numOfVg, POINTER_BYTES);
@@ -590,6 +614,8 @@ int32_t insBuildVgDataBlocks(SHashObj* pVgroupsHashObj, SArray* pVgDataCxtList, 
     if (TSDB_CODE_SUCCESS == code) {
       code = (NULL == taosArrayPush(pDataBlocks, &dst) ? TSDB_CODE_OUT_OF_MEMORY : TSDB_CODE_SUCCESS);
     }
+    // add log to debug duplicated TS
+    printSubmitReqInClient(src->pData, src->vgId);
   }
 
   if (TSDB_CODE_SUCCESS == code) {

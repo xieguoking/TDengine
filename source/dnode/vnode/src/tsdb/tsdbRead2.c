@@ -1041,7 +1041,7 @@ static FORCE_INLINE STSchema* getTableSchemaImpl(STsdbReader* pReader, uint64_t 
     return NULL;
   }
 
-  code = tsdbRowMergerInit(&pReader->status.merger, pReader->info.pSchema);
+  code = tsdbRowMergerInit(&pReader->status.merger, pReader->info.pSchema, TD_VID(pReader->pTsdb->pVnode));
   if (code != TSDB_CODE_SUCCESS) {
     terrno = code;
     tsdbError("failed to init merger, code:%s, %s", tstrerror(code), pReader->idStr);
@@ -1508,7 +1508,7 @@ static int32_t doMergeBufAndFileRows(STsdbReader* pReader, STableBlockScanInfo* 
       return terrno;
     }
 
-    int32_t code = tsdbRowMergerInit(pMerger, ps);
+    int32_t code = tsdbRowMergerInit(pMerger, ps, TD_VID(pReader->pTsdb->pVnode));
     if (code != TSDB_CODE_SUCCESS) {
       tsdbError("failed to init row merger, code:%s", tstrerror(code));
       return code;
@@ -1735,7 +1735,7 @@ static int32_t mergeFileBlockAndLastBlock(STsdbReader* pReader, SLastBlockReader
       return terrno;
     }
 
-    int32_t code = tsdbRowMergerInit(pMerger, ps);
+    int32_t code = tsdbRowMergerInit(pMerger, ps,TD_VID(pReader->pTsdb->pVnode));
     if (code != TSDB_CODE_SUCCESS) {
       tsdbError("failed to init row merger, code:%s", tstrerror(code));
       return code;
@@ -1842,7 +1842,7 @@ static int32_t doMergeMultiLevelRows(STsdbReader* pReader, STableBlockScanInfo* 
       return terrno;
     }
 
-    code = tsdbRowMergerInit(pMerger, ps);
+    code = tsdbRowMergerInit(pMerger, ps, TD_VID(pReader->pTsdb->pVnode));
     if (code != TSDB_CODE_SUCCESS) {
       tsdbError("failed to init row merger, code:%s", tstrerror(code));
       return code;
@@ -2170,7 +2170,7 @@ int32_t mergeRowsInFileBlocks(SBlockData* pBlockData, STableBlockScanInfo* pBloc
       return terrno;
     }
 
-    code = tsdbRowMergerInit(pMerger, ps);
+    code = tsdbRowMergerInit(pMerger, ps, TD_VID(pReader->pTsdb->pVnode));
     if (code != TSDB_CODE_SUCCESS) {
       tsdbError("failed to init row merger, code:%s", tstrerror(code));
       return code;
@@ -3890,7 +3890,7 @@ static void setSharedPtr(STsdbReader* pDst, const STsdbReader* pSrc) {
   pDst->pReadSnap->pfSetArray = pSrc->pReadSnap->pfSetArray;
 
   if (pDst->info.pSchema) {
-    tsdbRowMergerInit(&pDst->status.merger, pDst->info.pSchema);
+    tsdbRowMergerInit(&pDst->status.merger, pDst->info.pSchema, TD_VID(pDst->pTsdb->pVnode));
   }
 }
 
@@ -3969,7 +3969,7 @@ int32_t tsdbReaderOpen2(void* pVnode, SQueryTableDataCond* pCond, void* pTableLi
   }
 
   if (pReader->info.pSchema != NULL) {
-    tsdbRowMergerInit(&pReader->status.merger, pReader->info.pSchema);
+    tsdbRowMergerInit(&pReader->status.merger, pReader->info.pSchema, TD_VID(pReader->pTsdb->pVnode));
   }
 
   pReader->pSchemaMap = tSimpleHashInit(8, taosFastHash);
