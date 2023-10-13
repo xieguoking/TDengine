@@ -565,7 +565,7 @@ static void destroyVgDataBlocks(void* p) {
   taosMemoryFree(pVg);
 }
 
-static void printSubmitReqInClient(SSubmitReq2* pMsg, int32_t vgId) {
+static void printSubmitReqInClient(SSubmitReq2* pMsg, int32_t vgId, int64_t batchNum) {
   int32_t size = taosArrayGetSize(pMsg->aSubmitTbData);
   for (int32_t i = 0; i < size; ++i) {
     SSubmitTbData* pData = TARRAY_GET_ELEM(pMsg->aSubmitTbData, i);
@@ -576,14 +576,14 @@ static void printSubmitReqInClient(SSubmitReq2* pMsg, int32_t vgId) {
         int32_t nRows = aColData[0].nVal;
         TSKEY*  aKey = (TSKEY*)aColData[0].pData;
         for (int32_t r = 0; r < nRows; ++r) {
-          uInfo("prop:vgId:%d, %s:%d ts:%" PRIi64, vgId, __func__, __LINE__, *(aKey + r));
+          uInfo("prop:vgId:%d, %s:%d batch:%" PRIi64 ", ts:%" PRIi64, vgId, __func__, __LINE__, batchNum, *(aKey + r));
         }
       }
     } else {
       int32_t nRows = taosArrayGetSize(pData->aRowP);
       for (int32_t r = 0; r < nRows; ++r) {
         SRow* pRow = (SRow*)taosArrayGetP(pData->aRowP, r);
-        uInfo("prop:vgId:%d, %s:%d ts:%" PRIi64, vgId, __func__, __LINE__, pRow->ts);
+        uInfo("prop:vgId:%d, %s:%d batch:%" PRIi64 ", ts:%" PRIi64, vgId, __func__, __LINE__, batchNum, pRow->ts);
       }
     }
   }
@@ -597,6 +597,7 @@ int32_t insBuildVgDataBlocks(SHashObj* pVgroupsHashObj, SArray* pVgDataCxtList, 
   }
 
   int32_t code = TSDB_CODE_SUCCESS;
+  int64_t ns = taosGetTimestampNs();
   for (size_t i = 0; TSDB_CODE_SUCCESS == code && i < numOfVg; ++i) {
     SVgroupDataCxt* src = taosArrayGetP(pVgDataCxtList, i);
     SVgDataBlocks*  dst = taosMemoryCalloc(1, sizeof(SVgDataBlocks));
@@ -615,7 +616,7 @@ int32_t insBuildVgDataBlocks(SHashObj* pVgroupsHashObj, SArray* pVgDataCxtList, 
       code = (NULL == taosArrayPush(pDataBlocks, &dst) ? TSDB_CODE_OUT_OF_MEMORY : TSDB_CODE_SUCCESS);
     }
     // add log to debug duplicated TS
-    printSubmitReqInClient(src->pData, src->vgId);
+    printSubmitReqInClient(src->pData, src->vgId, ns);
   }
 
   if (TSDB_CODE_SUCCESS == code) {
