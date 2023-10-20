@@ -556,7 +556,7 @@ void monSendReport2() {
     if (taosSendHttpReport(tsMonitor.cfg.server, tsMonUri, tsMonitor.cfg.port, pCont, strlen(pCont), flag) != 0) {
       uError("failed to send monitor msg");
     }else{
-      //prom_collector_registry_clear_out(PROM_COLLECTOR_REGISTRY_DEFAULT);
+      prom_collector_registry_clear_out(PROM_COLLECTOR_REGISTRY_DEFAULT);
     }
   }
 }
