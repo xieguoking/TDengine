@@ -39,6 +39,7 @@
 #include "sync.h"
 #include "tfs.h"
 #include "wal.h"
+#include "prom.h"
 
 #ifdef __cplusplus
 extern "C" {

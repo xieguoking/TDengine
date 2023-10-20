@@ -23,6 +23,7 @@
 #include "mndTrans.h"
 #include "tmisce.h"
 #include "audit.h"
+#include "prom.h"
 
 #define MNODE_VER_NUMBER   2
 #define MNODE_RESERVE_SIZE 64
@@ -39,6 +40,8 @@ static int32_t  mndProcessDropMnodeReq(SRpcMsg *pReq);
 static int32_t  mndRetrieveMnodes(SRpcMsg *pReq, SShowObj *pShow, SSDataBlock *pBlock, int32_t rows);
 static void     mndCancelGetNextMnode(SMnode *pMnode, void *pIter);
 static void     mndReloadSyncConfig(SMnode *pMnode);
+
+prom_counter_t *foo_counter = NULL;
 
 int32_t mndInitMnode(SMnode *pMnode) {
   SSdbTable table = {
@@ -879,6 +882,12 @@ static int32_t mndRetrieveMnodes(SRpcMsg *pReq, SShowObj *pShow, SSDataBlock *pB
   }
 
   pShow->numOfRows += numOfRows;
+
+  if(foo_counter == NULL){
+    foo_counter = prom_counter_new("foo_counter", "counter for foo",  2, (const char *[]){"foo", "bar"});
+    foo_counter = prom_collector_registry_must_register_metric(foo_counter);
+  }
+  prom_counter_inc(foo_counter, (const char *[]){"foo", "bar"});
 
 _out:
   sdbRelease(pSdb, pSelfObj);

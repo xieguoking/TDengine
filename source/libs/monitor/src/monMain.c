@@ -18,6 +18,7 @@
 #include "taoserror.h"
 #include "thttp.h"
 #include "ttime.h"
+#include "prom.h"
 
 static SMonitor tsMonitor = {0};
 static char* tsMonUri = "/report";
@@ -108,6 +109,9 @@ int32_t monInit(const SMonCfg *pCfg) {
   tsLogFp = monRecordLog;
   tsMonitor.lastTime = taosGetTimestampMs();
   taosThreadMutexInit(&tsMonitor.lock, NULL);
+
+  prom_collector_registry_default_init();
+
   return 0;
 }
 
@@ -541,4 +545,18 @@ void monSendReport() {
   }
 
   monCleanupMonitorInfo(pMonitor);
+}
+
+void monSendReport2() {
+  char *pCont = (char *)prom_collector_registry_bridge(
+    PROM_COLLECTOR_REGISTRY_DEFAULT, taosGetTimestamp(TSDB_TIME_PRECISION_MILLI));
+  uInfoL("report cont:\n%s\n", pCont);
+  if (pCont != NULL) {
+    EHttpCompFlag flag = tsMonitor.cfg.comp ? HTTP_GZIP : HTTP_FLAT;
+    if (taosSendHttpReport(tsMonitor.cfg.server, tsMonUri, tsMonitor.cfg.port, pCont, strlen(pCont), flag) != 0) {
+      uError("failed to send monitor msg");
+    }else{
+      //prom_collector_registry_clear_out(PROM_COLLECTOR_REGISTRY_DEFAULT);
+    }
+  }
 }
