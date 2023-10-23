@@ -41,8 +41,6 @@ static int32_t  mndRetrieveMnodes(SRpcMsg *pReq, SShowObj *pShow, SSDataBlock *p
 static void     mndCancelGetNextMnode(SMnode *pMnode, void *pIter);
 static void     mndReloadSyncConfig(SMnode *pMnode);
 
-taos_counter_t *foo_counter = NULL;
-
 int32_t mndInitMnode(SMnode *pMnode) {
   SSdbTable table = {
       .sdbType = SDB_MNODE,
@@ -882,12 +880,6 @@ static int32_t mndRetrieveMnodes(SRpcMsg *pReq, SShowObj *pShow, SSDataBlock *pB
   }
 
   pShow->numOfRows += numOfRows;
-
-  if(foo_counter == NULL){
-    foo_counter = taos_counter_new("foo_counter", "counter for foo",  2, (const char *[]){"foo", "bar"});
-    foo_counter = taos_collector_registry_must_register_metric(foo_counter);
-  }
-  taos_counter_inc(foo_counter, (const char *[]){"foo", "bar"});
 
 _out:
   sdbRelease(pSdb, pSelfObj);

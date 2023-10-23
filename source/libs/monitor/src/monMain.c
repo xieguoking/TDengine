@@ -547,7 +547,7 @@ void monSendReport() {
   monCleanupMonitorInfo(pMonitor);
 }
 
-void monSendReport2() {
+void monSendPromReport() {
   char *pCont = (char *)taos_collector_registry_bridge(
     TAOS_COLLECTOR_REGISTRY_DEFAULT, taosGetTimestamp(TSDB_TIME_PRECISION_MILLI));
   uInfoL("report cont:\n%s\n", pCont);
@@ -557,6 +557,16 @@ void monSendReport2() {
       uError("failed to send monitor msg");
     }else{
       taos_collector_registry_clear_out(TAOS_COLLECTOR_REGISTRY_DEFAULT);
+    }
+  }
+}
+
+void monSendContent(char *pCont) {
+  uInfoL("report cont:\n%s\n", pCont);
+  if (pCont != NULL) {
+    EHttpCompFlag flag = tsMonitor.cfg.comp ? HTTP_GZIP : HTTP_FLAT;
+    if (taosSendHttpReport(tsMonitor.cfg.server, tsMonUri, tsMonitor.cfg.port, pCont, strlen(pCont), flag) != 0) {
+      uError("failed to send monitor msg");
     }
   }
 }

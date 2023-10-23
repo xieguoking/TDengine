@@ -107,7 +107,7 @@ void dmSendMonitorReport() {
   dmGetSmMonitorInfo(pDnode);
   monSendReport();
 
-  monSendReport2();
+  monSendPromReport();
 }
 
 void dmGetVnodeLoads(SMonVloadInfo *pInfo) {
