@@ -182,7 +182,7 @@ int taos_metric_formatter_load_sample(taos_metric_formatter_t *self, taos_metric
   r = taos_string_builder_add_str(self->string_builder, buffer);
   if (r) return r;
 
-  sample->r_value = 0;
+  taos_metric_sample_set(sample, 0);
 
   return taos_string_builder_add_char(self->string_builder, '\n');
 }

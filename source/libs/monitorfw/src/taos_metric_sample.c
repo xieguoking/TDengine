@@ -87,7 +87,7 @@ int taos_metric_sample_sub(taos_metric_sample_t *self, double r_value) {
 }
 
 int taos_metric_sample_set(taos_metric_sample_t *self, double r_value) {
-  if (self->type != TAOS_GAUGE) {
+  if (self->type != TAOS_GAUGE && self->type != TAOS_COUNTER) {
     TAOS_LOG(TAOS_METRIC_INCORRECT_TYPE);
     return 1;
   }
