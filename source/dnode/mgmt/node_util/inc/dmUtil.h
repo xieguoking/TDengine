@@ -39,7 +39,7 @@
 #include "sync.h"
 #include "tfs.h"
 #include "wal.h"
-#include "prom.h"
+#include "taos_monitor.h"
 
 #ifdef __cplusplus
 extern "C" {

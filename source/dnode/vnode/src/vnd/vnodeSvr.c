@@ -20,7 +20,7 @@
 #include "vnode.h"
 #include "vnodeInt.h"
 #include "audit.h"
-#include "prom.h"
+#include "taos_monitor.h"
 
 static int32_t vnodeProcessCreateStbReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp);
 static int32_t vnodeProcessAlterStbReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp);
@@ -41,7 +41,7 @@ static int32_t vnodeProcessDropIndexReq(SVnode *pVnode, int64_t ver, void *pReq,
 static int32_t vnodeProcessCompactVnodeReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp);
 static int32_t vnodeProcessConfigChangeReq(SVnode *pVnode, int64_t ver, void *pReq, int32_t len, SRpcMsg *pRsp);
 
-prom_counter_t *insert_counter = NULL;
+taos_counter_t *insert_counter = NULL;
 
 static int32_t vnodePreprocessCreateTableReq(SVnode *pVnode, SDecoder *pCoder, int64_t btime, int64_t *pUid) {
   int32_t code = 0;
@@ -1619,15 +1619,15 @@ _exit:
   if(insert_counter == NULL){
     int32_t label_count =1;
     const char *sample_labels[] = {"vgid"};
-    insert_counter = prom_counter_new("insert_counter", "counter for insert sql",  label_count, sample_labels);
-    insert_counter = prom_collector_registry_must_register_metric(insert_counter);
+    insert_counter = taos_counter_new("insert_counter", "counter for insert sql",  label_count, sample_labels);
+    insert_counter = taos_collector_registry_must_register_metric(insert_counter);
   }
 
   char vgId[50];
   sprintf(vgId, "%"PRId32, TD_VID(pVnode));
   const char *sample_labels[] = {vgId};
 
-  prom_counter_inc(insert_counter, sample_labels);
+  taos_counter_inc(insert_counter, sample_labels);
 
   // clear
   taosArrayDestroy(newTbUids);
