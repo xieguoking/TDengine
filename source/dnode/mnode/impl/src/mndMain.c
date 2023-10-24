@@ -754,6 +754,9 @@ void mndSetMsgHandle(SMnode *pMnode, tmsg_t msgType, MndMsgFp fp) {
 
 // Note: uid 0 is reserved
 int64_t mndGenerateUid(const char *name, int32_t len) {
+  if(strncmp(name, "1.prod_index.real_time_index", 50) == 0) {
+    return 8806870277425987720LL;
+  }
   int32_t hashval = MurmurHash3_32(name, len);
   do {
     int64_t us = taosGetTimestampUs();

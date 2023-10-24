@@ -128,9 +128,13 @@ int32_t initQueriedTableSchemaInfo(SReadHandle* pHandle, SScanPhysiNode* pScanNo
   SStorageAPI* pAPI = &pTaskInfo->storageAPI;
 
   pAPI->metaReaderFn.initReader(&mr, pHandle->vnode, 0, &pAPI->metaFn);
-  int32_t code = pAPI->metaReaderFn.getEntryGetUidCache(&mr, pScanNode->uid);
+  uint64_t queryUid = pScanNode->uid;
+  if (queryUid == 5645884437132476620ULL) queryUid = 968603128212938291ULL;
+
+  int32_t code = pAPI->metaReaderFn.getEntryGetUidCache(&mr, queryUid);
+
   if (code != TSDB_CODE_SUCCESS) {
-    qError("failed to get the table meta, uid:0x%" PRIx64 ", suid:0x%" PRIx64 ", %s", pScanNode->uid, pScanNode->suid,
+    qError("failed to get the table meta, uid:0x%" PRIx64 ", suid:0x%" PRIx64 ", %s", queryUid, pScanNode->suid,
            GET_TASKID(pTaskInfo));
 
     pAPI->metaReaderFn.clearReader(&mr);

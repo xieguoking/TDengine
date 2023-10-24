@@ -44,12 +44,14 @@ int32_t tsdbSttFileReaderOpen(const char *fname, const SSttFileReaderConfig *con
     reader[0]->config->bufArr = reader[0]->bufArr;
   }
 
+  char fname1[TSDB_FILENAME_LEN] = "\0";
+
   // open file
   if (fname) {
     code = tsdbOpenFile(fname, config->szPage, TD_FILE_READ, &reader[0]->fd);
     TSDB_CHECK_CODE(code, lino, _exit);
   } else {
-    char fname1[TSDB_FILENAME_LEN];
+    // char fname1[TSDB_FILENAME_LEN];
     tsdbTFileName(config->tsdb, config->file, fname1);
     code = tsdbOpenFile(fname1, config->szPage, TD_FILE_READ, &reader[0]->fd);
     TSDB_CHECK_CODE(code, lino, _exit);
@@ -59,8 +61,44 @@ int32_t tsdbSttFileReaderOpen(const char *fname, const SSttFileReaderConfig *con
   int64_t offset = config->file->size - sizeof(SSttFooter);
   ASSERT(offset >= TSDB_FHDR_SIZE);
 
-  code = tsdbReadFile(reader[0]->fd, offset, (uint8_t *)(reader[0]->footer), sizeof(SSttFooter));
-  TSDB_CHECK_CODE(code, lino, _exit);
+  int32_t nLoops = 0;
+  int64_t nOffset = offset;
+loop:
+  code = tsdbReadFile(reader[0]->fd, nOffset, (uint8_t *)(reader[0]->footer), sizeof(SSttFooter));
+  // TSDB_CHECK_CODE(code, lino, _exit);
+  if (code != 0 && (--nOffset >= TSDB_FHDR_SIZE) && (++nLoops < 1000000)) {
+    tsdbError("%s:%d open stt err: %s, offset:%" PRIi64 ", nOffset:%" PRIi64 ",  nLoops:%d", __func__, __LINE__, fname ? fname : fname1,
+              offset, nOffset, nLoops);
+    goto loop;
+  }
+  if (code == 0) {
+    int64_t     realOffset = config->file->size - (offset - nOffset);
+    SSttFooter *footer = &reader[0]->footer[0];
+    if (footer->statisBlkPtr->offset < TSDB_FHDR_SIZE || footer->statisBlkPtr->offset > nOffset ||
+        footer->statisBlkPtr->size < 0 || footer->statisBlkPtr->size > offset ||
+        (footer->sttBlkPtr->size % sizeof(SSttBlk) != 0) || footer->sttBlkPtr->size < 0 ||
+        footer->sttBlkPtr->size > offset || footer->tombBlkPtr->size < 0 || footer->tombBlkPtr->size > offset) {
+      tsdbWarn("%s:%d open stt file success but footer invalid:[offset:%" PRIi64 ", size:%" PRIi64 "; offset:%" PRIi64
+               ",size:%" PRIi64 "; offset:%" PRIi64 ",size:%" PRIi64 "] %s, offset:%" PRIi64 ", nOffset:%" PRIi64
+               ",  nLoops:%d, guessSize:%" PRIi64 ", realOffset:%" PRIi64,
+               __func__, __LINE__, footer->statisBlkPtr->offset, footer->statisBlkPtr->size, footer->sttBlkPtr->offset,
+               footer->sttBlkPtr->size, footer->tombBlkPtr->offset, footer->tombBlkPtr->size, fname ? fname : fname1,
+               offset, nOffset, nLoops, config->file->size, realOffset);
+      --nOffset;
+      goto loop;
+    } else {
+      tsdbInfo("%s:%d open stt file success and footer is valid:[offset:%" PRIi64 ", size:%" PRIi64 "; offset:%" PRIi64
+               ",size:%" PRIi64 "; offset:%" PRIi64 ",size:%" PRIi64 "] %s, offset:%" PRIi64 ", nOffset:%" PRIi64
+               ",  nLoops:%d, guessSize:%" PRIi64 ", realOffset:%" PRIi64,
+               __func__, __LINE__, footer->statisBlkPtr->offset, footer->statisBlkPtr->size, footer->sttBlkPtr->offset,
+               footer->sttBlkPtr->size, footer->tombBlkPtr->offset, footer->tombBlkPtr->size, fname ? fname : fname1,
+               offset, nOffset, nLoops, config->file->size, realOffset);
+    }
+
+  } else {
+    assert(0);
+    TSDB_CHECK_CODE(code, lino, _exit);
+  }
 
 _exit:
   if (code) {

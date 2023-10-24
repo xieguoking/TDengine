@@ -47,87 +47,133 @@ static int32_t tsdbDataFileReadHeadFooter(SDataFileReader *reader) {
   int32_t lino = 0;
 
   int32_t ftype = TSDB_FTYPE_HEAD;
+
+#if 0
   if (reader->fd[ftype]) {
     code = tsdbReadFile(reader->fd[ftype], reader->config->files[ftype].file.size - sizeof(SHeadFooter),
                         (uint8_t *)reader->headFooter, sizeof(SHeadFooter));
     TSDB_CHECK_CODE(code, lino, _exit);
   }
 
-  reader->ctx->headFooterLoaded = true;
+#else
 
-_exit:
-  if (code) {
-    TSDB_ERROR_LOG(TD_VID(reader->config->tsdb->pVnode), lino, code);
-  }
-  return code;
-}
+  int64_t offset = reader->config->files[ftype].file.size - sizeof(SHeadFooter);
+  int32_t nLoops = 0;
+  int64_t nOffset = offset;
 
-static int32_t tsdbDataFileReadTombFooter(SDataFileReader *reader) {
-  if (reader->ctx->tombFooterLoaded) return 0;
-
-  int32_t code = 0;
-  int32_t lino = 0;
-
-  int32_t ftype = TSDB_FTYPE_TOMB;
   if (reader->fd[ftype]) {
-    code = tsdbReadFile(reader->fd[ftype], reader->config->files[ftype].file.size - sizeof(STombFooter),
-                        (uint8_t *)reader->tombFooter, sizeof(STombFooter));
-    TSDB_CHECK_CODE(code, lino, _exit);
-  }
-  reader->ctx->tombFooterLoaded = true;
+    char *fname = reader->fd[ftype]->path;
+  loop:
 
-_exit:
-  if (code) {
-    TSDB_ERROR_LOG(TD_VID(reader->config->tsdb->pVnode), lino, code);
-  }
-  return code;
-}
+    code = tsdbReadFile(reader->fd[ftype], nOffset, (uint8_t *)reader->headFooter, sizeof(SHeadFooter));
 
-int32_t tsdbDataFileReaderOpen(const char *fname[], const SDataFileReaderConfig *config, SDataFileReader **reader) {
-  int32_t code = 0;
-  int32_t lino = 0;
-
-  reader[0] = taosMemoryCalloc(1, sizeof(**reader));
-  if (reader[0] == NULL) {
-    code = TSDB_CODE_OUT_OF_MEMORY;
-    TSDB_CHECK_CODE(code, lino, _exit);
-  }
-
-  reader[0]->config[0] = config[0];
-  if (reader[0]->config->bufArr == NULL) {
-    reader[0]->config->bufArr = reader[0]->bufArr;
-  }
-
-  if (fname) {
-    for (int32_t i = 0; i < TSDB_FTYPE_MAX; ++i) {
-      if (fname[i]) {
-        code = tsdbOpenFile(fname[i], config->szPage, TD_FILE_READ, &reader[0]->fd[i]);
-        TSDB_CHECK_CODE(code, lino, _exit);
-      }
+    if (code != 0 && (--nOffset >= TSDB_FHDR_SIZE) && (++nLoops < 1000000)) {
+      tsdbError("%s:%d open head file err: %s, offset:%" PRIi64 ", nOffset:%" PRIi64 ", nLoops:%d", __func__, __LINE__, fname,
+                offset, nOffset, nLoops);
+      goto loop;
     }
-  } else {
-    for (int32_t i = 0; i < TSDB_FTYPE_MAX; ++i) {
-      if (config->files[i].exist) {
-        char fname1[TSDB_FILENAME_LEN];
-        tsdbTFileName(config->tsdb, &config->files[i].file, fname1);
-        code = tsdbOpenFile(fname1, config->szPage, TD_FILE_READ, &reader[0]->fd[i]);
-        TSDB_CHECK_CODE(code, lino, _exit);
+    if (code == 0) {
+      int64_t      realOffset = reader->config->files[ftype].file.size - (offset - nOffset);
+      SHeadFooter *footer = &reader->headFooter[0];
+      if (footer->brinBlkPtr->offset < TSDB_FHDR_SIZE || footer->brinBlkPtr->offset > nOffset || footer->brinBlkPtr->size < 0 ||
+          footer->brinBlkPtr->size > offset) {
+        tsdbWarn("%s:%d open head file success but footer invalid:[offset:%" PRIi64 ", size:%" PRIi64
+                 "] %s, offset:%" PRIi64 ", nOffset:%" PRIi64 ",  nLoops:%d, guessSize:%" PRIi64
+                 ", realOffset:%" PRIi64,
+                 __func__, __LINE__, footer->brinBlkPtr->offset, footer->brinBlkPtr->size, fname, offset, nOffset,
+                 nLoops, reader->config->files[ftype].file.size, realOffset);
+        --nOffset;
+        goto loop;
+      } else {
+        tsdbInfo("%s:%d open head file success and footer OK:[offset:%" PRIi64 ", size:%" PRIi64
+                 "] %s, offset:%" PRIi64 ", nOffset:%" PRIi64 ",  nLoops:%d, guessSize:%" PRIi64
+                 ", realOffset:%" PRIi64,
+                 __func__, __LINE__, footer->brinBlkPtr->offset, footer->brinBlkPtr->size, fname, offset, nOffset,
+                 nLoops, reader->config->files[ftype].file.size, realOffset);
       }
+    } else {
+      assert(0);
+      TSDB_CHECK_CODE(code, lino, _exit);
     }
   }
 
-_exit:
-  if (code) {
-    TSDB_ERROR_LOG(TD_VID(config->tsdb->pVnode), lino, code);
+#endif
+
+    reader->ctx->headFooterLoaded = true;
+
+  _exit:
+    if (code) {
+      TSDB_ERROR_LOG(TD_VID(reader->config->tsdb->pVnode), lino, code);
+    }
+    return code;
   }
-  return code;
-}
 
-int32_t tsdbDataFileReaderClose(SDataFileReader **reader) {
-  if (reader[0] == NULL) return 0;
+  static int32_t tsdbDataFileReadTombFooter(SDataFileReader * reader) {
+    if (reader->ctx->tombFooterLoaded) return 0;
 
-  TARRAY2_DESTROY(reader[0]->tombBlkArray, NULL);
-  TARRAY2_DESTROY(reader[0]->brinBlkArray, NULL);
+    int32_t code = 0;
+    int32_t lino = 0;
+
+    int32_t ftype = TSDB_FTYPE_TOMB;
+    if (reader->fd[ftype]) {
+      code = tsdbReadFile(reader->fd[ftype], reader->config->files[ftype].file.size - sizeof(STombFooter),
+                          (uint8_t *)reader->tombFooter, sizeof(STombFooter));
+      TSDB_CHECK_CODE(code, lino, _exit);
+    }
+    reader->ctx->tombFooterLoaded = true;
+
+  _exit:
+    if (code) {
+      TSDB_ERROR_LOG(TD_VID(reader->config->tsdb->pVnode), lino, code);
+    }
+    return code;
+  }
+
+  int32_t tsdbDataFileReaderOpen(const char *fname[], const SDataFileReaderConfig *config, SDataFileReader **reader) {
+    int32_t code = 0;
+    int32_t lino = 0;
+
+    reader[0] = taosMemoryCalloc(1, sizeof(**reader));
+    if (reader[0] == NULL) {
+      code = TSDB_CODE_OUT_OF_MEMORY;
+      TSDB_CHECK_CODE(code, lino, _exit);
+    }
+
+    reader[0]->config[0] = config[0];
+    if (reader[0]->config->bufArr == NULL) {
+      reader[0]->config->bufArr = reader[0]->bufArr;
+    }
+
+    if (fname) {
+      for (int32_t i = 0; i < TSDB_FTYPE_MAX; ++i) {
+        if (fname[i]) {
+          code = tsdbOpenFile(fname[i], config->szPage, TD_FILE_READ, &reader[0]->fd[i]);
+          TSDB_CHECK_CODE(code, lino, _exit);
+        }
+      }
+    } else {
+      for (int32_t i = 0; i < TSDB_FTYPE_MAX; ++i) {
+        if (config->files[i].exist) {
+          char fname1[TSDB_FILENAME_LEN];
+          tsdbTFileName(config->tsdb, &config->files[i].file, fname1);
+          code = tsdbOpenFile(fname1, config->szPage, TD_FILE_READ, &reader[0]->fd[i]);
+          TSDB_CHECK_CODE(code, lino, _exit);
+        }
+      }
+    }
+
+  _exit:
+    if (code) {
+      TSDB_ERROR_LOG(TD_VID(config->tsdb->pVnode), lino, code);
+    }
+    return code;
+  }
+
+  int32_t tsdbDataFileReaderClose(SDataFileReader * *reader) {
+    if (reader[0] == NULL) return 0;
+
+    TARRAY2_DESTROY(reader[0]->tombBlkArray, NULL);
+    TARRAY2_DESTROY(reader[0]->brinBlkArray, NULL);
 
 #if 0
   TARRAY2_DESTROY(reader[0]->dataBlkArray, NULL);

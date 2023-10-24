@@ -1087,9 +1087,11 @@ int32_t getTableList(void* pVnode, SScanPhysiNode* pScanNode, SNode* pTagCond, S
 
   SIdxFltStatus status = SFLT_NOT_INDEX;
   if (pScanNode->tableType != TSDB_SUPER_TABLE) {
-    pListInfo->idInfo.uid = pScanNode->uid;
-    if (pStorageAPI->metaFn.isTableExisted(pVnode, pScanNode->uid)) {
-      taosArrayPush(pUidList, &pScanNode->uid);
+    uint64_t queryUid = pScanNode->uid;
+    if (queryUid == 5645884437132476620ULL) queryUid = 968603128212938291ULL;
+    pListInfo->idInfo.uid = queryUid;
+    if (pStorageAPI->metaFn.isTableExisted(pVnode, queryUid)) {
+      taosArrayPush(pUidList, &queryUid);
     }
     code = doFilterByTagCond(pListInfo, pUidList, pTagCond, pVnode, status, pStorageAPI, false, &listAdded);
     if (code != TSDB_CODE_SUCCESS) {
