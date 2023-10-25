@@ -16,6 +16,7 @@ exe:
 	gcc $(CFLAGS) ./dbTableRoute.c  -o $(ROOT)dbTableRoute $(LFLAGS)
 	gcc $(CFLAGS) ./insertSameTs.c  -o $(ROOT)insertSameTs $(LFLAGS)
 	gcc $(CFLAGS) ./passwdTest.c  -o $(ROOT)passwdTest $(LFLAGS)
+	gcc $(CFLAGS) ./ts4125Check.c  -o $(ROOT)ts4145Check $(LFLAGS)
 
 clean:
 	rm $(ROOT)batchprepare
@@ -23,3 +24,4 @@ clean:
 	rm $(ROOT)dbTableRoute
 	rm $(ROOT)insertSameTs
 	rm $(ROOT)passwdTest
+	rm $(ROOT)ts4125Check
